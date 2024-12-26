@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      campaigns: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          difficulty_level: string | null
+          genre: string | null
+          id: string
+          name: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          difficulty_level?: string | null
+          genre?: string | null
+          id?: string
+          name: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          difficulty_level?: string | null
+          genre?: string | null
+          id?: string
+          name?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string | null
@@ -35,6 +71,255 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      character_equipment: {
+        Row: {
+          character_id: string | null
+          created_at: string | null
+          description: string | null
+          equipped: boolean | null
+          id: string
+          item_name: string
+          item_type: string
+          quantity: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          character_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          equipped?: boolean | null
+          id?: string
+          item_name: string
+          item_type: string
+          quantity?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          character_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          equipped?: boolean | null
+          id?: string
+          item_name?: string
+          item_type?: string
+          quantity?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_equipment_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_stats: {
+        Row: {
+          armor_class: number
+          character_id: string | null
+          charisma: number
+          constitution: number
+          created_at: string | null
+          current_hit_points: number
+          dexterity: number
+          id: string
+          initiative_bonus: number | null
+          intelligence: number
+          max_hit_points: number
+          speed: number | null
+          strength: number
+          temporary_hit_points: number | null
+          updated_at: string | null
+          wisdom: number
+        }
+        Insert: {
+          armor_class: number
+          character_id?: string | null
+          charisma: number
+          constitution: number
+          created_at?: string | null
+          current_hit_points: number
+          dexterity: number
+          id?: string
+          initiative_bonus?: number | null
+          intelligence: number
+          max_hit_points: number
+          speed?: number | null
+          strength: number
+          temporary_hit_points?: number | null
+          updated_at?: string | null
+          wisdom: number
+        }
+        Update: {
+          armor_class?: number
+          character_id?: string | null
+          charisma?: number
+          constitution?: number
+          created_at?: string | null
+          current_hit_points?: number
+          dexterity?: number
+          id?: string
+          initiative_bonus?: number | null
+          intelligence?: number
+          max_hit_points?: number
+          speed?: number | null
+          strength?: number
+          temporary_hit_points?: number | null
+          updated_at?: string | null
+          wisdom?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_stats_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      characters: {
+        Row: {
+          alignment: string | null
+          background: string | null
+          class: string
+          created_at: string | null
+          experience_points: number | null
+          id: string
+          level: number | null
+          name: string
+          race: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          alignment?: string | null
+          background?: string | null
+          class: string
+          created_at?: string | null
+          experience_points?: number | null
+          id?: string
+          level?: number | null
+          name: string
+          race: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          alignment?: string | null
+          background?: string | null
+          class?: string
+          created_at?: string | null
+          experience_points?: number | null
+          id?: string
+          level?: number | null
+          name?: string
+          race?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      combat_encounters: {
+        Row: {
+          combat_log: Json | null
+          created_at: string | null
+          description: string | null
+          difficulty: string | null
+          id: string
+          initiative_order: Json | null
+          location_id: string | null
+          session_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          combat_log?: Json | null
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          initiative_order?: Json | null
+          location_id?: string | null
+          session_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          combat_log?: Json | null
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          initiative_order?: Json | null
+          location_id?: string | null
+          session_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "combat_encounters_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "combat_encounters_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dialogue_history: {
+        Row: {
+          context: Json | null
+          created_at: string | null
+          id: string
+          message: string
+          session_id: string | null
+          speaker_id: string | null
+          speaker_type: string | null
+          timestamp: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          message: string
+          session_id?: string | null
+          speaker_id?: string | null
+          speaker_type?: string | null
+          timestamp?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          session_id?: string | null
+          speaker_id?: string | null
+          speaker_type?: string | null
+          timestamp?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dialogue_history_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "game_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       events: {
         Row: {
@@ -86,6 +371,57 @@ export type Database = {
           },
         ]
       }
+      game_sessions: {
+        Row: {
+          campaign_id: string | null
+          character_id: string | null
+          created_at: string | null
+          end_time: string | null
+          id: string
+          session_number: number | null
+          start_time: string | null
+          summary: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          character_id?: string | null
+          created_at?: string | null
+          end_time?: string | null
+          id?: string
+          session_number?: number | null
+          start_time?: string | null
+          summary?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          character_id?: string | null
+          created_at?: string | null
+          end_time?: string | null
+          id?: string
+          session_number?: number | null
+          start_time?: string | null
+          summary?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_sessions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_sessions_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       historical_media: {
         Row: {
           content: string
@@ -124,6 +460,117 @@ export type Database = {
           },
         ]
       }
+      locations: {
+        Row: {
+          coordinates: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          location_type: string | null
+          name: string
+          parent_location_id: string | null
+          updated_at: string | null
+          world_id: string | null
+        }
+        Insert: {
+          coordinates?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location_type?: string | null
+          name: string
+          parent_location_id?: string | null
+          updated_at?: string | null
+          world_id?: string | null
+        }
+        Update: {
+          coordinates?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location_type?: string | null
+          name?: string
+          parent_location_id?: string | null
+          updated_at?: string | null
+          world_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_parent_location_id_fkey"
+            columns: ["parent_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "locations_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      npcs: {
+        Row: {
+          class: string | null
+          created_at: string | null
+          current_location_id: string | null
+          description: string | null
+          id: string
+          level: number | null
+          name: string
+          personality: string | null
+          race: string | null
+          stats: Json | null
+          updated_at: string | null
+          world_id: string | null
+        }
+        Insert: {
+          class?: string | null
+          created_at?: string | null
+          current_location_id?: string | null
+          description?: string | null
+          id?: string
+          level?: number | null
+          name: string
+          personality?: string | null
+          race?: string | null
+          stats?: Json | null
+          updated_at?: string | null
+          world_id?: string | null
+        }
+        Update: {
+          class?: string | null
+          created_at?: string | null
+          current_location_id?: string | null
+          description?: string | null
+          id?: string
+          level?: number | null
+          name?: string
+          personality?: string | null
+          race?: string | null
+          stats?: Json | null
+          updated_at?: string | null
+          world_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "npcs_current_location_id_fkey"
+            columns: ["current_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "npcs_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Oversight: {
         Row: {
           created_at: string
@@ -138,6 +585,104 @@ export type Database = {
           id?: number
         }
         Relationships: []
+      }
+      quest_progress: {
+        Row: {
+          character_id: string | null
+          created_at: string | null
+          current_objective: string | null
+          id: string
+          progress_data: Json | null
+          quest_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          character_id?: string | null
+          created_at?: string | null
+          current_objective?: string | null
+          id?: string
+          progress_data?: Json | null
+          quest_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          character_id?: string | null
+          created_at?: string | null
+          current_objective?: string | null
+          id?: string
+          progress_data?: Json | null
+          quest_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quest_progress_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quest_progress_quest_id_fkey"
+            columns: ["quest_id"]
+            isOneToOne: false
+            referencedRelation: "quests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quests: {
+        Row: {
+          campaign_id: string | null
+          created_at: string | null
+          description: string | null
+          difficulty: string | null
+          id: string
+          prerequisites: Json | null
+          quest_type: string | null
+          rewards: Json | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          prerequisites?: Json | null
+          quest_type?: string | null
+          rewards?: Json | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          prerequisites?: Json | null
+          quest_type?: string | null
+          rewards?: Json | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quests_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       timelines: {
         Row: {
@@ -220,6 +765,138 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      world_factions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          faction_type: string | null
+          id: string
+          influence_level: number | null
+          name: string
+          relationships: Json | null
+          updated_at: string | null
+          world_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          faction_type?: string | null
+          id?: string
+          influence_level?: number | null
+          name: string
+          relationships?: Json | null
+          updated_at?: string | null
+          world_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          faction_type?: string | null
+          id?: string
+          influence_level?: number | null
+          name?: string
+          relationships?: Json | null
+          updated_at?: string | null
+          world_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "world_factions_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      world_history: {
+        Row: {
+          affected_factions: Json | null
+          created_at: string | null
+          description: string | null
+          event_date: string | null
+          event_name: string
+          id: string
+          significance_level: number | null
+          updated_at: string | null
+          world_id: string | null
+        }
+        Insert: {
+          affected_factions?: Json | null
+          created_at?: string | null
+          description?: string | null
+          event_date?: string | null
+          event_name: string
+          id?: string
+          significance_level?: number | null
+          updated_at?: string | null
+          world_id?: string | null
+        }
+        Update: {
+          affected_factions?: Json | null
+          created_at?: string | null
+          description?: string | null
+          event_date?: string | null
+          event_name?: string
+          id?: string
+          significance_level?: number | null
+          updated_at?: string | null
+          world_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "world_history_world_id_fkey"
+            columns: ["world_id"]
+            isOneToOne: false
+            referencedRelation: "worlds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      worlds: {
+        Row: {
+          campaign_id: string | null
+          climate_type: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          magic_level: string | null
+          name: string
+          technology_level: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          climate_type?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          magic_level?: string | null
+          name: string
+          technology_level?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          climate_type?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          magic_level?: string | null
+          name?: string
+          technology_level?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worlds_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
             referencedColumns: ["id"]
           },
         ]

@@ -7,6 +7,7 @@ import RaceSelection from './steps/RaceSelection';
 import ClassSelection from './steps/ClassSelection';
 import AbilityScoresSelection from './steps/AbilityScoresSelection';
 import BackgroundSelection from './steps/BackgroundSelection';
+import EquipmentSelection from './steps/EquipmentSelection';
 
 /**
  * Array of steps in the character creation process
@@ -17,7 +18,7 @@ const steps = [
   { component: ClassSelection, label: 'Class' },
   { component: AbilityScoresSelection, label: 'Ability Scores' },
   { component: BackgroundSelection, label: 'Background' },
-  // Additional steps will be added here
+  { component: EquipmentSelection, label: 'Equipment' },
 ];
 
 /**

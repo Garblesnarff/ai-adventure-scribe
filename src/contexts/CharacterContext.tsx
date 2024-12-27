@@ -19,8 +19,31 @@ type CharacterAction =
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'RESET' };
 
+// Initialize with empty character to avoid null checks
 const initialState: CharacterState = {
-  character: null,
+  character: {
+    user_id: '', // Will be set when user authenticates
+    name: '',
+    race: null,
+    class: null,
+    level: 1,
+    background: null,
+    abilityScores: {
+      strength: { score: 10, modifier: 0, savingThrow: false },
+      dexterity: { score: 10, modifier: 0, savingThrow: false },
+      constitution: { score: 10, modifier: 0, savingThrow: false },
+      intelligence: { score: 10, modifier: 0, savingThrow: false },
+      wisdom: { score: 10, modifier: 0, savingThrow: false },
+      charisma: { score: 10, modifier: 0, savingThrow: false }
+    },
+    experience: 0,
+    alignment: '',
+    personalityTraits: [],
+    ideals: [],
+    bonds: [],
+    flaws: [],
+    equipment: []
+  },
   isDirty: false,
   currentStep: 0,
   isLoading: false,
@@ -33,6 +56,9 @@ const CharacterContext = createContext<{
 } | null>(null);
 
 function characterReducer(state: CharacterState, action: CharacterAction): CharacterState {
+  console.log('Reducer action:', action.type, action.payload); // Debug log
+  console.log('Current state:', state); // Debug log
+
   switch (action.type) {
     case 'SET_CHARACTER':
       return {
@@ -41,9 +67,14 @@ function characterReducer(state: CharacterState, action: CharacterAction): Chara
         isDirty: false,
       };
     case 'UPDATE_CHARACTER':
+      const updatedCharacter = {
+        ...state.character,
+        ...action.payload
+      };
+      console.log('Updated character:', updatedCharacter); // Debug log
       return {
         ...state,
-        character: state.character ? { ...state.character, ...action.payload } : null,
+        character: updatedCharacter,
         isDirty: true,
       };
     case 'SET_STEP':

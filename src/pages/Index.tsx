@@ -1,7 +1,7 @@
-import { GameInterface } from "@/components/GameInterface";
+import CharacterWizard from "@/components/character-creation/CharacterWizard";
 
 const Index = () => {
-  return <GameInterface />;
+  return <CharacterWizard />;
 };
 
 export default Index;

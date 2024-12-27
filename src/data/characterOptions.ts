@@ -1,3 +1,5 @@
+import { AbilityScores } from '@/types/character';
+
 export const races = [
   {
     id: 'dwarf',

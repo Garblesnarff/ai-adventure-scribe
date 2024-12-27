@@ -2,11 +2,12 @@ import React from 'react';
 import { useCharacter } from '@/contexts/CharacterContext';
 import { Card } from '@/components/ui/card';
 import { classes } from '@/data/characterOptions';
+import { CharacterClass } from '@/types/character';
 
 const ClassSelection: React.FC = () => {
   const { state, dispatch } = useCharacter();
 
-  const handleClassSelect = (characterClass: typeof classes[0]) => {
+  const handleClassSelect = (characterClass: CharacterClass) => {
     dispatch({
       type: 'UPDATE_CHARACTER',
       payload: { class: characterClass }
@@ -29,11 +30,11 @@ const ClassSelection: React.FC = () => {
             <p className="text-sm text-gray-600 mb-3">{characterClass.description}</p>
             <div className="text-sm">
               <p><span className="font-medium">Hit Die:</span> d{characterClass.hitDie}</p>
-              <p><span className="font-medium">Primary Ability:</span> {characterClass.primaryAbility}</p>
+              <p><span className="font-medium">Primary Ability:</span> {characterClass.primaryAbility.toString().charAt(0).toUpperCase() + characterClass.primaryAbility.toString().slice(1)}</p>
               <p className="font-medium mt-2">Saving Throw Proficiencies:</p>
               <ul className="list-disc list-inside">
                 {characterClass.savingThrowProficiencies.map((save, index) => (
-                  <li key={index} className="capitalize">{save}</li>
+                  <li key={index} className="capitalize">{save.toString()}</li>
                 ))}
               </ul>
             </div>

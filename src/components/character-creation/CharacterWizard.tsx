@@ -5,13 +5,23 @@ import StepNavigation from './shared/StepNavigation';
 import ProgressIndicator from './shared/ProgressIndicator';
 import RaceSelection from './steps/RaceSelection';
 import ClassSelection from './steps/ClassSelection';
+import AbilityScoresSelection from './steps/AbilityScoresSelection';
 
+/**
+ * Array of steps in the character creation process
+ * Each step has a component and label
+ */
 const steps = [
   { component: RaceSelection, label: 'Race' },
   { component: ClassSelection, label: 'Class' },
+  { component: AbilityScoresSelection, label: 'Ability Scores' },
   // Additional steps will be added here
 ];
 
+/**
+ * Main content component for the character creation wizard
+ * Handles step navigation and component rendering
+ */
 const WizardContent: React.FC = () => {
   const { state, dispatch } = useCharacter();
   const [currentStep, setCurrentStep] = React.useState(0);
@@ -47,6 +57,9 @@ const WizardContent: React.FC = () => {
   );
 };
 
+/**
+ * Wrapper component that provides character context to the wizard
+ */
 const CharacterWizard: React.FC = () => {
   return (
     <CharacterProvider>

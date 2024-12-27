@@ -64,6 +64,7 @@ export interface Character {
   bonds: string[];
   flaws: string[];
   equipment: string[];
+  remainingAbilityPoints?: number;
   created_at?: string; // Changed to match Supabase schema
   updated_at?: string; // Changed to match Supabase schema
 }

@@ -13,47 +13,110 @@ type ClassEquipmentMap = {
 };
 
 /**
- * Starting equipment options for each character class
+ * Starting equipment options for each character class following D&D 5E rules
  */
 const classStartingEquipment: ClassEquipmentMap = {
   Fighter: [
     {
       items: [
         'Chain mail',
-        'Longsword',
-        'Shield',
+        'Martial weapon and shield',
         'Light crossbow and 20 bolts',
-        'Dungeoneer\'s pack',
+        "Dungeoneer's pack",
       ]
     },
     {
       items: [
         'Leather armor',
-        'Two handaxes',
+        'Two martial weapons',
         'Longbow and 20 arrows',
-        'Explorer\'s pack',
+        "Explorer's pack",
       ]
     }
   ],
   Wizard: [
     {
       items: [
-        'Spellbook',
         'Quarterstaff',
         'Component pouch',
-        'Scholar\'s pack',
+        'Spellbook',
+        "Scholar's pack",
+        'Arcane focus',
       ]
     },
     {
       items: [
-        'Spellbook',
         'Dagger',
+        'Component pouch',
+        'Spellbook',
+        "Explorer's pack",
         'Arcane focus',
-        'Explorer\'s pack',
       ]
     }
   ],
-  // Add more classes and their equipment options here
+  Rogue: [
+    {
+      items: [
+        'Rapier',
+        'Shortbow and 20 arrows',
+        "Burglar's pack",
+        'Leather armor',
+        'Two daggers',
+        "Thieves' tools",
+      ]
+    },
+    {
+      items: [
+        'Shortsword',
+        'Shortbow and 20 arrows',
+        "Explorer's pack",
+        'Leather armor',
+        'Two daggers',
+        "Thieves' tools",
+      ]
+    }
+  ],
+  Cleric: [
+    {
+      items: [
+        'Mace',
+        'Scale mail',
+        'Light crossbow and 20 bolts',
+        "Priest's pack",
+        'Shield',
+        'Holy symbol',
+      ]
+    },
+    {
+      items: [
+        'Warhammer',
+        'Scale mail',
+        "Explorer's pack",
+        'Shield',
+        'Holy symbol',
+      ]
+    }
+  ],
+  Bard: [
+    {
+      items: [
+        'Rapier',
+        'Leather armor',
+        "Diplomat's pack",
+        'Lute',
+        'Dagger',
+      ]
+    },
+    {
+      items: [
+        'Longsword',
+        'Leather armor',
+        "Entertainer's pack",
+        'Lute',
+        'Dagger',
+      ]
+    }
+  ]
 };
 
 /**

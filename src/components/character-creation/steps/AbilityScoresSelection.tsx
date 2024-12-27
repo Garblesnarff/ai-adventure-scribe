@@ -12,7 +12,19 @@ import { AbilityScores } from '@/types/character';
 const AbilityScoresSelection: React.FC = () => {
   const { state, dispatch } = useCharacter();
   const { toast } = useToast();
-  const [remainingPoints, setRemainingPoints] = React.useState(27); // Standard point-buy system
+  
+  // Initialize remaining points from context or default value
+  const [remainingPoints, setRemainingPoints] = React.useState(() => {
+    return state.character?.remainingAbilityPoints ?? 27;
+  });
+
+  React.useEffect(() => {
+    // Update context with remaining points whenever they change
+    dispatch({
+      type: 'UPDATE_CHARACTER',
+      payload: { remainingAbilityPoints: remainingPoints }
+    });
+  }, [remainingPoints, dispatch]);
 
   // Cost table for point-buy system
   const pointCost: { [key: number]: number } = {

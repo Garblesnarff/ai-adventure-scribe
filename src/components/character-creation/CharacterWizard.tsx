@@ -8,6 +8,9 @@ import ClassSelection from './steps/ClassSelection';
 import AbilityScoresSelection from './steps/AbilityScoresSelection';
 import BackgroundSelection from './steps/BackgroundSelection';
 import EquipmentSelection from './steps/EquipmentSelection';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { transformCharacterForStorage } from '@/types/character';
 
 /**
  * Array of steps in the character creation process
@@ -28,13 +31,99 @@ const steps = [
 const WizardContent: React.FC = () => {
   const { state, dispatch } = useCharacter();
   const [currentStep, setCurrentStep] = React.useState(0);
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = React.useState(false);
 
-  const handleNext = () => {
+  /**
+   * Saves the current character state to Supabase
+   * Handles both creation and updates
+   */
+  const saveCharacter = async () => {
+    if (!state.character) return;
+
+    try {
+      setIsSaving(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in to save your character.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Transform character data for storage
+      const characterData = transformCharacterForStorage({
+        ...state.character,
+        user_id: user.id,
+      });
+
+      // Insert character data
+      const { error: characterError } = await supabase
+        .from('characters')
+        .upsert(characterData, { onConflict: 'id' });
+
+      if (characterError) throw characterError;
+
+      // Insert character stats
+      const { error: statsError } = await supabase
+        .from('character_stats')
+        .upsert({
+          character_id: characterData.id,
+          ...state.character.abilityScores,
+        }, { onConflict: 'character_id' });
+
+      if (statsError) throw statsError;
+
+      // Insert equipment
+      if (state.character.equipment.length > 0) {
+        const equipmentData = state.character.equipment.map(item => ({
+          character_id: characterData.id,
+          item_name: item,
+          item_type: 'starting_equipment',
+        }));
+
+        const { error: equipmentError } = await supabase
+          .from('character_equipment')
+          .upsert(equipmentData, { onConflict: 'character_id,item_name' });
+
+        if (equipmentError) throw equipmentError;
+      }
+
+      toast({
+        title: "Success",
+        description: "Character saved successfully!",
+      });
+    } catch (error) {
+      console.error('Error saving character:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save character. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  /**
+   * Handles navigation to the next step
+   * Attempts to save character data when moving between steps
+   */
+  const handleNext = async () => {
     if (currentStep < steps.length - 1) {
+      await saveCharacter();
       setCurrentStep(currentStep + 1);
     }
   };
 
+  /**
+   * Handles navigation to the previous step
+   */
   const handlePrevious = () => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
@@ -54,6 +143,7 @@ const WizardContent: React.FC = () => {
           totalSteps={steps.length}
           onNext={handleNext}
           onPrevious={handlePrevious}
+          isLoading={isSaving}
         />
       </Card>
     </div>

@@ -1,40 +1,47 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface StepNavigationProps {
   currentStep: number;
   totalSteps: number;
   onNext: () => void;
   onPrevious: () => void;
-  isNextDisabled?: boolean;
+  isLoading?: boolean;
 }
 
+/**
+ * Navigation component for the character creation wizard
+ * Handles next/previous navigation and displays loading state
+ */
 const StepNavigation: React.FC<StepNavigationProps> = ({
   currentStep,
   totalSteps,
   onNext,
   onPrevious,
-  isNextDisabled = false,
+  isLoading = false,
 }) => {
   return (
     <div className="flex justify-between mt-6">
       <Button
         variant="outline"
         onClick={onPrevious}
-        disabled={currentStep === 0}
-        className="w-32"
+        disabled={currentStep === 0 || isLoading}
       >
-        <ChevronLeft className="mr-2 h-4 w-4" />
         Previous
       </Button>
       <Button
         onClick={onNext}
-        disabled={isNextDisabled || currentStep === totalSteps - 1}
-        className="w-32"
+        disabled={isLoading}
       >
-        {currentStep === totalSteps - 1 ? 'Finish' : 'Next'}
-        {currentStep !== totalSteps - 1 && <ChevronRight className="ml-2 h-4 w-4" />}
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Saving...
+          </>
+        ) : (
+          currentStep === totalSteps - 1 ? 'Finish' : 'Next'
+        )}
       </Button>
     </div>
   );

@@ -24,21 +24,15 @@ export const useCharacterSave = () => {
 
     try {
       setIsSaving(true);
+      
+      // Get current user if authenticated
       const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in to save your character.",
-          variant: "destructive",
-        });
-        return false;
-      }
-
+      
       // Transform and save character data
       const characterData = transformCharacterForStorage({
         ...character,
-        user_id: user.id,
+        // Use authenticated user ID if available, otherwise use a local identifier
+        user_id: user?.id || 'local-user',
       });
 
       const { error: characterError } = await supabase

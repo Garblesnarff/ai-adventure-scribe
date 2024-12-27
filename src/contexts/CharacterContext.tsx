@@ -146,20 +146,4 @@ export function useCharacter() {
   return context;
 }
 
-/**
- * Utility function to save character data to Supabase
- * Returns a boolean indicating success/failure
- */
-export async function saveCharacterDraft(character: Character) {
-  try {
-    const { error } = await supabase
-      .from('characters')
-      .upsert(transformCharacterForStorage(character));
-
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error('Error saving character draft:', error);
-    return false;
-  }
-}
+// Remove the saveCharacterDraft function as it's now handled by useCharacterSave hook

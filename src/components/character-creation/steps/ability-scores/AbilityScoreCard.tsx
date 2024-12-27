@@ -2,30 +2,27 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AbilityScores } from '@/types/character';
+import { POINT_BUY_COSTS } from '@/utils/abilityScoreUtils';
 
 interface AbilityScoreCardProps {
   ability: keyof AbilityScores;
   score: number;
   modifier: number;
-  onIncrease: () => void;
-  onDecrease: () => void;
-  isIncreaseDisabled: boolean;
-  isDecreaseDisabled: boolean;
+  remainingPoints: number;
+  onScoreChange: (ability: keyof AbilityScores, increase: boolean) => void;
 }
 
-/**
- * Component for displaying and managing a single ability score
- * Includes the score value, modifier, and controls for increasing/decreasing
- */
 const AbilityScoreCard: React.FC<AbilityScoreCardProps> = ({
   ability,
   score,
   modifier,
-  onIncrease,
-  onDecrease,
-  isIncreaseDisabled,
-  isDecreaseDisabled,
+  remainingPoints,
+  onScoreChange,
 }) => {
+  const isIncreaseDisabled = score === 15 || 
+    remainingPoints < (POINT_BUY_COSTS[score + 1] - POINT_BUY_COSTS[score]);
+  const isDecreaseDisabled = score === 8;
+
   return (
     <Card className="p-4">
       <h3 className="text-xl font-semibold capitalize mb-2">{ability}</h3>
@@ -33,7 +30,7 @@ const AbilityScoreCard: React.FC<AbilityScoreCardProps> = ({
         <Button
           variant="outline"
           size="sm"
-          onClick={onDecrease}
+          onClick={() => onScoreChange(ability, false)}
           disabled={isDecreaseDisabled}
         >
           -
@@ -47,7 +44,7 @@ const AbilityScoreCard: React.FC<AbilityScoreCardProps> = ({
         <Button
           variant="outline"
           size="sm"
-          onClick={onIncrease}
+          onClick={() => onScoreChange(ability, true)}
           disabled={isIncreaseDisabled}
         >
           +

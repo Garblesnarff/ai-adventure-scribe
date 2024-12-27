@@ -29,7 +29,7 @@ const EquipmentSelection: React.FC = () => {
     toast({
       title: "Equipment Selected",
       description: "Your starting equipment has been added to your inventory.",
-      duration: 1000, // 1 second duration
+      duration: 1000,
     });
   };
 
@@ -37,22 +37,33 @@ const EquipmentSelection: React.FC = () => {
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center mb-4">Choose Your Equipment</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {startingEquipment.map((option, index) => (
-          <Card 
-            key={index}
-            className="p-4 cursor-pointer transition-all hover:shadow-lg"
-            onClick={() => handleEquipmentSelect(option.items)}
-            role="button"
-            tabIndex={0}
-          >
-            <h3 className="text-xl font-semibold mb-2">Option {index + 1}</h3>
-            <ul className="list-disc list-inside space-y-1">
-              {option.items.map((item, itemIndex) => (
-                <li key={itemIndex} className="text-sm text-gray-600">{item}</li>
-              ))}
-            </ul>
-          </Card>
-        ))}
+        {startingEquipment.map((option, index) => {
+          const isSelected = JSON.stringify(state.character?.equipment) === JSON.stringify(option.items);
+          
+          return (
+            <Card 
+              key={index}
+              className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
+                isSelected ? 'ring-2 ring-primary bg-accent/10' : ''
+              }`}
+              onClick={() => handleEquipmentSelect(option.items)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  handleEquipmentSelect(option.items);
+                }
+              }}
+            >
+              <h3 className="text-xl font-semibold mb-2">Option {index + 1}</h3>
+              <ul className="list-disc list-inside space-y-1">
+                {option.items.map((item, itemIndex) => (
+                  <li key={itemIndex} className="text-sm text-gray-600">{item}</li>
+                ))}
+              </ul>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

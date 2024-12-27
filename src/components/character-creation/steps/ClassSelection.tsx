@@ -1,7 +1,7 @@
 import React from 'react';
 import { useCharacter } from '@/contexts/CharacterContext';
 import { Card } from '@/components/ui/card';
-import { classes } from '@/data/characterOptions';
+import { classes } from '@/data/classOptions';
 import { CharacterClass } from '@/types/character';
 
 const ClassSelection: React.FC = () => {
@@ -25,6 +25,13 @@ const ClassSelection: React.FC = () => {
               state.character?.class?.id === characterClass.id ? 'ring-2 ring-primary' : ''
             }`}
             onClick={() => handleClassSelect(characterClass)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                handleClassSelect(characterClass);
+              }
+            }}
           >
             <h3 className="text-xl font-semibold mb-2">{characterClass.name}</h3>
             <p className="text-sm text-gray-600 mb-3">{characterClass.description}</p>

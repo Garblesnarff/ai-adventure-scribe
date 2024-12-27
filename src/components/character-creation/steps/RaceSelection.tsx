@@ -1,12 +1,13 @@
 import React from 'react';
 import { useCharacter } from '@/contexts/CharacterContext';
 import { Card } from '@/components/ui/card';
-import { races } from '@/data/characterOptions';
+import { races } from '@/data/raceOptions';
+import { CharacterRace } from '@/types/character';
 
 const RaceSelection: React.FC = () => {
   const { state, dispatch } = useCharacter();
 
-  const handleRaceSelect = (race: typeof races[0]) => {
+  const handleRaceSelect = (race: CharacterRace) => {
     dispatch({
       type: 'UPDATE_CHARACTER',
       payload: { race }
@@ -24,6 +25,13 @@ const RaceSelection: React.FC = () => {
               state.character?.race?.id === race.id ? 'ring-2 ring-primary' : ''
             }`}
             onClick={() => handleRaceSelect(race)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                handleRaceSelect(race);
+              }
+            }}
           >
             <h3 className="text-xl font-semibold mb-2">{race.name}</h3>
             <p className="text-sm text-gray-600 mb-3">{race.description}</p>

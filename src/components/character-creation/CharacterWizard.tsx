@@ -6,6 +6,7 @@ import ProgressIndicator from './shared/ProgressIndicator';
 import RaceSelection from './steps/RaceSelection';
 import ClassSelection from './steps/ClassSelection';
 import AbilityScoresSelection from './steps/AbilityScoresSelection';
+import BackgroundSelection from './steps/BackgroundSelection';
 
 /**
  * Array of steps in the character creation process
@@ -15,6 +16,7 @@ const steps = [
   { component: RaceSelection, label: 'Race' },
   { component: ClassSelection, label: 'Class' },
   { component: AbilityScoresSelection, label: 'Ability Scores' },
+  { component: BackgroundSelection, label: 'Background' },
   // Additional steps will be added here
 ];
 

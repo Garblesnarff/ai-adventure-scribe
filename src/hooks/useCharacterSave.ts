@@ -6,6 +6,12 @@ import { transformAbilityScoresForStorage, transformEquipmentForStorage } from '
 import { useToast } from '@/components/ui/use-toast';
 
 /**
+ * Constant UUID for local users when no authentication is present
+ * This follows the UUID v4 format required by Supabase
+ */
+const LOCAL_USER_ID = '00000000-0000-0000-0000-000000000000';
+
+/**
  * Custom hook for handling character data persistence
  * Provides methods and state for saving character data to Supabase
  */
@@ -31,8 +37,8 @@ export const useCharacterSave = () => {
       // Transform and save character data
       const characterData = transformCharacterForStorage({
         ...character,
-        // Use authenticated user ID if available, otherwise use a local identifier
-        user_id: user?.id || 'local-user',
+        // Use authenticated user ID if available, otherwise use local UUID
+        user_id: user?.id || LOCAL_USER_ID,
       });
 
       const { error: characterError } = await supabase

@@ -8,38 +8,7 @@ import ClassSelection from './steps/ClassSelection';
 import AbilityScoresSelection from './steps/AbilityScoresSelection';
 import BackgroundSelection from './steps/BackgroundSelection';
 import EquipmentSelection from './steps/EquipmentSelection';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
-import { transformCharacterForStorage } from '@/types/character';
-import { AbilityScores } from '@/types/character';
-
-/**
- * Transforms ability scores for database storage
- * Adds required fields and converts from ability score object to flat structure
- */
-const transformAbilityScoresForStorage = (
-  abilityScores: AbilityScores,
-  characterId: string
-) => {
-  // Calculate base armor class (10 + dexterity modifier)
-  const baseArmorClass = 10 + (abilityScores.dexterity.modifier || 0);
-  
-  // Calculate base hit points (we'll use constitution modifier + 8 for level 1)
-  const baseHitPoints = 8 + (abilityScores.constitution.modifier || 0);
-
-  return {
-    character_id: characterId,
-    strength: abilityScores.strength.score,
-    dexterity: abilityScores.dexterity.score,
-    constitution: abilityScores.constitution.score,
-    intelligence: abilityScores.intelligence.score,
-    wisdom: abilityScores.wisdom.score,
-    charisma: abilityScores.charisma.score,
-    armor_class: baseArmorClass,
-    current_hit_points: baseHitPoints,
-    max_hit_points: baseHitPoints,
-  };
-};
+import { useCharacterSave } from '@/hooks/useCharacterSave';
 
 /**
  * Array of steps in the character creation process
@@ -58,88 +27,9 @@ const steps = [
  * Handles step navigation and component rendering
  */
 const WizardContent: React.FC = () => {
-  const { state, dispatch } = useCharacter();
+  const { state } = useCharacter();
   const [currentStep, setCurrentStep] = React.useState(0);
-  const { toast } = useToast();
-  const [isSaving, setIsSaving] = React.useState(false);
-
-  /**
-   * Saves the current character state to Supabase
-   * Handles both creation and updates
-   */
-  const saveCharacter = async () => {
-    if (!state.character) return;
-
-    try {
-      setIsSaving(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in to save your character.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Transform character data for storage
-      const characterData = transformCharacterForStorage({
-        ...state.character,
-        user_id: user.id,
-      });
-
-      // Insert character data
-      const { error: characterError } = await supabase
-        .from('characters')
-        .upsert(characterData, { onConflict: 'id' });
-
-      if (characterError) throw characterError;
-
-      // Transform and insert character stats
-      const statsData = transformAbilityScoresForStorage(
-        state.character.abilityScores,
-        characterData.id
-      );
-
-      const { error: statsError } = await supabase
-        .from('character_stats')
-        .upsert(statsData, { onConflict: 'character_id' });
-
-      if (statsError) throw statsError;
-
-      // Insert equipment
-      if (state.character.equipment.length > 0) {
-        const equipmentData = state.character.equipment.map(item => ({
-          character_id: characterData.id,
-          item_name: item,
-          item_type: 'starting_equipment',
-        }));
-
-        const { error: equipmentError } = await supabase
-          .from('character_equipment')
-          .upsert(equipmentData, { onConflict: 'character_id,item_name' });
-
-        if (equipmentError) throw equipmentError;
-      }
-
-      toast({
-        title: "Success",
-        description: "Character saved successfully!",
-      });
-    } catch (error) {
-      console.error('Error saving character:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save character. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const { saveCharacter, isSaving } = useCharacterSave();
 
   /**
    * Handles navigation to the next step
@@ -147,7 +37,9 @@ const WizardContent: React.FC = () => {
    */
   const handleNext = async () => {
     if (currentStep < steps.length - 1) {
-      await saveCharacter();
+      if (state.character) {
+        await saveCharacter(state.character);
+      }
       setCurrentStep(currentStep + 1);
     }
   };

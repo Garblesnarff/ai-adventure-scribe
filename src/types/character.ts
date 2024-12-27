@@ -50,7 +50,7 @@ export interface CharacterBackground {
 
 export interface Character {
   id?: string;
-  userId: string;
+  user_id: string; // Changed from userId to match Supabase schema
   name: string;
   race: CharacterRace | null;
   class: CharacterClass | null;
@@ -64,6 +64,22 @@ export interface Character {
   bonds: string[];
   flaws: string[];
   equipment: string[];
-  createdAt?: Date;
-  updatedAt?: Date;
+  created_at?: string; // Changed to match Supabase schema
+  updated_at?: string; // Changed to match Supabase schema
+}
+
+// Helper function to transform Character object for Supabase
+export function transformCharacterForStorage(character: Character) {
+  return {
+    id: character.id,
+    user_id: character.user_id,
+    name: character.name,
+    race: character.race?.name || '',
+    class: character.class?.name || '',
+    level: character.level,
+    background: character.background?.name || null,
+    alignment: character.alignment,
+    experience_points: character.experience,
+    updated_at: new Date().toISOString(),
+  };
 }

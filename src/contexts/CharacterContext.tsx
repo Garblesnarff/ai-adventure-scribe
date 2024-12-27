@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import { Character } from '@/types/character';
+import { Character, transformCharacterForStorage } from '@/types/character';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -92,10 +92,7 @@ export async function saveCharacterDraft(character: Character) {
   try {
     const { error } = await supabase
       .from('characters')
-      .upsert({
-        ...character,
-        updated_at: new Date().toISOString(),
-      });
+      .upsert(transformCharacterForStorage(character));
 
     if (error) throw error;
     return true;

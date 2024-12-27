@@ -19,6 +19,7 @@ const ClassSelection: React.FC = () => {
     toast({
       title: "Class Selected",
       description: `You have chosen the ${characterClass.name} class.`,
+      duration: 1000, // 1 second duration
     });
   };
 

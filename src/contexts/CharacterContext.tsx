@@ -3,6 +3,10 @@ import { Character, transformCharacterForStorage } from '@/types/character';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
+/**
+ * Interface defining the shape of the character state
+ * Includes the character data, UI state, and error handling
+ */
 interface CharacterState {
   character: Character | null;
   isDirty: boolean;
@@ -11,7 +15,10 @@ interface CharacterState {
   error: string | null;
 }
 
-// Define action types with proper payload typing
+/**
+ * Union type defining all possible actions that can be dispatched to modify character state
+ * Each action type has its own payload structure
+ */
 type CharacterAction =
   | { type: 'SET_CHARACTER'; payload: Character }
   | { type: 'UPDATE_CHARACTER'; payload: Partial<Character> }
@@ -20,7 +27,10 @@ type CharacterAction =
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'RESET' }; // No payload for RESET action
 
-// Initialize with empty character to avoid null checks
+/**
+ * Initial state with default values to avoid null checks
+ * Provides a base character object with empty/default values
+ */
 const initialState: CharacterState = {
   character: {
     user_id: '', // Will be set when user authenticates
@@ -51,14 +61,22 @@ const initialState: CharacterState = {
   error: null,
 };
 
+/**
+ * Create context with type definition for better TypeScript support
+ */
 const CharacterContext = createContext<{
   state: CharacterState;
   dispatch: React.Dispatch<CharacterAction>;
 } | null>(null);
 
+/**
+ * Reducer function to handle all character state updates
+ * Each action type corresponds to a specific state transformation
+ */
 function characterReducer(state: CharacterState, action: CharacterAction): CharacterState {
-  console.log('Reducer action:', action.type, 'payload' in action ? action.payload : 'No payload'); // Debug log
-  console.log('Current state:', state); // Debug log
+  // Debug logging to track state changes
+  console.log('Reducer action:', action.type, 'payload' in action ? action.payload : 'No payload');
+  console.log('Current state:', state);
 
   switch (action.type) {
     case 'SET_CHARACTER':
@@ -72,7 +90,7 @@ function characterReducer(state: CharacterState, action: CharacterAction): Chara
         ...state.character,
         ...action.payload
       };
-      console.log('Updated character:', updatedCharacter); // Debug log
+      console.log('Updated character:', updatedCharacter);
       return {
         ...state,
         character: updatedCharacter,
@@ -100,6 +118,10 @@ function characterReducer(state: CharacterState, action: CharacterAction): Chara
   }
 }
 
+/**
+ * Provider component that wraps the application to provide character state
+ * Initializes the reducer and provides context values to children
+ */
 export function CharacterProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(characterReducer, initialState);
   const { toast } = useToast();
@@ -112,6 +134,10 @@ export function CharacterProvider({ children }: { children: ReactNode }) {
   return <CharacterContext.Provider value={value}>{children}</CharacterContext.Provider>;
 }
 
+/**
+ * Custom hook to access character context
+ * Throws an error if used outside of CharacterProvider
+ */
 export function useCharacter() {
   const context = useContext(CharacterContext);
   if (!context) {
@@ -120,6 +146,10 @@ export function useCharacter() {
   return context;
 }
 
+/**
+ * Utility function to save character data to Supabase
+ * Returns a boolean indicating success/failure
+ */
 export async function saveCharacterDraft(character: Character) {
   try {
     const { error } = await supabase

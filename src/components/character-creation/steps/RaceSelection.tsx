@@ -19,6 +19,7 @@ const RaceSelection: React.FC = () => {
     toast({
       title: "Race Selected",
       description: `You have chosen the ${race.name} race.`,
+      duration: 1000, // 1 second duration
     });
   };
 

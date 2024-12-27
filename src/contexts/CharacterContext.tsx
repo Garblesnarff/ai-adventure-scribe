@@ -11,13 +11,14 @@ interface CharacterState {
   error: string | null;
 }
 
+// Define action types with proper payload typing
 type CharacterAction =
   | { type: 'SET_CHARACTER'; payload: Character }
   | { type: 'UPDATE_CHARACTER'; payload: Partial<Character> }
   | { type: 'SET_STEP'; payload: number }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'RESET' };
+  | { type: 'RESET' }; // No payload for RESET action
 
 // Initialize with empty character to avoid null checks
 const initialState: CharacterState = {
@@ -56,7 +57,7 @@ const CharacterContext = createContext<{
 } | null>(null);
 
 function characterReducer(state: CharacterState, action: CharacterAction): CharacterState {
-  console.log('Reducer action:', action.type, action.payload); // Debug log
+  console.log('Reducer action:', action.type, 'payload' in action ? action.payload : 'No payload'); // Debug log
   console.log('Current state:', state); // Debug log
 
   switch (action.type) {

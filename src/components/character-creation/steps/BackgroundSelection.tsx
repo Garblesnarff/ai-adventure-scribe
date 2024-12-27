@@ -27,7 +27,7 @@ const BackgroundSelection: React.FC = () => {
     toast({
       title: "Background Selected",
       description: `You have chosen the ${background.name} background.`,
-      duration: 1000,
+      duration: 1000, // 1 second duration
     });
   };
 

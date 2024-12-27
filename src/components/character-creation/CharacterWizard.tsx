@@ -11,6 +11,35 @@ import EquipmentSelection from './steps/EquipmentSelection';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { transformCharacterForStorage } from '@/types/character';
+import { AbilityScores } from '@/types/character';
+
+/**
+ * Transforms ability scores for database storage
+ * Adds required fields and converts from ability score object to flat structure
+ */
+const transformAbilityScoresForStorage = (
+  abilityScores: AbilityScores,
+  characterId: string
+) => {
+  // Calculate base armor class (10 + dexterity modifier)
+  const baseArmorClass = 10 + (abilityScores.dexterity.modifier || 0);
+  
+  // Calculate base hit points (we'll use constitution modifier + 8 for level 1)
+  const baseHitPoints = 8 + (abilityScores.constitution.modifier || 0);
+
+  return {
+    character_id: characterId,
+    strength: abilityScores.strength.score,
+    dexterity: abilityScores.dexterity.score,
+    constitution: abilityScores.constitution.score,
+    intelligence: abilityScores.intelligence.score,
+    wisdom: abilityScores.wisdom.score,
+    charisma: abilityScores.charisma.score,
+    armor_class: baseArmorClass,
+    current_hit_points: baseHitPoints,
+    max_hit_points: baseHitPoints,
+  };
+};
 
 /**
  * Array of steps in the character creation process
@@ -69,13 +98,15 @@ const WizardContent: React.FC = () => {
 
       if (characterError) throw characterError;
 
-      // Insert character stats
+      // Transform and insert character stats
+      const statsData = transformAbilityScoresForStorage(
+        state.character.abilityScores,
+        characterData.id
+      );
+
       const { error: statsError } = await supabase
         .from('character_stats')
-        .upsert({
-          character_id: characterData.id,
-          ...state.character.abilityScores,
-        }, { onConflict: 'character_id' });
+        .upsert(statsData, { onConflict: 'character_id' });
 
       if (statsError) throw statsError;
 

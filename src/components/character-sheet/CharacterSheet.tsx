@@ -4,11 +4,14 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Character } from '@/types/character';
-import { Shield, Swords, Book, ScrollText } from 'lucide-react';
+import BasicInfo from './sections/BasicInfo';
+import CombatStats from './sections/CombatStats';
+import AbilityScores from './sections/AbilityScores';
+import Equipment from './sections/Equipment';
 
 /**
- * CharacterSheet component displays all details about a character
- * including stats, equipment, and background information
+ * CharacterSheet component orchestrates the display of all character information
+ * Fetches character data from Supabase and manages the overall layout
  */
 const CharacterSheet: React.FC = () => {
   const { id } = useParams();
@@ -18,6 +21,7 @@ const CharacterSheet: React.FC = () => {
 
   /**
    * Fetches character data from Supabase including related stats and equipment
+   * Transforms the raw data into the required Character type format
    */
   React.useEffect(() => {
     const fetchCharacter = async () => {
@@ -133,66 +137,10 @@ const CharacterSheet: React.FC = () => {
         <h1 className="text-3xl font-bold text-center mb-8">{character.name}</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Basic Info */}
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <ScrollText className="w-5 h-5" />
-              <h2 className="text-xl font-semibold">Basic Information</h2>
-            </div>
-            <div className="space-y-2">
-              <p><span className="font-medium">Race:</span> {character.race.name}</p>
-              <p><span className="font-medium">Class:</span> {character.class.name}</p>
-              <p><span className="font-medium">Level:</span> {character.level}</p>
-              <p><span className="font-medium">Background:</span> {character.background.name}</p>
-            </div>
-          </Card>
-
-          {/* Combat Stats */}
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Swords className="w-5 h-5" />
-              <h2 className="text-xl font-semibold">Combat Statistics</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="font-medium">Hit Points</p>
-                <p>{character.abilityScores.constitution.modifier + 8}</p>
-              </div>
-              <div>
-                <p className="font-medium">Armor Class</p>
-                <p>{10 + character.abilityScores.dexterity.modifier}</p>
-              </div>
-            </div>
-          </Card>
-
-          {/* Ability Scores */}
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-5 h-5" />
-              <h2 className="text-xl font-semibold">Ability Scores</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {Object.entries(character.abilityScores).map(([ability, data]) => (
-                <div key={ability}>
-                  <p className="font-medium capitalize">{ability}</p>
-                  <p>Score: {data.score} (Modifier: {data.modifier >= 0 ? '+' : ''}{data.modifier})</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Equipment */}
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Book className="w-5 h-5" />
-              <h2 className="text-xl font-semibold">Equipment</h2>
-            </div>
-            <ul className="list-disc list-inside space-y-1">
-              {character.equipment.map((item, index) => (
-                <li key={index} className="text-gray-700">{item}</li>
-              ))}
-            </ul>
-          </Card>
+          <BasicInfo character={character} />
+          <CombatStats character={character} />
+          <AbilityScores character={character} />
+          <Equipment character={character} />
         </div>
       </Card>
     </div>

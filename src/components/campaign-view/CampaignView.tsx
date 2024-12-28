@@ -3,19 +3,29 @@ import { useParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
 /**
- * Interface for Campaign data structure
+ * Type for Campaign data structure from Supabase
+ */
+type CampaignRow = Database['public']['Tables']['campaigns']['Row'];
+
+/**
+ * Interface for Campaign data structure with proper type handling
  */
 interface Campaign {
   id: string;
   name: string;
-  description?: string;
-  genre?: string;
-  difficulty_level?: string;
-  campaign_length?: 'one-shot' | 'short' | 'full';
-  tone?: 'serious' | 'humorous' | 'gritty';
-  setting_details?: Record<string, any>;
+  description?: string | null;
+  genre?: string | null;
+  difficulty_level?: string | null;
+  campaign_length?: CampaignRow['campaign_length'];
+  tone?: CampaignRow['tone'];
+  setting_details?: Record<string, any> | null;
+  status?: string | null;
+  user_id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 /**
@@ -41,7 +51,7 @@ const CampaignView: React.FC = () => {
           .single();
 
         if (error) throw error;
-        setCampaign(data);
+        setCampaign(data as Campaign);
       } catch (error) {
         console.error('Error fetching campaign:', error);
         toast({

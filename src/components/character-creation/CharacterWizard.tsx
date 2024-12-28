@@ -36,30 +36,35 @@ const WizardContent: React.FC = () => {
   const { toast } = useToast();
 
   /**
+   * Validates the current character state
+   * Returns true if all required fields are present
+   */
+  const validateCharacter = () => {
+    if (!state.character) return false;
+    const { race, class: characterClass, abilityScores, background } = state.character;
+    return !!(race && characterClass && abilityScores && background);
+  };
+
+  /**
    * Handles navigation to the next step
-   * Attempts to save character data when moving between steps
-   * Redirects to character sheet on completion
+   * Only saves character data on final step completion
    */
   const handleNext = async () => {
     if (currentStep < steps.length - 1) {
+      // Simply move to next step without saving
+      setCurrentStep(currentStep + 1);
+    } else {
+      // On final step, validate and save character
       if (state.character) {
-        try {
-          const savedCharacter = await saveCharacter(state.character);
-          if (savedCharacter) {
-            setCurrentStep(currentStep + 1);
-          }
-        } catch (error) {
-          console.error('Error saving character:', error);
+        if (!validateCharacter()) {
           toast({
-            title: "Error",
-            description: "Failed to save character data",
+            title: "Incomplete Character",
+            description: "Please complete all required fields before saving.",
             variant: "destructive",
           });
+          return;
         }
-      }
-    } else {
-      // On final step
-      if (state.character) {
+
         try {
           const savedCharacter = await saveCharacter(state.character);
           if (savedCharacter?.id) {

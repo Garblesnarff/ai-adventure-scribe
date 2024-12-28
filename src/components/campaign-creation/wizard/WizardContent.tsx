@@ -42,7 +42,6 @@ const WizardContent: React.FC = () => {
         description: "Please sign in to create a campaign.",
         variant: "destructive",
       });
-      // You might want to redirect to login page here
       throw new Error('Authentication required');
     }
 
@@ -93,6 +92,7 @@ const WizardContent: React.FC = () => {
           title: "Success",
           description: "Campaign created successfully!",
         });
+        // Navigate to the campaign view page after successful save
         navigate(`/campaign/${campaignId}`);
       } catch (error) {
         console.error('Error saving campaign:', error);

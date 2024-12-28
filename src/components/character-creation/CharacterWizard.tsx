@@ -14,7 +14,7 @@ import { useToast } from '@/components/ui/use-toast';
 
 /**
  * Array of steps in the character creation process
- * Each step has a component and label
+ * Each step has a component and label for navigation
  */
 const steps = [
   { component: RaceSelection, label: 'Race' },
@@ -26,7 +26,7 @@ const steps = [
 
 /**
  * Main content component for the character creation wizard
- * Handles step navigation and component rendering
+ * Handles step navigation, validation, and character saving
  */
 const WizardContent: React.FC = () => {
   const { state } = useCharacter();
@@ -37,7 +37,8 @@ const WizardContent: React.FC = () => {
 
   /**
    * Validates the current character state
-   * Returns true if all required fields are present
+   * Checks if all required fields are present and properly set
+   * @returns {boolean} True if character data is valid, false otherwise
    */
   const validateCharacter = () => {
     if (!state.character) return false;
@@ -47,7 +48,8 @@ const WizardContent: React.FC = () => {
 
   /**
    * Handles navigation to the next step
-   * Only saves character data on final step completion
+   * On final step, validates and saves the complete character
+   * @returns {Promise<void>}
    */
   const handleNext = async () => {
     if (currentStep < steps.length - 1) {
@@ -88,6 +90,7 @@ const WizardContent: React.FC = () => {
 
   /**
    * Handles navigation to the previous step
+   * Allows users to move backwards through the creation process
    */
   const handlePrevious = () => {
     if (currentStep > 0) {
@@ -95,6 +98,7 @@ const WizardContent: React.FC = () => {
     }
   };
 
+  // Get the component for the current step
   const CurrentStepComponent = steps[currentStep].component;
 
   return (
@@ -117,6 +121,8 @@ const WizardContent: React.FC = () => {
 
 /**
  * Wrapper component that provides character context to the wizard
+ * Ensures all child components have access to character state
+ * @returns {JSX.Element} The complete character creation wizard
  */
 const CharacterWizard: React.FC = () => {
   return (

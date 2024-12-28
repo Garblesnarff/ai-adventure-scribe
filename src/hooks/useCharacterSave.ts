@@ -41,11 +41,25 @@ export const useCharacterSave = () => {
         user_id: user?.id || LOCAL_USER_ID,
       });
 
-      const { error: characterError } = await supabase
-        .from('characters')
-        .upsert(characterData, { onConflict: 'id' });
+      // For new characters, we need to insert first to get an ID
+      if (!characterData.id) {
+        const { data: newCharacter, error: insertError } = await supabase
+          .from('characters')
+          .insert(characterData)
+          .select()
+          .single();
 
-      if (characterError) throw characterError;
+        if (insertError) throw insertError;
+        characterData.id = newCharacter.id;
+      } else {
+        // For existing characters, we can update
+        const { error: updateError } = await supabase
+          .from('characters')
+          .update(characterData)
+          .eq('id', characterData.id);
+
+        if (updateError) throw updateError;
+      }
 
       // Transform and save character stats
       const statsData = transformAbilityScoresForStorage(
@@ -55,7 +69,10 @@ export const useCharacterSave = () => {
 
       const { error: statsError } = await supabase
         .from('character_stats')
-        .upsert(statsData, { onConflict: 'character_id' });
+        .upsert(statsData, { 
+          onConflict: 'character_id',
+          ignoreDuplicates: false 
+        });
 
       if (statsError) throw statsError;
 
@@ -68,7 +85,10 @@ export const useCharacterSave = () => {
 
         const { error: equipmentError } = await supabase
           .from('character_equipment')
-          .upsert(equipmentData, { onConflict: 'character_id,item_name' });
+          .upsert(equipmentData, { 
+            onConflict: 'character_id,item_name',
+            ignoreDuplicates: false 
+          });
 
         if (equipmentError) throw equipmentError;
       }

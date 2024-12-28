@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 const WizardContent: React.FC = () => {
   const { state } = useCampaign();
   const [currentStep, setCurrentStep] = React.useState(0);
+  const [isSaving, setIsSaving] = React.useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -33,27 +34,39 @@ const WizardContent: React.FC = () => {
    * @returns {Promise<string>} The ID of the saved campaign
    */
   const saveCampaign = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to create a campaign.",
+        variant: "destructive",
+      });
+      // You might want to redirect to login page here
+      throw new Error('Authentication required');
+    }
 
-      const { data, error } = await supabase
-        .from('campaigns')
-        .insert([
-          {
-            ...state.campaign,
-            user_id: user.id,
-          }
-        ])
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from('campaigns')
+      .insert([
+        {
+          ...state.campaign,
+          user_id: user.id,
+        }
+      ])
+      .select()
+      .single();
 
-      if (error) throw error;
-      return data.id;
-    } catch (error) {
-      console.error('Error saving campaign:', error);
+    if (error) {
+      console.error('Supabase error:', error);
       throw error;
     }
+
+    if (!data) {
+      throw new Error('No data returned from insert');
+    }
+
+    return data.id;
   };
 
   /**
@@ -73,6 +86,7 @@ const WizardContent: React.FC = () => {
         return;
       }
 
+      setIsSaving(true);
       try {
         const campaignId = await saveCampaign();
         toast({
@@ -81,11 +95,14 @@ const WizardContent: React.FC = () => {
         });
         navigate(`/campaign/${campaignId}`);
       } catch (error) {
+        console.error('Error saving campaign:', error);
         toast({
           title: "Error",
-          description: "Failed to create campaign. Please try again.",
+          description: error instanceof Error ? error.message : "Failed to create campaign. Please try again.",
           variant: "destructive",
         });
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -113,6 +130,7 @@ const WizardContent: React.FC = () => {
           totalSteps={wizardSteps.length}
           onNext={handleNext}
           onPrevious={handlePrevious}
+          isLoading={isSaving}
         />
       </Card>
     </div>

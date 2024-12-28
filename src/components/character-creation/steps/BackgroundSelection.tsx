@@ -27,7 +27,7 @@ const BackgroundSelection: React.FC = () => {
     toast({
       title: "Background Selected",
       description: `You have chosen the ${background.name} background.`,
-      duration: 1000, // 1 second duration
+      duration: 1000,
     });
   };
 
@@ -41,8 +41,8 @@ const BackgroundSelection: React.FC = () => {
           return (
             <Card 
               key={background.id}
-              className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
-                isSelected ? 'ring-2 ring-primary bg-accent/10' : ''
+              className={`p-4 cursor-pointer transition-all hover:shadow-lg border-2 ${
+                isSelected ? 'border-primary bg-accent/10' : 'border-transparent'
               }`}
               onClick={() => handleBackgroundSelect(background)}
               role="button"

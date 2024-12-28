@@ -43,8 +43,8 @@ const EquipmentSelection: React.FC = () => {
           return (
             <Card 
               key={index}
-              className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
-                isSelected ? 'ring-2 ring-primary bg-accent/10' : ''
+              className={`p-4 cursor-pointer transition-all hover:shadow-lg border-2 ${
+                isSelected ? 'border-primary bg-accent/10' : 'border-transparent'
               }`}
               onClick={() => handleEquipmentSelect(option.items)}
               role="button"

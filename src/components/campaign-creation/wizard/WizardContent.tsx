@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import StepNavigation from '../shared/StepNavigation';
 import ProgressIndicator from '../shared/ProgressIndicator';
 import { wizardSteps } from './constants';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Main content component for the campaign creation wizard
@@ -28,6 +29,34 @@ const WizardContent: React.FC = () => {
   };
 
   /**
+   * Saves the campaign to the database
+   * @returns {Promise<string>} The ID of the saved campaign
+   */
+  const saveCampaign = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('campaigns')
+        .insert([
+          {
+            ...state.campaign,
+            user_id: user.id,
+          }
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data.id;
+    } catch (error) {
+      console.error('Error saving campaign:', error);
+      throw error;
+    }
+  };
+
+  /**
    * Handles navigation to the next step
    * On final step, validates and saves the campaign
    */
@@ -43,12 +72,21 @@ const WizardContent: React.FC = () => {
         });
         return;
       }
-      // TODO: Implement campaign saving logic
-      toast({
-        title: "Success",
-        description: "Campaign created successfully!",
-      });
-      navigate('/campaigns');
+
+      try {
+        const campaignId = await saveCampaign();
+        toast({
+          title: "Success",
+          description: "Campaign created successfully!",
+        });
+        navigate(`/campaign/${campaignId}`);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create campaign. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

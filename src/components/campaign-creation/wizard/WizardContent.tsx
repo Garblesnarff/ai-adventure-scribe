@@ -45,6 +45,10 @@ const WizardContent: React.FC = () => {
       throw new Error('Authentication required');
     }
 
+    if (!state.campaign) {
+      throw new Error('No campaign data to save');
+    }
+
     const { data, error } = await supabase
       .from('campaigns')
       .insert([
@@ -92,7 +96,6 @@ const WizardContent: React.FC = () => {
           title: "Success",
           description: "Campaign created successfully!",
         });
-        // Navigate to the campaign view page after successful save
         navigate(`/campaign/${campaignId}`);
       } catch (error) {
         console.error('Error saving campaign:', error);

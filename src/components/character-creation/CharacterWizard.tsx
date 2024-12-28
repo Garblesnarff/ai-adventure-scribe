@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { CharacterProvider, useCharacter } from '@/contexts/CharacterContext';
 import StepNavigation from './shared/StepNavigation';
@@ -30,10 +31,12 @@ const WizardContent: React.FC = () => {
   const { state } = useCharacter();
   const [currentStep, setCurrentStep] = React.useState(0);
   const { saveCharacter, isSaving } = useCharacterSave();
+  const navigate = useNavigate();
 
   /**
    * Handles navigation to the next step
    * Attempts to save character data when moving between steps
+   * Redirects to character sheet on completion
    */
   const handleNext = async () => {
     if (currentStep < steps.length - 1) {
@@ -41,6 +44,14 @@ const WizardContent: React.FC = () => {
         await saveCharacter(state.character);
       }
       setCurrentStep(currentStep + 1);
+    } else {
+      // On final step
+      if (state.character) {
+        const savedCharacter = await saveCharacter(state.character);
+        if (savedCharacter?.id) {
+          navigate(`/character/${savedCharacter.id}`);
+        }
+      }
     }
   };
 

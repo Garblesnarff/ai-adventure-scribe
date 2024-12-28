@@ -111,13 +111,9 @@ const CharacterList: React.FC = () => {
    * Navigates to character creation page
    */
   const handleCreateNew = () => {
-    navigate('/character/create');
+    navigate('/characters/create');
   };
 
-  /**
-   * Navigates to character sheet view
-   * @param id - The ID of the character to view
-   */
   const handleViewCharacter = (id: string) => {
     navigate(`/character/${id}`);
   };

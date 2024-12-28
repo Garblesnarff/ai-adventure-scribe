@@ -193,7 +193,7 @@ export type Database = {
           name: string
           race: string
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           alignment?: string | null
@@ -206,7 +206,7 @@ export type Database = {
           name: string
           race: string
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           alignment?: string | null
@@ -219,7 +219,7 @@ export type Database = {
           name?: string
           race?: string
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

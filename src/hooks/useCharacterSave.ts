@@ -23,10 +23,10 @@ export const useCharacterSave = () => {
    * Saves character data to Supabase
    * Handles both creation and updates of character data
    * @param character - The character data to save
-   * @returns Promise<boolean> indicating success/failure
+   * @returns Promise<Character | null> The saved character data or null if save failed
    */
-  const saveCharacter = async (character: Character): Promise<boolean> => {
-    if (!character) return false;
+  const saveCharacter = async (character: Character): Promise<Character | null> => {
+    if (!character) return null;
 
     try {
       setIsSaving(true);
@@ -70,8 +70,7 @@ export const useCharacterSave = () => {
       const { error: statsError } = await supabase
         .from('character_stats')
         .upsert(statsData, { 
-          onConflict: 'character_id',
-          ignoreDuplicates: false 
+          onConflict: 'character_id'
         });
 
       if (statsError) throw statsError;
@@ -86,18 +85,18 @@ export const useCharacterSave = () => {
         const { error: equipmentError } = await supabase
           .from('character_equipment')
           .upsert(equipmentData, { 
-            onConflict: 'character_id,item_name',
-            ignoreDuplicates: false 
+            onConflict: 'character_id,item_name'
           });
 
         if (equipmentError) throw equipmentError;
       }
 
-      toast({
-        title: "Success",
-        description: "Character saved successfully!",
-      });
-      return true;
+      // Return the complete character data
+      return {
+        ...character,
+        id: characterData.id,
+        user_id: characterData.user_id
+      };
     } catch (error) {
       console.error('Error saving character:', error);
       toast({
@@ -105,7 +104,7 @@ export const useCharacterSave = () => {
         description: "Failed to save character. Please try again.",
         variant: "destructive",
       });
-      return false;
+      return null;
     } finally {
       setIsSaving(false);
     }

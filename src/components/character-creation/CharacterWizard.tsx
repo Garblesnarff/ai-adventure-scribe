@@ -10,6 +10,7 @@ import AbilityScoresSelection from './steps/AbilityScoresSelection';
 import BackgroundSelection from './steps/BackgroundSelection';
 import EquipmentSelection from './steps/EquipmentSelection';
 import { useCharacterSave } from '@/hooks/useCharacterSave';
+import { useToast } from '@/components/ui/use-toast';
 
 /**
  * Array of steps in the character creation process
@@ -32,6 +33,7 @@ const WizardContent: React.FC = () => {
   const [currentStep, setCurrentStep] = React.useState(0);
   const { saveCharacter, isSaving } = useCharacterSave();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   /**
    * Handles navigation to the next step
@@ -41,15 +43,39 @@ const WizardContent: React.FC = () => {
   const handleNext = async () => {
     if (currentStep < steps.length - 1) {
       if (state.character) {
-        await saveCharacter(state.character);
+        try {
+          const savedCharacter = await saveCharacter(state.character);
+          if (savedCharacter) {
+            setCurrentStep(currentStep + 1);
+          }
+        } catch (error) {
+          console.error('Error saving character:', error);
+          toast({
+            title: "Error",
+            description: "Failed to save character data",
+            variant: "destructive",
+          });
+        }
       }
-      setCurrentStep(currentStep + 1);
     } else {
       // On final step
       if (state.character) {
-        const savedCharacter = await saveCharacter(state.character);
-        if (savedCharacter?.id) {
-          navigate(`/character/${savedCharacter.id}`);
+        try {
+          const savedCharacter = await saveCharacter(state.character);
+          if (savedCharacter?.id) {
+            toast({
+              title: "Success",
+              description: "Character created successfully!",
+            });
+            navigate(`/character/${savedCharacter.id}`);
+          }
+        } catch (error) {
+          console.error('Error saving character:', error);
+          toast({
+            title: "Error",
+            description: "Failed to save character data",
+            variant: "destructive",
+          });
         }
       }
     }

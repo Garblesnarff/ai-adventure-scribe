@@ -59,7 +59,13 @@ const CharacterSheet: React.FC = () => {
             wisdom: { score: statsData.wisdom, modifier: Math.floor((statsData.wisdom - 10) / 2), savingThrow: false },
             charisma: { score: statsData.charisma, modifier: Math.floor((statsData.charisma - 10) / 2), savingThrow: false },
           },
-          equipment: equipmentData.map(item => item.item_name)
+          equipment: equipmentData.map(item => item.item_name),
+          // Add missing required properties
+          experience: characterData.experience_points || 0,
+          personalityTraits: [],
+          ideals: [],
+          bonds: [],
+          flaws: []
         });
       } catch (error) {
         console.error('Error fetching character:', error);

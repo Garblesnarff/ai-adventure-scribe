@@ -187,6 +187,7 @@ export type Database = {
           background: string | null
           class: string
           created_at: string | null
+          description: string | null
           experience_points: number | null
           id: string
           level: number | null
@@ -200,6 +201,7 @@ export type Database = {
           background?: string | null
           class: string
           created_at?: string | null
+          description?: string | null
           experience_points?: number | null
           id?: string
           level?: number | null
@@ -213,6 +215,7 @@ export type Database = {
           background?: string | null
           class?: string
           created_at?: string | null
+          description?: string | null
           experience_points?: number | null
           id?: string
           level?: number | null

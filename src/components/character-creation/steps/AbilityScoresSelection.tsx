@@ -4,14 +4,18 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { AbilityScores } from '@/types/character';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { generateAbilityScores } from '@/utils/diceRolls';
+import { calculateModifier } from '@/utils/abilityScoreUtils';
 
 /**
  * Component for handling ability score selection in character creation
- * Implements point-buy system with racial bonuses
+ * Implements both point-buy system and 4d6 drop lowest rolling
  */
 const AbilityScoresSelection: React.FC = () => {
   const { state, dispatch } = useCharacter();
   const { toast } = useToast();
+  const [method, setMethod] = React.useState<'pointBuy' | 'roll'>('pointBuy');
   
   // Initialize remaining points from context or default value
   const [remainingPoints, setRemainingPoints] = React.useState(() => {
@@ -29,13 +33,6 @@ const AbilityScoresSelection: React.FC = () => {
   // Cost table for point-buy system
   const pointCost: { [key: number]: number } = {
     8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9
-  };
-
-  /**
-   * Calculates the ability score modifier based on the score value
-   */
-  const calculateModifier = (score: number): number => {
-    return Math.floor((score - 10) / 2);
   };
 
   /**
@@ -86,6 +83,32 @@ const AbilityScoresSelection: React.FC = () => {
     }
   };
 
+  /**
+   * Handles rolling new ability scores
+   */
+  const handleRollScores = () => {
+    const rolledScores = generateAbilityScores();
+    const newScores = { ...state.character?.abilityScores };
+    
+    abilities.forEach((ability, index) => {
+      newScores[ability] = {
+        score: rolledScores[index],
+        modifier: calculateModifier(rolledScores[index]),
+        savingThrow: state.character?.abilityScores[ability].savingThrow || false
+      };
+    });
+
+    dispatch({
+      type: 'UPDATE_CHARACTER',
+      payload: { abilityScores: newScores }
+    });
+
+    toast({
+      title: "Ability Scores Rolled!",
+      description: "New scores have been generated using 4d6 drop lowest.",
+    });
+  };
+
   const abilities: (keyof AbilityScores)[] = [
     'strength', 'dexterity', 'constitution',
     'intelligence', 'wisdom', 'charisma'
@@ -94,9 +117,27 @@ const AbilityScoresSelection: React.FC = () => {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-center mb-4">Assign Ability Scores</h2>
-      <p className="text-center text-muted-foreground mb-4">
-        Points Remaining: {remainingPoints}
-      </p>
+      
+      <Tabs defaultValue="pointBuy" className="w-full" onValueChange={(value) => setMethod(value as 'pointBuy' | 'roll')}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="pointBuy">Point Buy</TabsTrigger>
+          <TabsTrigger value="roll">Roll</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pointBuy">
+          <p className="text-center text-muted-foreground mb-4">
+            Points Remaining: {remainingPoints}
+          </p>
+        </TabsContent>
+
+        <TabsContent value="roll">
+          <div className="text-center mb-4">
+            <Button onClick={handleRollScores} variant="secondary">
+              Roll New Scores
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {abilities.map((ability) => (
@@ -107,7 +148,7 @@ const AbilityScoresSelection: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => handleDecreaseScore(ability)}
-                disabled={state.character?.abilityScores[ability].score === 8}
+                disabled={method === 'roll' || state.character?.abilityScores[ability].score === 8}
               >
                 -
               </Button>
@@ -123,6 +164,7 @@ const AbilityScoresSelection: React.FC = () => {
                 size="sm"
                 onClick={() => handleIncreaseScore(ability)}
                 disabled={
+                  method === 'roll' ||
                   state.character?.abilityScores[ability].score === 15 ||
                   remainingPoints < (pointCost[(state.character?.abilityScores[ability].score || 8) + 1] - 
                                    pointCost[state.character?.abilityScores[ability].score || 8])

@@ -1,9 +1,20 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Eye } from 'lucide-react';
+import { Users, Plus, Eye, Trash2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from '@/integrations/supabase/client';
 import { Character } from '@/types/character';
 import { races } from '@/data/raceOptions';
@@ -62,6 +73,41 @@ const CharacterList: React.FC = () => {
   }, [toast]);
 
   /**
+   * Handles character deletion
+   * @param id - The ID of the character to delete
+   */
+  const handleDeleteCharacter = async (id: string) => {
+    try {
+      // Delete related records first
+      await supabase.from('character_stats').delete().eq('character_id', id);
+      await supabase.from('character_equipment').delete().eq('character_id', id);
+      
+      // Delete the character
+      const { error } = await supabase
+        .from('characters')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      setCharacters(prev => prev.filter(char => char.id !== id));
+      
+      toast({
+        title: "Success",
+        description: "Character deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting character:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete character",
+        variant: "destructive",
+      });
+    }
+  };
+
+  /**
    * Navigates to character creation page
    */
   const handleCreateNew = () => {
@@ -103,14 +149,45 @@ const CharacterList: React.FC = () => {
                   Level {character.level} {character.race?.name} {character.class?.name}
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => character.id && handleViewCharacter(character.id)}
-                title="View Character"
-              >
-                <Eye className="w-4 h-4" />
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => character.id && handleViewCharacter(character.id)}
+                  title="View Character"
+                >
+                  <Eye className="w-4 h-4" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-500 hover:text-red-700"
+                      title="Delete Character"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Character</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete {character.name}? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => character.id && handleDeleteCharacter(character.id)}
+                        className="bg-red-500 hover:bg-red-700"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           </Card>
         ))}

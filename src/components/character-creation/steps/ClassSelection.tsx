@@ -15,11 +15,11 @@ const ClassSelection: React.FC = () => {
       type: 'UPDATE_CHARACTER',
       payload: { class: characterClass }
     });
-
+    
     toast({
       title: "Class Selected",
       description: `You have chosen the ${characterClass.name} class.`,
-      duration: 1000, // 1 second duration
+      duration: 1000,
     });
   };
 
@@ -29,13 +29,13 @@ const ClassSelection: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {classes.map((characterClass) => {
           const isSelected = state.character?.class?.id === characterClass.id;
-          console.log(`Class ${characterClass.id} selected:`, isSelected); // Debug log
+          console.log(`Class ${characterClass.id} selected:`, isSelected);
           
           return (
             <Card 
               key={characterClass.id}
-              className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
-                isSelected ? 'ring-2 ring-primary bg-accent/10' : ''
+              className={`p-4 cursor-pointer transition-all hover:shadow-lg border-2 ${
+                isSelected ? 'border-primary bg-accent/10' : 'border-transparent'
               }`}
               onClick={() => handleClassSelect(characterClass)}
               role="button"

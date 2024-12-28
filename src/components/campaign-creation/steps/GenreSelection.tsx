@@ -2,6 +2,7 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCampaign } from '@/contexts/CampaignContext';
+import { Card } from '@/components/ui/card';
 
 const genres = [
   { value: 'traditional-fantasy', label: 'Traditional Fantasy' },
@@ -12,10 +13,6 @@ const genres = [
   { value: 'horror', label: 'Horror' },
 ];
 
-/**
- * Genre selection component
- * Allows users to choose the campaign's genre/setting
- */
 const GenreSelection: React.FC = () => {
   const { state, dispatch } = useCampaign();
 
@@ -33,13 +30,22 @@ const GenreSelection: React.FC = () => {
         <RadioGroup
           value={state.campaign?.genre || ''}
           onValueChange={handleGenreChange}
-          className="space-y-4"
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
         >
           {genres.map((genre) => (
-            <div key={genre.value} className="flex items-center space-x-2">
-              <RadioGroupItem value={genre.value} id={genre.value} />
-              <Label htmlFor={genre.value}>{genre.label}</Label>
-            </div>
+            <Card
+              key={genre.value}
+              className={`p-4 cursor-pointer transition-all border-2 ${
+                state.campaign?.genre === genre.value
+                  ? 'border-primary bg-accent/10'
+                  : 'border-transparent'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value={genre.value} id={genre.value} />
+                <Label htmlFor={genre.value}>{genre.label}</Label>
+              </div>
+            </Card>
           ))}
         </RadioGroup>
       </div>

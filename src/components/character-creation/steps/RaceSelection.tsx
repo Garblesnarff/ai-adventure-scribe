@@ -10,7 +10,7 @@ const RaceSelection: React.FC = () => {
   const { toast } = useToast();
 
   const handleRaceSelect = (race: CharacterRace) => {
-    console.log('Selecting race:', race); // Debug log
+    console.log('Selecting race:', race);
     dispatch({
       type: 'UPDATE_CHARACTER',
       payload: { race }
@@ -19,7 +19,7 @@ const RaceSelection: React.FC = () => {
     toast({
       title: "Race Selected",
       description: `You have chosen the ${race.name} race.`,
-      duration: 1000, // 1 second duration
+      duration: 1000,
     });
   };
 
@@ -29,13 +29,13 @@ const RaceSelection: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {races.map((race) => {
           const isSelected = state.character?.race?.id === race.id;
-          console.log(`Race ${race.id} selected:`, isSelected); // Debug log
+          console.log(`Race ${race.id} selected:`, isSelected);
           
           return (
             <Card 
               key={race.id}
-              className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
-                isSelected ? 'ring-2 ring-primary bg-accent/10' : ''
+              className={`p-4 cursor-pointer transition-all hover:shadow-lg border-2 ${
+                isSelected ? 'border-primary bg-accent/10' : 'border-transparent'
               }`}
               onClick={() => handleRaceSelect(race)}
               role="button"

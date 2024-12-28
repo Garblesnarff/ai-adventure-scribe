@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Character } from '@/types/character';
+import { races } from '@/data/raceOptions';
+import { classes } from '@/data/classOptions';
 
 /**
  * CharacterList component displays all characters for the current user
@@ -16,6 +18,19 @@ const CharacterList: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  /**
+   * Transforms raw database character data into Character type
+   * @param rawData - Raw character data from database
+   * @returns Transformed character data
+   */
+  const transformCharacterData = (rawData: any[]): Partial<Character>[] => {
+    return rawData.map(char => ({
+      ...char,
+      race: races.find(r => r.name === char.race) || { name: char.race },
+      class: classes.find(c => c.name === char.class) || { name: char.class }
+    }));
+  };
 
   /**
    * Fetches all characters for the current user from Supabase
@@ -29,7 +44,8 @@ const CharacterList: React.FC = () => {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        setCharacters(data || []);
+        const transformedData = transformCharacterData(data || []);
+        setCharacters(transformedData);
       } catch (error) {
         console.error('Error fetching characters:', error);
         toast({
@@ -84,7 +100,7 @@ const CharacterList: React.FC = () => {
               <div>
                 <h2 className="text-xl font-semibold">{character.name}</h2>
                 <p className="text-gray-600">
-                  Level {character.level} {character.race} {character.class}
+                  Level {character.level} {character.race?.name} {character.class?.name}
                 </p>
               </div>
               <Button

@@ -44,13 +44,17 @@ const CampaignView: React.FC = () => {
   React.useEffect(() => {
     const fetchCampaign = async () => {
       try {
+        if (!id) throw new Error('No campaign ID provided');
+
         const { data, error } = await supabase
           .from('campaigns')
-          .select('*')
+          .select()
           .eq('id', id)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
+        if (!data) throw new Error('Campaign not found');
+        
         setCampaign(data as Campaign);
       } catch (error) {
         console.error('Error fetching campaign:', error);
@@ -64,9 +68,7 @@ const CampaignView: React.FC = () => {
       }
     };
 
-    if (id) {
-      fetchCampaign();
-    }
+    fetchCampaign();
   }, [id, toast]);
 
   if (loading) {

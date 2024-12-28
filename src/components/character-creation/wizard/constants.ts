@@ -1,6 +1,6 @@
 import RaceSelection from '../steps/RaceSelection';
 import ClassSelection from '../steps/ClassSelection';
-import AbilityScoresSelection from '../steps/AbilityScoresSelection';
+import AbilityScoresSelection from '../steps/ability-scores/AbilityScoresSelection';
 import BackgroundSelection from '../steps/BackgroundSelection';
 import EquipmentSelection from '../steps/EquipmentSelection';
 import NameDescription from '../steps/NameDescription';

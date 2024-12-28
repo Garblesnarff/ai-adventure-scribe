@@ -3,12 +3,18 @@ import { AbilityScores } from '@/types/character';
 import { useCharacter } from '@/contexts/CharacterContext';
 import { calculateModifier, getPointCostDifference } from '@/utils/abilityScoreUtils';
 
+/**
+ * Custom hook for managing the point buy system in ability score selection
+ * Handles point allocation, score changes, and state management
+ * @returns Object containing remaining points and score change handler
+ */
 export const usePointBuy = () => {
   const { state, dispatch } = useCharacter();
   const [remainingPoints, setRemainingPoints] = useState(() => {
     return state.character?.remainingAbilityPoints ?? 27;
   });
 
+  // Update context whenever remaining points change
   useEffect(() => {
     dispatch({
       type: 'UPDATE_CHARACTER',
@@ -16,6 +22,11 @@ export const usePointBuy = () => {
     });
   }, [remainingPoints, dispatch]);
 
+  /**
+   * Handles increasing or decreasing an ability score
+   * @param ability - The ability score to modify
+   * @param increase - Whether to increase or decrease the score
+   */
   const handleScoreChange = (
     ability: keyof AbilityScores,
     increase: boolean

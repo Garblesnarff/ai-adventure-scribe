@@ -10,18 +10,24 @@ interface AbilityScoreCardProps {
   modifier: number;
   remainingPoints: number;
   onScoreChange: (ability: keyof AbilityScores, increase: boolean) => void;
+  isRollMode?: boolean;
 }
 
+/**
+ * Component for displaying and managing individual ability scores
+ * Handles both point buy and roll methods
+ */
 const AbilityScoreCard: React.FC<AbilityScoreCardProps> = ({
   ability,
   score,
   modifier,
   remainingPoints,
   onScoreChange,
+  isRollMode = false,
 }) => {
-  const isIncreaseDisabled = score === 15 || 
+  const isIncreaseDisabled = isRollMode || score === 15 || 
     remainingPoints < (POINT_BUY_COSTS[score + 1] - POINT_BUY_COSTS[score]);
-  const isDecreaseDisabled = score === 8;
+  const isDecreaseDisabled = isRollMode || score === 8;
 
   return (
     <Card className="p-4">

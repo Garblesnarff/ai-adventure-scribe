@@ -11,35 +11,44 @@ export type Database = {
     Tables: {
       campaigns: {
         Row: {
+          campaign_length: string | null
           created_at: string | null
           description: string | null
           difficulty_level: string | null
           genre: string | null
           id: string
           name: string
+          setting_details: Json | null
           status: string | null
+          tone: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          campaign_length?: string | null
           created_at?: string | null
           description?: string | null
           difficulty_level?: string | null
           genre?: string | null
           id?: string
           name: string
+          setting_details?: Json | null
           status?: string | null
+          tone?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          campaign_length?: string | null
           created_at?: string | null
           description?: string | null
           difficulty_level?: string | null
           genre?: string | null
           id?: string
           name?: string
+          setting_details?: Json | null
           status?: string | null
+          tone?: string | null
           updated_at?: string | null
           user_id?: string
         }

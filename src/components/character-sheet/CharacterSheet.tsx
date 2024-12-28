@@ -48,9 +48,44 @@ const CharacterSheet: React.FC = () => {
 
         if (equipmentError) throw equipmentError;
 
-        // Combine all data
+        // Create a character object that matches our Character type
         setCharacter({
-          ...characterData,
+          id: characterData.id,
+          user_id: characterData.user_id,
+          name: characterData.name,
+          race: {
+            id: 'stored',
+            name: characterData.race,
+            description: '',
+            abilityScoreIncrease: {},
+            speed: 30,
+            traits: [],
+            languages: []
+          },
+          class: {
+            id: 'stored',
+            name: characterData.class,
+            description: '',
+            hitDie: 8,
+            primaryAbility: 'strength',
+            savingThrowProficiencies: [],
+            skillChoices: [],
+            numSkillChoices: 2
+          },
+          level: characterData.level,
+          background: {
+            id: 'stored',
+            name: characterData.background || '',
+            description: '',
+            skillProficiencies: [],
+            toolProficiencies: [],
+            languages: 0,
+            equipment: [],
+            feature: {
+              name: '',
+              description: ''
+            }
+          },
           abilityScores: {
             strength: { score: statsData.strength, modifier: Math.floor((statsData.strength - 10) / 2), savingThrow: false },
             dexterity: { score: statsData.dexterity, modifier: Math.floor((statsData.dexterity - 10) / 2), savingThrow: false },
@@ -60,8 +95,8 @@ const CharacterSheet: React.FC = () => {
             charisma: { score: statsData.charisma, modifier: Math.floor((statsData.charisma - 10) / 2), savingThrow: false },
           },
           equipment: equipmentData.map(item => item.item_name),
-          // Add missing required properties
           experience: characterData.experience_points || 0,
+          alignment: characterData.alignment || '',
           personalityTraits: [],
           ideals: [],
           bonds: [],
@@ -105,10 +140,10 @@ const CharacterSheet: React.FC = () => {
               <h2 className="text-xl font-semibold">Basic Information</h2>
             </div>
             <div className="space-y-2">
-              <p><span className="font-medium">Race:</span> {character.race}</p>
-              <p><span className="font-medium">Class:</span> {character.class}</p>
+              <p><span className="font-medium">Race:</span> {character.race.name}</p>
+              <p><span className="font-medium">Class:</span> {character.class.name}</p>
               <p><span className="font-medium">Level:</span> {character.level}</p>
-              <p><span className="font-medium">Background:</span> {character.background}</p>
+              <p><span className="font-medium">Background:</span> {character.background.name}</p>
             </div>
           </Card>
 

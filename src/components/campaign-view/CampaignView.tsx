@@ -2,10 +2,11 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import { Trash2 } from 'lucide-react';
+import { isValidUUID } from '@/utils/validation';
 
 /**
  * Type for Campaign data structure from Supabase
@@ -32,6 +33,7 @@ interface Campaign {
 
 /**
  * CampaignView component displays the details of a specific campaign
+ * Includes error handling and loading states
  * @returns {JSX.Element} The campaign view page
  */
 const CampaignView: React.FC = () => {
@@ -43,19 +45,27 @@ const CampaignView: React.FC = () => {
   const { toast } = useToast();
 
   /**
+   * Validates campaign ID and redirects if invalid
+   */
+  React.useEffect(() => {
+    if (!id || !isValidUUID(id)) {
+      toast({
+        title: "Invalid Campaign",
+        description: "The campaign ID is invalid. Redirecting to home page.",
+        variant: "destructive",
+      });
+      navigate('/');
+      return;
+    }
+  }, [id, navigate, toast]);
+
+  /**
    * Fetches campaign data from Supabase
    */
   React.useEffect(() => {
     const fetchCampaign = async () => {
       try {
-        if (!id) {
-          toast({
-            title: "Error",
-            description: "No campaign ID provided",
-            variant: "destructive",
-          });
-          return;
-        }
+        if (!id || !isValidUUID(id)) return;
 
         const { data, error } = await supabase
           .from('campaigns')
@@ -64,12 +74,14 @@ const CampaignView: React.FC = () => {
           .maybeSingle();
 
         if (error) throw error;
+        
         if (!data) {
           toast({
-            title: "Error",
-            description: "Campaign not found",
+            title: "Campaign Not Found",
+            description: "The requested campaign could not be found. Redirecting to home page.",
             variant: "destructive",
           });
+          navigate('/');
           return;
         }
         
@@ -78,16 +90,17 @@ const CampaignView: React.FC = () => {
         console.error('Error fetching campaign:', error);
         toast({
           title: "Error",
-          description: "Failed to load campaign data",
+          description: "Failed to load campaign data. Please try again.",
           variant: "destructive",
         });
+        navigate('/');
       } finally {
         setLoading(false);
       }
     };
 
     fetchCampaign();
-  }, [id, toast]);
+  }, [id, toast, navigate]);
 
   /**
    * Handles campaign deletion
@@ -122,11 +135,19 @@ const CampaignView: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading campaign data...</div>;
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="p-6 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+          <div className="flex justify-center items-center min-h-[200px]">
+            Loading campaign data...
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   if (!campaign) {
-    return <div className="flex justify-center items-center min-h-screen">Campaign not found</div>;
+    return null; // Early return handled by useEffect
   }
 
   return (

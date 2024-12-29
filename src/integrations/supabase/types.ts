@@ -22,7 +22,7 @@ export type Database = {
           status: string | null
           tone: string | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           campaign_length?: string | null
@@ -36,7 +36,7 @@ export type Database = {
           status?: string | null
           tone?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           campaign_length?: string | null
@@ -50,7 +50,7 @@ export type Database = {
           status?: string | null
           tone?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

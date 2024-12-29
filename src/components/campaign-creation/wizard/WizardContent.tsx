@@ -52,29 +52,13 @@ const WizardContent: React.FC = () => {
    * @returns {Promise<string>} The ID of the saved campaign
    */
   const saveCampaign = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to create a campaign.",
-        variant: "destructive",
-      });
-      throw new Error('Authentication required');
-    }
-
     if (!state.campaign) {
       throw new Error('No campaign data to save');
     }
 
     const { data, error } = await supabase
       .from('campaigns')
-      .insert([
-        {
-          ...state.campaign,
-          user_id: user.id,
-        }
-      ])
+      .insert([state.campaign])
       .select()
       .single();
 

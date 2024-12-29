@@ -1,9 +1,11 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
+import { Trash2 } from 'lucide-react';
 
 /**
  * Type for Campaign data structure from Supabase
@@ -34,8 +36,10 @@ interface Campaign {
  */
 const CampaignView: React.FC = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [campaign, setCampaign] = React.useState<Campaign | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [isDeleting, setIsDeleting] = React.useState(false);
   const { toast } = useToast();
 
   /**
@@ -71,6 +75,38 @@ const CampaignView: React.FC = () => {
     fetchCampaign();
   }, [id, toast]);
 
+  /**
+   * Handles campaign deletion
+   */
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      if (!id) throw new Error('No campaign ID provided');
+
+      const { error } = await supabase
+        .from('campaigns')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Campaign deleted successfully",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete campaign",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen">Loading campaign data...</div>;
   }
@@ -82,7 +118,17 @@ const CampaignView: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <Card className="p-6 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <h1 className="text-3xl font-bold text-center mb-8">{campaign.name}</h1>
+        <div className="flex justify-between items-start mb-8">
+          <h1 className="text-3xl font-bold">{campaign.name}</h1>
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Basic Information */}

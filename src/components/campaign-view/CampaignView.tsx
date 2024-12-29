@@ -35,7 +35,7 @@ interface Campaign {
  * @returns {JSX.Element} The campaign view page
  */
 const CampaignView: React.FC = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [campaign, setCampaign] = React.useState<Campaign | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -48,16 +48,30 @@ const CampaignView: React.FC = () => {
   React.useEffect(() => {
     const fetchCampaign = async () => {
       try {
-        if (!id) throw new Error('No campaign ID provided');
+        if (!id) {
+          toast({
+            title: "Error",
+            description: "No campaign ID provided",
+            variant: "destructive",
+          });
+          return;
+        }
 
         const { data, error } = await supabase
           .from('campaigns')
-          .select()
+          .select('*')
           .eq('id', id)
           .maybeSingle();
 
         if (error) throw error;
-        if (!data) throw new Error('Campaign not found');
+        if (!data) {
+          toast({
+            title: "Error",
+            description: "Campaign not found",
+            variant: "destructive",
+          });
+          return;
+        }
         
         setCampaign(data as Campaign);
       } catch (error) {

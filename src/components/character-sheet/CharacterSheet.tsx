@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +14,8 @@ import Equipment from './sections/Equipment';
  * Fetches character data from Supabase and manages the overall layout
  */
 const CharacterSheet: React.FC = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [character, setCharacter] = React.useState<Character | null>(null);
   const [loading, setLoading] = React.useState(true);
   const { toast } = useToast();
@@ -26,21 +27,41 @@ const CharacterSheet: React.FC = () => {
   React.useEffect(() => {
     const fetchCharacter = async () => {
       try {
+        if (!id) {
+          toast({
+            title: "Error",
+            description: "No character ID provided",
+            variant: "destructive",
+          });
+          navigate('/characters');
+          return;
+        }
+
         // Fetch basic character info
         const { data: characterData, error: characterError } = await supabase
           .from('characters')
           .select('*')
           .eq('id', id)
-          .single();
+          .maybeSingle();
 
         if (characterError) throw characterError;
+        
+        if (!characterData) {
+          toast({
+            title: "Error",
+            description: "Character not found",
+            variant: "destructive",
+          });
+          navigate('/characters');
+          return;
+        }
 
         // Fetch character stats
         const { data: statsData, error: statsError } = await supabase
           .from('character_stats')
           .select('*')
           .eq('character_id', id)
-          .single();
+          .maybeSingle();
 
         if (statsError) throw statsError;
 
@@ -90,15 +111,22 @@ const CharacterSheet: React.FC = () => {
               description: ''
             }
           },
-          abilityScores: {
+          abilityScores: statsData ? {
             strength: { score: statsData.strength, modifier: Math.floor((statsData.strength - 10) / 2), savingThrow: false },
             dexterity: { score: statsData.dexterity, modifier: Math.floor((statsData.dexterity - 10) / 2), savingThrow: false },
             constitution: { score: statsData.constitution, modifier: Math.floor((statsData.constitution - 10) / 2), savingThrow: false },
             intelligence: { score: statsData.intelligence, modifier: Math.floor((statsData.intelligence - 10) / 2), savingThrow: false },
             wisdom: { score: statsData.wisdom, modifier: Math.floor((statsData.wisdom - 10) / 2), savingThrow: false },
             charisma: { score: statsData.charisma, modifier: Math.floor((statsData.charisma - 10) / 2), savingThrow: false },
+          } : {
+            strength: { score: 10, modifier: 0, savingThrow: false },
+            dexterity: { score: 10, modifier: 0, savingThrow: false },
+            constitution: { score: 10, modifier: 0, savingThrow: false },
+            intelligence: { score: 10, modifier: 0, savingThrow: false },
+            wisdom: { score: 10, modifier: 0, savingThrow: false },
+            charisma: { score: 10, modifier: 0, savingThrow: false },
           },
-          equipment: equipmentData.map(item => item.item_name),
+          equipment: equipmentData?.map(item => item.item_name) || [],
           experience: characterData.experience_points || 0,
           alignment: characterData.alignment || '',
           personalityTraits: [],
@@ -113,6 +141,7 @@ const CharacterSheet: React.FC = () => {
           description: "Failed to load character data",
           variant: "destructive",
         });
+        navigate('/characters');
       } finally {
         setLoading(false);
       }
@@ -121,7 +150,7 @@ const CharacterSheet: React.FC = () => {
     if (id) {
       fetchCharacter();
     }
-  }, [id, toast]);
+  }, [id, toast, navigate]);
 
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen">Loading character data...</div>;

@@ -24,9 +24,27 @@ const WizardContent: React.FC = () => {
    * @returns {boolean} True if campaign data is valid, false otherwise
    */
   const validateCampaign = () => {
-    if (!state.campaign) return false;
-    const { name, genre, campaign_length, tone } = state.campaign;
-    return !!(name && genre && campaign_length && tone);
+    if (!state.campaign) {
+      toast({
+        title: "Missing Campaign Data",
+        description: "Campaign data is incomplete. Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const { name, description, genre, campaign_length, tone } = state.campaign;
+    
+    if (!name || !genre || !campaign_length || !tone) {
+      toast({
+        title: "Incomplete Campaign",
+        description: "Please complete all required fields before saving.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
   };
 
   /**
@@ -61,7 +79,7 @@ const WizardContent: React.FC = () => {
       .single();
 
     if (error) {
-      console.error('Supabase error:', error);
+      console.error('Error saving campaign:', error);
       throw error;
     }
 
@@ -81,11 +99,6 @@ const WizardContent: React.FC = () => {
       setCurrentStep(currentStep + 1);
     } else {
       if (!validateCampaign()) {
-        toast({
-          title: "Incomplete Campaign",
-          description: "Please complete all required fields before saving.",
-          variant: "destructive",
-        });
         return;
       }
 

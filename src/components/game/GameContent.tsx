@@ -10,6 +10,7 @@ import { VoiceHandler } from './VoiceHandler';
 import { useAIResponse } from '@/hooks/useAIResponse';
 import { MemoryPanel } from './MemoryPanel';
 import { useGameSession } from '@/hooks/useGameSession';
+import { MemoryTester } from './memory/MemoryTester';
 
 /**
  * GameContent Component
@@ -96,6 +97,7 @@ const GameContent: React.FC = () => {
           onSendMessage={handleSendMessage}
           isDisabled={queueStatus === 'processing'}
         />
+        <MemoryTester />
       </Card>
       <MemoryPanel />
     </div>

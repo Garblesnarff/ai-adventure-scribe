@@ -1,164 +1,22 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Character } from '@/types/character';
-import { isValidUUID } from '@/utils/validation';
+import { useCharacterData } from '@/hooks/useCharacterData';
 import BasicInfo from './sections/BasicInfo';
 import CombatStats from './sections/CombatStats';
 import AbilityScores from './sections/AbilityScores';
 import Equipment from './sections/Equipment';
 
 /**
- * CharacterSheet component orchestrates the display of all character information
- * Fetches character data from Supabase and manages the overall layout
- * Includes error handling and loading states
+ * CharacterSheet component displays all character information
+ * Orchestrates the layout and data flow between character sections
+ * Uses useCharacterData hook for data fetching and state management
  */
 const CharacterSheet: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [character, setCharacter] = React.useState<Character | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const { toast } = useToast();
+  const { character, loading } = useCharacterData(id);
 
-  /**
-   * Validates character ID and redirects if invalid
-   */
-  React.useEffect(() => {
-    if (!id || !isValidUUID(id)) {
-      toast({
-        title: "Invalid Character",
-        description: "The character ID is invalid. Redirecting to characters page.",
-        variant: "destructive",
-      });
-      navigate('/characters');
-      return;
-    }
-  }, [id, navigate, toast]);
-
-  /**
-   * Fetches character data from Supabase including related stats and equipment
-   * Transforms the raw data into the required Character type format
-   */
-  React.useEffect(() => {
-    const fetchCharacter = async () => {
-      try {
-        if (!id || !isValidUUID(id)) return;
-
-        // Fetch basic character info
-        const { data: characterData, error: characterError } = await supabase
-          .from('characters')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
-
-        if (characterError) throw characterError;
-        
-        if (!characterData) {
-          toast({
-            title: "Character Not Found",
-            description: "The requested character could not be found. Redirecting to characters page.",
-            variant: "destructive",
-          });
-          navigate('/characters');
-          return;
-        }
-
-        // Fetch character stats
-        const { data: statsData, error: statsError } = await supabase
-          .from('character_stats')
-          .select('*')
-          .eq('character_id', id)
-          .maybeSingle();
-
-        if (statsError) throw statsError;
-
-        // Fetch character equipment
-        const { data: equipmentData, error: equipmentError } = await supabase
-          .from('character_equipment')
-          .select('*')
-          .eq('character_id', id);
-
-        if (equipmentError) throw equipmentError;
-
-        // Create a character object that matches our Character type
-        setCharacter({
-          id: characterData.id,
-          user_id: characterData.user_id,
-          name: characterData.name,
-          race: {
-            id: 'stored',
-            name: characterData.race,
-            description: '',
-            abilityScoreIncrease: {},
-            speed: 30,
-            traits: [],
-            languages: []
-          },
-          class: {
-            id: 'stored',
-            name: characterData.class,
-            description: '',
-            hitDie: 8,
-            primaryAbility: 'strength',
-            savingThrowProficiencies: [],
-            skillChoices: [],
-            numSkillChoices: 2
-          },
-          level: characterData.level,
-          background: {
-            id: 'stored',
-            name: characterData.background || '',
-            description: '',
-            skillProficiencies: [],
-            toolProficiencies: [],
-            languages: 0,
-            equipment: [],
-            feature: {
-              name: '',
-              description: ''
-            }
-          },
-          abilityScores: statsData ? {
-            strength: { score: statsData.strength, modifier: Math.floor((statsData.strength - 10) / 2), savingThrow: false },
-            dexterity: { score: statsData.dexterity, modifier: Math.floor((statsData.dexterity - 10) / 2), savingThrow: false },
-            constitution: { score: statsData.constitution, modifier: Math.floor((statsData.constitution - 10) / 2), savingThrow: false },
-            intelligence: { score: statsData.intelligence, modifier: Math.floor((statsData.intelligence - 10) / 2), savingThrow: false },
-            wisdom: { score: statsData.wisdom, modifier: Math.floor((statsData.wisdom - 10) / 2), savingThrow: false },
-            charisma: { score: statsData.charisma, modifier: Math.floor((statsData.charisma - 10) / 2), savingThrow: false },
-          } : {
-            strength: { score: 10, modifier: 0, savingThrow: false },
-            dexterity: { score: 10, modifier: 0, savingThrow: false },
-            constitution: { score: 10, modifier: 0, savingThrow: false },
-            intelligence: { score: 10, modifier: 0, savingThrow: false },
-            wisdom: { score: 10, modifier: 0, savingThrow: false },
-            charisma: { score: 10, modifier: 0, savingThrow: false },
-          },
-          equipment: equipmentData?.map(item => item.item_name) || [],
-          experience: characterData.experience_points || 0,
-          alignment: characterData.alignment || '',
-          personalityTraits: [],
-          ideals: [],
-          bonds: [],
-          flaws: []
-        });
-      } catch (error) {
-        console.error('Error fetching character:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load character data. Please try again.",
-          variant: "destructive",
-        });
-        navigate('/characters');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCharacter();
-  }, [id, toast, navigate]);
-
+  // Show loading state while fetching data
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -171,8 +29,10 @@ const CharacterSheet: React.FC = () => {
     );
   }
 
+  // Early return if no character data is available
+  // Error handling is managed by the useCharacterData hook
   if (!character) {
-    return null; // Early return handled by useEffect
+    return null;
   }
 
   return (

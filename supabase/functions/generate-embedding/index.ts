@@ -28,7 +28,9 @@ serve(async (req) => {
     // Format input properly for the API
     const response = await hf.featureExtraction({
       model: 'sentence-transformers/all-MiniLM-L6-v2',
-      inputs: cleanedText
+      inputs: {
+        source_sentence: cleanedText
+      }
     });
 
     // Ensure the embedding is properly formatted as an array

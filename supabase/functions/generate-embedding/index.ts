@@ -25,12 +25,12 @@ serve(async (req) => {
 
     const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'));
     
-    // Format input properly for the HuggingFace API
+    // Format input with correct parameter names for the HuggingFace API
     const response = await hf.featureExtraction({
       model: 'sentence-transformers/all-MiniLM-L6-v2',
       inputs: {
-        source_sentences: [cleanedText],
-        sentences_to_compare: [cleanedText]
+        source_sentence: cleanedText,
+        sentences: [cleanedText]
       }
     });
 

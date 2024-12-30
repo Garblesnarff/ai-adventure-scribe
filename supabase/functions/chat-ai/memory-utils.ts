@@ -21,7 +21,10 @@ export async function fetchRelevantMemories(
       .eq('session_id', sessionId)
       .order('importance', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching memories:', error);
+      throw error;
+    }
     
     // Apply memory window selection
     let scoredMemories = memories.map(memory => ({

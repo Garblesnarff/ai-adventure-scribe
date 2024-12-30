@@ -29,12 +29,12 @@ serve(async (req) => {
     const response = await hf.featureExtraction({
       model: 'sentence-transformers/all-MiniLM-L6-v2',
       inputs: {
-        source_sentence: cleanedText
+        sentences: [cleanedText]
       }
     });
 
     // Ensure the embedding is properly formatted as an array
-    const embedding = Array.isArray(response) ? response : Array.from(response);
+    const embedding = Array.isArray(response) ? response[0] : response;
     console.log('Successfully generated embedding');
 
     return new Response(

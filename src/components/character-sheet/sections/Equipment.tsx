@@ -1,3 +1,4 @@
+import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Book } from 'lucide-react';
 import { Character } from '@/types/character';

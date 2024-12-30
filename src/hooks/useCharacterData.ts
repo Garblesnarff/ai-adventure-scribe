@@ -9,7 +9,7 @@ import { isValidUUID } from '@/utils/validation';
  * Custom hook for fetching and managing character data
  * Handles data fetching, error states, and loading states
  * @param characterId - UUID of the character to fetch
- * @returns Object containing character data, loading state, and error handling
+ * @returns Object containing character data, loading state, and refetch function
  */
 export const useCharacterData = (characterId: string | undefined) => {
   const [character, setCharacter] = useState<Character | null>(null);
@@ -17,8 +17,11 @@ export const useCharacterData = (characterId: string | undefined) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Validate character ID
+  /**
+   * Fetches character data from Supabase
+   * Includes basic info, stats, and equipment
+   */
+  const fetchCharacter = async () => {
     if (!characterId || !isValidUUID(characterId)) {
       toast({
         title: "Invalid Character",
@@ -29,126 +32,123 @@ export const useCharacterData = (characterId: string | undefined) => {
       return;
     }
 
-    /**
-     * Fetches character data from Supabase
-     * Includes basic info, stats, and equipment
-     */
-    const fetchCharacter = async () => {
-      try {
-        // Fetch basic character info
-        const { data: characterData, error: characterError } = await supabase
-          .from('characters')
-          .select('*')
-          .eq('id', characterId)
-          .maybeSingle();
+    try {
+      setLoading(true);
+      // Fetch basic character info
+      const { data: characterData, error: characterError } = await supabase
+        .from('characters')
+        .select('*')
+        .eq('id', characterId)
+        .maybeSingle();
 
-        if (characterError) throw characterError;
-        
-        if (!characterData) {
-          toast({
-            title: "Character Not Found",
-            description: "The requested character could not be found. Redirecting to characters page.",
-            variant: "destructive",
-          });
-          navigate('/characters');
-          return;
-        }
-
-        // Fetch character stats
-        const { data: statsData, error: statsError } = await supabase
-          .from('character_stats')
-          .select('*')
-          .eq('character_id', characterId)
-          .maybeSingle();
-
-        if (statsError) throw statsError;
-
-        // Fetch character equipment
-        const { data: equipmentData, error: equipmentError } = await supabase
-          .from('character_equipment')
-          .select('*')
-          .eq('character_id', characterId);
-
-        if (equipmentError) throw equipmentError;
-
-        // Transform data into Character type
-        const transformedCharacter: Character = {
-          id: characterData.id,
-          user_id: characterData.user_id,
-          name: characterData.name,
-          race: {
-            id: 'stored',
-            name: characterData.race,
-            description: '',
-            abilityScoreIncrease: {},
-            speed: 30,
-            traits: [],
-            languages: []
-          },
-          class: {
-            id: 'stored',
-            name: characterData.class,
-            description: '',
-            hitDie: 8,
-            primaryAbility: 'strength',
-            savingThrowProficiencies: [],
-            skillChoices: [],
-            numSkillChoices: 2
-          },
-          level: characterData.level,
-          background: {
-            id: 'stored',
-            name: characterData.background || '',
-            description: '',
-            skillProficiencies: [],
-            toolProficiencies: [],
-            languages: 0,
-            equipment: [],
-            feature: {
-              name: '',
-              description: ''
-            }
-          },
-          abilityScores: statsData ? {
-            strength: { score: statsData.strength, modifier: Math.floor((statsData.strength - 10) / 2), savingThrow: false },
-            dexterity: { score: statsData.dexterity, modifier: Math.floor((statsData.dexterity - 10) / 2), savingThrow: false },
-            constitution: { score: statsData.constitution, modifier: Math.floor((statsData.constitution - 10) / 2), savingThrow: false },
-            intelligence: { score: statsData.intelligence, modifier: Math.floor((statsData.intelligence - 10) / 2), savingThrow: false },
-            wisdom: { score: statsData.wisdom, modifier: Math.floor((statsData.wisdom - 10) / 2), savingThrow: false },
-            charisma: { score: statsData.charisma, modifier: Math.floor((statsData.charisma - 10) / 2), savingThrow: false },
-          } : {
-            strength: { score: 10, modifier: 0, savingThrow: false },
-            dexterity: { score: 10, modifier: 0, savingThrow: false },
-            constitution: { score: 10, modifier: 0, savingThrow: false },
-            intelligence: { score: 10, modifier: 0, savingThrow: false },
-            wisdom: { score: 10, modifier: 0, savingThrow: false },
-            charisma: { score: 10, modifier: 0, savingThrow: false },
-          },
-          equipment: equipmentData?.map(item => item.item_name) || [],
-          experience: characterData.experience_points || 0,
-          alignment: characterData.alignment || '',
-          personalityTraits: [],
-          ideals: [],
-          bonds: [],
-          flaws: []
-        };
-
-        setCharacter(transformedCharacter);
-      } catch (error) {
-        console.error('Error fetching character:', error);
+      if (characterError) throw characterError;
+      
+      if (!characterData) {
         toast({
-          title: "Error",
-          description: "Failed to load character data. Please try again.",
+          title: "Character Not Found",
+          description: "The requested character could not be found. Redirecting to characters page.",
           variant: "destructive",
         });
         navigate('/characters');
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
+      // Fetch character stats
+      const { data: statsData, error: statsError } = await supabase
+        .from('character_stats')
+        .select('*')
+        .eq('character_id', characterId)
+        .maybeSingle();
+
+      if (statsError) throw statsError;
+
+      // Fetch character equipment
+      const { data: equipmentData, error: equipmentError } = await supabase
+        .from('character_equipment')
+        .select('*')
+        .eq('character_id', characterId);
+
+      if (equipmentError) throw equipmentError;
+
+      // Transform data into Character type
+      const transformedCharacter: Character = {
+        id: characterData.id,
+        user_id: characterData.user_id,
+        name: characterData.name,
+        race: {
+          id: 'stored',
+          name: characterData.race,
+          description: '',
+          abilityScoreIncrease: {},
+          speed: 30,
+          traits: [],
+          languages: []
+        },
+        class: {
+          id: 'stored',
+          name: characterData.class,
+          description: '',
+          hitDie: 8,
+          primaryAbility: 'strength',
+          savingThrowProficiencies: [],
+          skillChoices: [],
+          numSkillChoices: 2
+        },
+        level: characterData.level,
+        background: {
+          id: 'stored',
+          name: characterData.background || '',
+          description: '',
+          skillProficiencies: [],
+          toolProficiencies: [],
+          languages: 0,
+          equipment: [],
+          feature: {
+            name: '',
+            description: ''
+          }
+        },
+        abilityScores: statsData ? {
+          strength: { score: statsData.strength, modifier: Math.floor((statsData.strength - 10) / 2), savingThrow: false },
+          dexterity: { score: statsData.dexterity, modifier: Math.floor((statsData.dexterity - 10) / 2), savingThrow: false },
+          constitution: { score: statsData.constitution, modifier: Math.floor((statsData.constitution - 10) / 2), savingThrow: false },
+          intelligence: { score: statsData.intelligence, modifier: Math.floor((statsData.intelligence - 10) / 2), savingThrow: false },
+          wisdom: { score: statsData.wisdom, modifier: Math.floor((statsData.wisdom - 10) / 2), savingThrow: false },
+          charisma: { score: statsData.charisma, modifier: Math.floor((statsData.charisma - 10) / 2), savingThrow: false },
+        } : {
+          strength: { score: 10, modifier: 0, savingThrow: false },
+          dexterity: { score: 10, modifier: 0, savingThrow: false },
+          constitution: { score: 10, modifier: 0, savingThrow: false },
+          intelligence: { score: 10, modifier: 0, savingThrow: false },
+          wisdom: { score: 10, modifier: 0, savingThrow: false },
+          charisma: { score: 10, modifier: 0, savingThrow: false },
+        },
+        equipment: equipmentData?.map(item => item.item_name) || [],
+        experience: characterData.experience_points || 0,
+        alignment: characterData.alignment || '',
+        personalityTraits: [],
+        ideals: [],
+        bonds: [],
+        flaws: []
+      };
+
+      setCharacter(transformedCharacter);
+    } catch (error) {
+      console.error('Error fetching character:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load character data. Please try again.",
+        variant: "destructive",
+      });
+      navigate('/characters');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchCharacter();
   }, [characterId, navigate, toast]);
 
-  return { character, loading };
+  return { character, loading, refetch: fetchCharacter };
 };

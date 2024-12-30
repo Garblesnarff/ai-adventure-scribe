@@ -20,3 +20,13 @@ export interface MemoryContext {
   memory: Memory;
   relevanceScore: number;
 }
+
+/**
+ * Interface for message context data
+ */
+export interface MessageContext {
+  location?: string | null;
+  emotion?: string | null;
+  intent?: string | null;
+  [key: string]: string | null | undefined;
+}

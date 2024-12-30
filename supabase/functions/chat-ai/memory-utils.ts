@@ -1,6 +1,6 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { Memory, MemoryContext } from './types.ts';
-import { MEMORY_WINDOW_SIZE } from '../../src/utils/memorySelection.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { Memory, MemoryContext, MessageContext } from './types.ts';
+import { MEMORY_WINDOW_SIZE, selectRelevantMemories } from './memory-selection.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;

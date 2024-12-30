@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Character } from '@/types/character';
 import { races } from '@/data/raceOptions';
@@ -41,7 +41,7 @@ const CharacterList: React.FC = () => {
       try {
         const { data, error } = await supabase
           .from('characters')
-          .select('id, name, race, class, level')
+          .select('id, name, description, race, class, level')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -61,41 +61,6 @@ const CharacterList: React.FC = () => {
 
     fetchCharacters();
   }, [toast]);
-
-  /**
-   * Handles character deletion
-   * @param id - The ID of the character to delete
-   */
-  const handleDeleteCharacter = async (id: string) => {
-    try {
-      // Delete related records first
-      await supabase.from('character_stats').delete().eq('character_id', id);
-      await supabase.from('character_equipment').delete().eq('character_id', id);
-      
-      // Delete the character
-      const { error } = await supabase
-        .from('characters')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      // Update local state
-      setCharacters(prev => prev.filter(char => char.id !== id));
-      
-      toast({
-        title: "Success",
-        description: "Character deleted successfully",
-      });
-    } catch (error) {
-      console.error('Error deleting character:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete character",
-        variant: "destructive",
-      });
-    }
-  };
 
   /**
    * Navigates to character creation page
@@ -126,7 +91,6 @@ const CharacterList: React.FC = () => {
           <CharacterCard
             key={character.id}
             character={character}
-            onDelete={handleDeleteCharacter}
           />
         ))}
       </div>

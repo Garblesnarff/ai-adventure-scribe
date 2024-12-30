@@ -3,19 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Play, Trash2 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import CampaignSelectionModal from './CampaignSelectionModal';
+import { Character } from '@/types/character';
 
 interface CharacterCardProps {
-  character: {
+  character: Partial<Character> & {
     id: string;
     name: string;
-    description: string | null;
-    race: string | null;
-    class: string | null;
-    level: number | null;
   };
 }
 

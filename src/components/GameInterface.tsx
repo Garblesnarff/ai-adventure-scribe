@@ -7,6 +7,7 @@ import { MessageProvider, useMessageContext } from '@/contexts/MessageContext';
 import { MessageList } from './game/MessageList';
 import { ChatInput } from './game/ChatInput';
 import { VoiceHandler } from './game/VoiceHandler';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * GameContent Component
@@ -17,6 +18,25 @@ const GameContent: React.FC = () => {
   const { toast } = useToast();
 
   /**
+   * Calls the AI chat edge function to generate a response
+   * @param messages - Array of chat messages
+   * @returns AI generated response
+   */
+  const getAIResponse = async (messages: ChatMessage[]) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('chat-ai', {
+        body: { messages },
+      });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error calling AI:', error);
+      throw error;
+    }
+  };
+
+  /**
    * Handle sending a new message
    * Processes player input and generates appropriate responses
    * @param playerInput - The message text from the player
@@ -24,38 +44,40 @@ const GameContent: React.FC = () => {
   const handleSendMessage = async (playerInput: string) => {
     if (queueStatus === 'processing') return;
 
-    // Add player message
-    const playerMessage: ChatMessage = {
-      text: playerInput,
-      sender: 'player',
-      context: {
-        emotion: 'neutral',
-        intent: 'query',
-      },
-    };
-    await sendMessage(playerMessage);
-    
-    // Add system acknowledgment
-    const systemMessage: ChatMessage = {
-      text: "Processing your request...",
-      sender: 'system',
-      context: {
-        intent: 'acknowledgment',
-      },
-    };
-    await sendMessage(systemMessage);
-    
-    // Generate DM response
-    const dmResponse: ChatMessage = {
-      text: `The world responds to your words: "${playerInput}"... What would you like to do next?`,
-      sender: 'dm',
-      context: {
-        emotion: 'neutral',
-        intent: 'response',
-        location: 'current_scene',
-      },
-    };
-    await sendMessage(dmResponse);
+    try {
+      // Add player message
+      const playerMessage: ChatMessage = {
+        text: playerInput,
+        sender: 'player',
+        context: {
+          emotion: 'neutral',
+          intent: 'query',
+        },
+      };
+      await sendMessage(playerMessage);
+      
+      // Add system acknowledgment
+      const systemMessage: ChatMessage = {
+        text: "Processing your request...",
+        sender: 'system',
+        context: {
+          intent: 'acknowledgment',
+        },
+      };
+      await sendMessage(systemMessage);
+      
+      // Get AI response
+      const aiResponse = await getAIResponse([...messages, playerMessage]);
+      await sendMessage(aiResponse);
+
+    } catch (error) {
+      console.error('Error in message flow:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process message. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

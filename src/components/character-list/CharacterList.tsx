@@ -88,12 +88,14 @@ const CharacterList: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {characters.map((character) => {
-          // Ensure character has required id and name properties
+          // Type guard to ensure character has required id and name properties
           if (!character.id || !character.name) return null;
+          
+          // Now TypeScript knows these properties exist
           return (
             <CharacterCard
               key={character.id}
-              character={character}
+              character={character as Partial<Character> & { id: string; name: string }}
             />
           );
         })}

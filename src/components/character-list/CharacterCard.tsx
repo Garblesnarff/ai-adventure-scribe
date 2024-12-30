@@ -9,11 +9,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import CampaignSelectionModal from './CampaignSelectionModal';
 import { Character } from '@/types/character';
 
+/**
+ * Props interface for CharacterCard component
+ * Requires id and name, but allows other Character properties to be partial
+ */
 interface CharacterCardProps {
-  character: Partial<Character> & {
-    id: string;
-    name: string;
-  };
+  character: Partial<Character> & Required<Pick<Character, 'id' | 'name'>>;
 }
 
 /**

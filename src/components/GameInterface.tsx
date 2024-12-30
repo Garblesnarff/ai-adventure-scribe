@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ChatMessage } from '@/types/game';
 import { useGameSession } from '@/hooks/useGameSession';
 import { MessageProvider, useMessageContext } from '@/contexts/MessageContext';
+import { MemoryProvider, useMemoryContext } from '@/contexts/MemoryContext';
 import { MessageList } from './game/MessageList';
 import { ChatInput } from './game/ChatInput';
 import { VoiceHandler } from './game/VoiceHandler';
@@ -15,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
  */
 const GameContent: React.FC = () => {
   const { messages, sendMessage, queueStatus } = useMessageContext();
+  const { extractMemories } = useMemoryContext();
   const { toast } = useToast();
 
   /**
@@ -56,6 +58,9 @@ const GameContent: React.FC = () => {
       };
       await sendMessage(playerMessage);
       
+      // Extract memories from player input
+      await extractMemories(playerInput, 'general');
+      
       // Add system acknowledgment
       const systemMessage: ChatMessage = {
         text: "Processing your request...",
@@ -69,6 +74,11 @@ const GameContent: React.FC = () => {
       // Get AI response
       const aiResponse = await getAIResponse([...messages, playerMessage]);
       await sendMessage(aiResponse);
+      
+      // Extract memories from AI response
+      if (aiResponse.text) {
+        await extractMemories(aiResponse.text, 'event');
+      }
 
     } catch (error) {
       console.error('Error in message flow:', error);
@@ -112,7 +122,9 @@ export const GameInterface: React.FC = () => {
   return (
     <div className="min-h-screen bg-[url('/parchment-bg.png')] bg-cover p-4">
       <MessageProvider sessionId={sessionId}>
-        <GameContent />
+        <MemoryProvider sessionId={sessionId}>
+          <GameContent />
+        </MemoryProvider>
       </MessageProvider>
     </div>
   );

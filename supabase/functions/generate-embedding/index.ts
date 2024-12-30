@@ -28,17 +28,15 @@ serve(async (req) => {
     // Format input properly for the API
     const response = await hf.featureExtraction({
       model: 'sentence-transformers/all-MiniLM-L6-v2',
-      inputs: {
-        sentences: [cleanedText]
-      }
+      inputs: cleanedText
     });
 
     // Ensure the embedding is properly formatted as an array
-    const embedding = Array.isArray(response) ? response[0] : response;
+    const embedding = Array.isArray(response) ? response : [response];
     console.log('Successfully generated embedding');
 
     return new Response(
-      JSON.stringify({ embedding }),
+      JSON.stringify({ embedding: embedding[0] }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

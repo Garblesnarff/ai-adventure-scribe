@@ -52,7 +52,7 @@ export const useMemories = (sessionId: string | null) => {
   /**
    * Fetch memories for a specific session
    */
-  const { data: memories, isLoading } = useQuery({
+  const { data: memories = [], isLoading } = useQuery({
     queryKey: ['memories', sessionId],
     queryFn: async () => {
       if (!sessionId) return [];

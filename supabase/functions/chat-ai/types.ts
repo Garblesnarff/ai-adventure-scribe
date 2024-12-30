@@ -1,26 +1,22 @@
 /**
- * Types for chat-ai function
+ * Interface for memory data structure
  */
-export interface ChatMessage {
-  text: string;
-  sender: 'player' | 'dm' | 'system';
-  context?: {
-    location?: string;
-    emotion?: string;
-    intent?: string;
-  };
-}
-
 export interface Memory {
   id: string;
   content: string;
   type: string;
   importance: number;
-  embedding?: number[];
+  embedding?: number[] | string | null;
+  metadata: Record<string, any>;
   created_at: string;
+  session_id?: string | null;
+  updated_at: string;
 }
 
+/**
+ * Interface for memory with relevance score
+ */
 export interface MemoryContext {
-  relevanceScore: number;
   memory: Memory;
+  relevanceScore: number;
 }

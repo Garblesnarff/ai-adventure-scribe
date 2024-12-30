@@ -6,23 +6,50 @@ const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
+ * Calculates cosine similarity between two vectors
+ */
+function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) return 0;
+  
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+/**
  * Fetches relevant memories using vector similarity search
  * Falls back to keyword-based search if embeddings are not available
  */
-export async function fetchRelevantMemories(sessionId: string, context: any): Promise<Memory[]> {
+export async function fetchRelevantMemories(
+  sessionId: string, 
+  context: any,
+  queryEmbedding?: number[]
+): Promise<Memory[]> {
   try {
     const { data: memories, error } = await supabase
       .from('memories')
       .select('*')
       .eq('session_id', sessionId)
-      .order('importance', { ascending: false })
-      .limit(10);
+      .order('importance', { ascending: false });
 
     if (error) throw error;
     
-    // If we have embeddings, we'll use them for similarity search later
-    // For now, we're using the basic importance-based retrieval
-    return memories || [];
+    let scoredMemories = memories.map(memory => ({
+      memory,
+      relevanceScore: calculateMemoryRelevance(memory, context, queryEmbedding)
+    }));
+    
+    // Sort by relevance score and return top memories
+    scoredMemories.sort((a, b) => b.relevanceScore - a.relevanceScore);
+    return scoredMemories.slice(0, 5).map(m => m.memory);
   } catch (error) {
     console.error('Error fetching memories:', error);
     return [];
@@ -32,7 +59,11 @@ export async function fetchRelevantMemories(sessionId: string, context: any): Pr
 /**
  * Calculates memory relevance score based on context, importance, and semantic similarity
  */
-export function calculateMemoryRelevance(memory: Memory, context: any): number {
+export function calculateMemoryRelevance(
+  memory: Memory, 
+  context: any,
+  queryEmbedding?: number[]
+): number {
   let score = memory.importance || 0;
   
   // Context matching boost
@@ -43,13 +74,24 @@ export function calculateMemoryRelevance(memory: Memory, context: any): number {
     score += 1;
   }
   
+  // Semantic similarity if embeddings are available
+  if (queryEmbedding && memory.embedding) {
+    try {
+      const embeddingArray = typeof memory.embedding === 'string' 
+        ? JSON.parse(memory.embedding) 
+        : memory.embedding;
+      const similarity = cosineSimilarity(queryEmbedding, embeddingArray);
+      score += similarity * 3; // Weight semantic similarity highly
+    } catch (error) {
+      console.error('Error calculating semantic similarity:', error);
+    }
+  }
+  
   // Time decay factor - memories become less relevant over time
   const createdAt = new Date(memory.created_at).getTime();
   const now = Date.now();
   const hoursSinceCreation = (now - createdAt) / (1000 * 60 * 60);
   const timeFactor = Math.exp(-hoursSinceCreation / 24); // Decay over 24 hours
-  
-  // If we have embeddings, we could add semantic similarity score here
   
   return score * timeFactor;
 }

@@ -1,0 +1,7 @@
+project_id = "cnalyhtalikwsopogula"
+
+[functions.chat-ai]
+verify_jwt = false
+
+[functions.generate-embedding]
+verify_jwt = false

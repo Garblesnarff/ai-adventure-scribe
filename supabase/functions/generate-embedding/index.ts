@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2'
 
 const corsHeaders = {
@@ -8,7 +7,7 @@ const corsHeaders = {
 }
 
 /**
- * Generates embeddings for text using HuggingFace's API
+ * Edge function to generate embeddings using HuggingFace's API
  * Uses the all-MiniLM-L6-v2 model which is optimized for semantic search
  */
 serve(async (req) => {

@@ -25,22 +25,22 @@ serve(async (req) => {
 
     const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'));
     
-    // Format input with correct parameter names for the HuggingFace API
+    // Get sentence embedding using the correct model and parameters
     const response = await hf.featureExtraction({
       model: 'sentence-transformers/all-MiniLM-L6-v2',
-      inputs: {
-        source_sentence: cleanedText,
-        sentences: [cleanedText]
-      }
+      inputs: cleanedText
     });
 
     console.log('Successfully generated embedding');
 
-    // Extract the embedding from the response
-    const embedding = Array.isArray(response) ? response[0] : response;
+    // Ensure the embedding is in the correct array format
+    const embedding = Array.isArray(response) ? response : [response];
+
+    // Format the response as a proper vector string
+    const vectorString = `[${embedding.join(',')}]`;
 
     return new Response(
-      JSON.stringify({ embedding }),
+      JSON.stringify({ embedding: vectorString }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

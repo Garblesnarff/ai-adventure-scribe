@@ -1,11 +1,13 @@
 export type SpeakerType = 'player' | 'dm' | 'system';
 
+export type SessionStatus = 'active' | 'expired' | 'ending';
+
 /**
  * Interface defining the structure of message context data
  * Must be compatible with Supabase's Json type
  */
 export interface MessageContext {
-  [key: string]: string | undefined;
+  [key: string]: string | null | undefined;
   location?: string;
   emotion?: string;
   intent?: string;
@@ -31,4 +33,5 @@ export interface GameSession {
   start_time: string;
   end_time?: string;
   summary?: string;
+  status?: 'active' | 'completed' | 'expired';
 }

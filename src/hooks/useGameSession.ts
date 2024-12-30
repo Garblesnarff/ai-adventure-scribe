@@ -4,9 +4,14 @@ import { useToast } from '@/hooks/use-toast';
 import { GameSession } from '@/types/game';
 
 const SESSION_EXPIRY_TIME = 1000 * 60 * 60; // 1 hour
+const CLEANUP_INTERVAL = 1000 * 60 * 5; // Check every 5 minutes
 
+/**
+ * Hook for managing game sessions with enhanced cleanup and summary generation
+ */
 export const useGameSession = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionState, setSessionState] = useState<'active' | 'expired' | 'ending'>('active');
   const { toast } = useToast();
 
   /**
@@ -15,7 +20,10 @@ export const useGameSession = () => {
   const createGameSession = async () => {
     const { data, error } = await supabase
       .from('game_sessions')
-      .insert([{ session_number: 1 }])
+      .insert([{ 
+        session_number: 1,
+        status: 'active'
+      }])
       .select('id')
       .single();
 
@@ -33,6 +41,26 @@ export const useGameSession = () => {
   };
 
   /**
+   * Generates a summary for the session based on dialogue history
+   */
+  const generateSessionSummary = async (sessionId: string) => {
+    const { data: messages } = await supabase
+      .from('dialogue_history')
+      .select('message, speaker_type, context')
+      .eq('session_id', sessionId)
+      .order('timestamp', { ascending: true });
+
+    if (!messages?.length) return "No activity recorded in this session";
+
+    // Simple summary generation - can be enhanced with AI later
+    const messageCount = messages.length;
+    const playerActions = messages.filter(m => m.speaker_type === 'player').length;
+    const dmResponses = messages.filter(m => m.speaker_type === 'dm').length;
+
+    return `Session completed with ${messageCount} total interactions: ${playerActions} player actions and ${dmResponses} DM responses.`;
+  };
+
+  /**
    * Checks if a session has expired
    */
   const isSessionExpired = (session: GameSession) => {
@@ -41,26 +69,36 @@ export const useGameSession = () => {
   };
 
   /**
-   * Cleans up expired session
+   * Cleans up expired session with summary
    */
   const cleanupSession = async (sessionId: string) => {
-    const summary = "Session expired due to inactivity";
+    setSessionState('ending');
+    const summary = await generateSessionSummary(sessionId);
+    
     const { error } = await supabase
       .from('game_sessions')
       .update({ 
         end_time: new Date().toISOString(),
-        summary 
+        summary,
+        status: 'completed'
       })
       .eq('id', sessionId);
 
     if (error) {
       console.error('Error cleaning up session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to cleanup session properly",
+        variant: "destructive",
+      });
     }
+    
+    setSessionState('expired');
     return summary;
   };
 
   /**
-   * Initialize session on component mount
+   * Initialize and maintain session
    */
   useEffect(() => {
     const initSession = async () => {
@@ -86,11 +124,31 @@ export const useGameSession = () => {
       if (!sessionId) {
         const newSessionId = await createGameSession();
         setSessionId(newSessionId);
+        setSessionState('active');
       }
     };
 
     initSession();
+
+    // Set up periodic cleanup check
+    const cleanup = setInterval(async () => {
+      if (sessionId) {
+        const { data: session } = await supabase
+          .from('game_sessions')
+          .select('*')
+          .eq('id', sessionId)
+          .single();
+
+        if (session && isSessionExpired(session)) {
+          await cleanupSession(sessionId);
+        }
+      }
+    }, CLEANUP_INTERVAL);
+
+    return () => {
+      clearInterval(cleanup);
+    };
   }, [sessionId]);
 
-  return { sessionId, setSessionId };
+  return { sessionId, setSessionId, sessionState };
 };

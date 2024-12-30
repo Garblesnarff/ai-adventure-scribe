@@ -3,10 +3,10 @@
  */
 export interface Memory {
   id: string;
-  type: 'location' | 'character' | 'event' | 'item' | 'general';
+  type: string; // Changed from union type to string to match database
   content: string;
   importance: number;
-  embedding?: number[] | null;
+  embedding?: number[] | string | null; // Added string type to match database
   metadata: Record<string, any>;
   created_at: string;
   session_id?: string | null;

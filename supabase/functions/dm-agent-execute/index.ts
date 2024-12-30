@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { ChatMessage } from './types.ts';
+import { ChatMessage, AgentContext, TaskExecutionResponse } from './types.ts';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || '');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -29,7 +32,7 @@ serve(async (req) => {
       Additional Context: ${JSON.stringify(task.context || {})}
     `;
 
-    // Call Gemini API (already set up in our project)
+    // Call Gemini API
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     const result = await model.generateContent(prompt);
     const response = await result.response;

@@ -1,3 +1,6 @@
+import { Memory } from '@/components/game/memory/types';
+import { MessageContext } from '@/types/game';
+
 /**
  * Constants for memory selection configuration
  */

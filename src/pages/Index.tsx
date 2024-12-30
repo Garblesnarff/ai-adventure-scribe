@@ -1,11 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import CampaignList from '@/components/campaign-list/CampaignList';
 
 /**
  * Index page component serving as the landing page
  * Displays available campaigns and quick actions
+ * Includes loading states and error handling
+ * @returns {JSX.Element} The index page with campaign list
  */
 const Index = () => {
   const navigate = useNavigate();

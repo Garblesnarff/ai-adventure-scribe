@@ -53,8 +53,8 @@ const GameContent: React.FC = () => {
       };
       await sendMessage(systemMessage);
       
-      // Get AI response
-      const aiResponse = await getAIResponse([...messages, playerMessage]);
+      // Get AI response with session context
+      const aiResponse = await getAIResponse([...messages, playerMessage], sessionId);
       await sendMessage(aiResponse);
       
       // Extract memories from AI response

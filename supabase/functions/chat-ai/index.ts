@@ -16,6 +16,8 @@ async function handleChat(messages: any[]) {
   const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
   try {
+    console.log('Processing chat request with messages:', messages);
+    
     const chat = model.startChat({
       history: messages.map(msg => ({
         role: msg.sender === 'player' ? 'user' : 'assistant',
@@ -32,6 +34,8 @@ async function handleChat(messages: any[]) {
     const result = await chat.sendMessage(messages[messages.length - 1].text);
     const response = await result.response;
     const text = response.text();
+
+    console.log('Generated AI response:', text);
 
     return {
       text,

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ChatMessage } from '@/types/game';
+import { ChatMessage, MessageContext } from '@/types/game';
 
 /**
  * Custom hook for fetching and managing game messages
@@ -29,7 +29,7 @@ export const useMessages = (sessionId: string | null) => {
         sender: msg.speaker_type as ChatMessage['sender'],
         id: msg.id,
         timestamp: msg.timestamp,
-        context: msg.context,
+        context: msg.context as MessageContext,
       }));
     },
     enabled: !!sessionId,

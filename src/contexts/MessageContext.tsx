@@ -22,7 +22,7 @@ export const MessageProvider: React.FC<{
   const { data: messages = [], isLoading } = useMessages(sessionId);
   const { messageMutation, queueStatus } = useMessageQueue(sessionId);
 
-  const value = {
+  const value: MessageContextType = {
     messages,
     isLoading,
     sendMessage: messageMutation.mutateAsync,

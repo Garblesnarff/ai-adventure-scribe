@@ -8,9 +8,9 @@ export type SessionStatus = 'active' | 'expired' | 'ending';
  */
 export interface MessageContext {
   [key: string]: string | null | undefined;
-  location?: string;
-  emotion?: string;
-  intent?: string;
+  location?: string | null;
+  emotion?: string | null;
+  intent?: string | null;
 }
 
 /**

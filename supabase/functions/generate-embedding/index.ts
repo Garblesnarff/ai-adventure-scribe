@@ -25,16 +25,22 @@ serve(async (req) => {
 
     const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'));
     
-    // Use the correct parameter format for the API
+    // Format input properly for the HuggingFace API
     const response = await hf.featureExtraction({
       model: 'sentence-transformers/all-MiniLM-L6-v2',
-      inputs: cleanedText
+      inputs: {
+        source_sentences: [cleanedText],
+        sentences_to_compare: [cleanedText]
+      }
     });
 
     console.log('Successfully generated embedding');
 
+    // Extract the embedding from the response
+    const embedding = Array.isArray(response) ? response[0] : response;
+
     return new Response(
-      JSON.stringify({ embedding: response }),
+      JSON.stringify({ embedding }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

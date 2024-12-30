@@ -6,44 +6,42 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-/**
- * Edge function to generate embeddings using HuggingFace's API
- * Uses the all-MiniLM-L6-v2 model which is optimized for semantic search
- */
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { text } = await req.json()
+    const { text } = await req.json();
     
     if (!text) {
-      throw new Error('Text is required')
+      throw new Error('Text is required');
     }
 
-    console.log('Generating embedding for text:', text)
+    console.log('Generating embedding for text:', text);
 
-    const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'))
+    const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'));
     
     // Generate embedding using the sentence-transformers model
     const response = await hf.featureExtraction({
       model: 'sentence-transformers/all-MiniLM-L6-v2',
       inputs: text,
-    })
+    });
 
-    console.log('Successfully generated embedding')
+    // Ensure the embedding is properly formatted as an array
+    const embedding = Array.from(response);
+    console.log('Successfully generated embedding');
 
     return new Response(
-      JSON.stringify({ embedding: response }),
+      JSON.stringify({ embedding }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    );
   } catch (error) {
-    console.error('Error generating embedding:', error)
+    console.error('Error generating embedding:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    )
+    );
   }
-})
+});

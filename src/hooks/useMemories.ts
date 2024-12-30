@@ -20,7 +20,14 @@ export const useMemories = (sessionId: string | null) => {
       });
 
       if (error) throw error;
-      return data.embedding;
+      
+      // Ensure the embedding is properly formatted
+      if (!data.embedding || !Array.isArray(data.embedding)) {
+        console.error('Invalid embedding format:', data);
+        return null;
+      }
+
+      return JSON.stringify(data.embedding);
     } catch (error) {
       console.error('Error generating embedding:', error);
       return null;
@@ -62,7 +69,7 @@ export const useMemories = (sessionId: string | null) => {
       // Convert the embedding strings to number arrays
       return data.map(memory => ({
         ...memory,
-        embedding: parseEmbedding(memory.embedding),
+        embedding: parseEmbedding(memory.embedding as string),
       })) as Memory[];
     },
     enabled: !!sessionId,
@@ -78,14 +85,18 @@ export const useMemories = (sessionId: string | null) => {
       
       const { data, error } = await supabase
         .from('memories')
-        .insert([{ ...memory, embedding: JSON.stringify(embedding) }])
+        .insert([{ 
+          ...memory, 
+          embedding,
+          metadata: memory.metadata || {}
+        }])
         .select()
         .single();
 
       if (error) throw error;
       return {
         ...data,
-        embedding: parseEmbedding(data.embedding),
+        embedding: parseEmbedding(data.embedding as string),
       } as Memory;
     },
     onSuccess: () => {

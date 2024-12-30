@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
-import { Button } from './ui/button';
+import React from 'react';
 import { Card } from './ui/card';
-import { Input } from './ui/input';
 import { useConversation } from '@11labs/react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,17 +7,21 @@ import { ChatMessage, MessageContext } from '@/types/game';
 import { useGameSession } from '@/hooks/useGameSession';
 import { useMessageQueue } from '@/hooks/useMessageQueue';
 import { MessageList } from './game/MessageList';
+import { ChatInput } from './game/ChatInput';
 
 /**
  * GameInterface Component
- * Handles the game's chat interface and message persistence
+ * Main component for handling game interactions and message flow
+ * Manages the chat interface and message persistence
  */
 export const GameInterface = () => {
-  const [playerInput, setPlayerInput] = useState('');
   const { sessionId } = useGameSession();
   const { messageMutation, queueStatus } = useMessageQueue(sessionId);
 
-  // Initialize conversation with ElevenLabs
+  /**
+   * Initialize conversation with ElevenLabs
+   * Sets up text-to-speech capabilities for the game
+   */
   const conversation = useConversation({
     overrides: {
       tts: {
@@ -30,6 +32,7 @@ export const GameInterface = () => {
 
   /**
    * Fetch messages for current session
+   * Retrieves and formats message history from Supabase
    */
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', sessionId],
@@ -60,9 +63,11 @@ export const GameInterface = () => {
 
   /**
    * Handle sending a new message
+   * Processes player input and generates appropriate responses
+   * @param playerInput - The message text from the player
    */
-  const handleSendMessage = async () => {
-    if (!playerInput.trim() || !sessionId || queueStatus === 'processing') return;
+  const handleSendMessage = async (playerInput: string) => {
+    if (!sessionId || queueStatus === 'processing') return;
 
     // Add player message
     const playerMessage: ChatMessage = {
@@ -85,7 +90,7 @@ export const GameInterface = () => {
     };
     await messageMutation.mutateAsync(systemMessage);
     
-    // Simple DM response for now
+    // Generate DM response
     const dmResponse: ChatMessage = {
       text: `The world responds to your words: "${playerInput}"... What would you like to do next?`,
       sender: 'dm',
@@ -96,15 +101,13 @@ export const GameInterface = () => {
       },
     };
     await messageMutation.mutateAsync(dmResponse);
-    
-    setPlayerInput('');
 
-    // Speak the DM's response
+    // Initialize voice conversation
     try {
       await conversation.startSession({
         agentId: "your_agent_id", // Replace with actual agent ID
       });
-      // Text-to-speech would go here
+      // Text-to-speech implementation would go here
     } catch (error) {
       console.error('Failed to start voice conversation:', error);
     }
@@ -116,23 +119,11 @@ export const GameInterface = () => {
         <h1 className="text-4xl text-center mb-6 text-primary">D&D Adventure</h1>
         
         <MessageList messages={messages} />
-
-        <div className="flex gap-2">
-          <Input
-            value={playerInput}
-            onChange={(e) => setPlayerInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="What would you like to do?"
-            className="flex-1"
-            disabled={queueStatus === 'processing'}
-          />
-          <Button 
-            onClick={handleSendMessage}
-            disabled={queueStatus === 'processing'}
-          >
-            Send
-          </Button>
-        </div>
+        
+        <ChatInput 
+          onSendMessage={handleSendMessage}
+          isDisabled={queueStatus === 'processing'}
+        />
       </Card>
     </div>
   );

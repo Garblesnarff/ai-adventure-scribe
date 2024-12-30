@@ -11,17 +11,34 @@ interface Memory {
   type: 'location' | 'character' | 'event' | 'item' | 'general';
   content: string;
   importance: number;
+  embedding?: number[];
   metadata: Record<string, any>;
   created_at: string;
 }
 
 /**
- * Custom hook for managing game memories
- * Handles fetching, creating, and managing memory entries
+ * Custom hook for managing game memories with embedding support
  */
 export const useMemories = (sessionId: string | null) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  /**
+   * Generate embedding for text using our edge function
+   */
+  const generateEmbedding = async (text: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-embedding', {
+        body: { text },
+      });
+
+      if (error) throw error;
+      return data.embedding;
+    } catch (error) {
+      console.error('Error generating embedding:', error);
+      return null;
+    }
+  };
 
   /**
    * Fetch memories for a specific session
@@ -48,13 +65,16 @@ export const useMemories = (sessionId: string | null) => {
   });
 
   /**
-   * Create a new memory entry
+   * Create a new memory entry with embedding
    */
   const createMemory = useMutation({
     mutationFn: async (memory: Omit<Memory, 'id' | 'created_at'>) => {
+      // Generate embedding for the memory content
+      const embedding = await generateEmbedding(memory.content);
+      
       const { data, error } = await supabase
         .from('memories')
-        .insert([memory])
+        .insert([{ ...memory, embedding }])
         .select()
         .single();
 

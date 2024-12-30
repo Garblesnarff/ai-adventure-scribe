@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { ChatMessage, AgentContext, TaskExecutionResponse } from './types.ts';
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3"
 
 const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || '');
 

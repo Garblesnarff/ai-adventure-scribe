@@ -1,45 +1,21 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
-import { Trash2 } from 'lucide-react';
 import { isValidUUID } from '@/utils/validation';
+import { CampaignHeader } from './sections/CampaignHeader';
+import { CampaignDetails } from './sections/CampaignDetails';
+import { CampaignParameters } from './sections/CampaignParameters';
+import { GameSession } from './sections/GameSession';
 
 /**
- * Type for Campaign data structure from Supabase
- */
-type CampaignRow = Database['public']['Tables']['campaigns']['Row'];
-
-/**
- * Interface for Campaign data structure with proper type handling
- */
-interface Campaign {
-  id: string;
-  name: string;
-  description?: string | null;
-  genre?: string | null;
-  difficulty_level?: string | null;
-  campaign_length?: CampaignRow['campaign_length'];
-  tone?: CampaignRow['tone'];
-  setting_details?: Record<string, any> | null;
-  status?: string | null;
-  user_id: string;
-  created_at?: string | null;
-  updated_at?: string | null;
-}
-
-/**
- * CampaignView component displays the details of a specific campaign
- * Includes error handling and loading states
- * @returns {JSX.Element} The campaign view page
+ * CampaignView component displays campaign details and handles game sessions
  */
 const CampaignView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [campaign, setCampaign] = React.useState<Campaign | null>(null);
+  const [campaign, setCampaign] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const { toast } = useToast();
@@ -85,7 +61,7 @@ const CampaignView: React.FC = () => {
           return;
         }
         
-        setCampaign(data as Campaign);
+        setCampaign(data);
       } catch (error) {
         console.error('Error fetching campaign:', error);
         toast({
@@ -147,54 +123,24 @@ const CampaignView: React.FC = () => {
   }
 
   if (!campaign) {
-    return null; // Early return handled by useEffect
+    return null;
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <Card className="p-6 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <div className="flex justify-between items-start mb-8">
-          <h1 className="text-3xl font-bold">{campaign.name}</h1>
-          <Button
-            variant="destructive"
-            size="icon"
-            onClick={handleDelete}
-            disabled={isDeleting}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+        <CampaignHeader 
+          campaign={campaign}
+          isDeleting={isDeleting}
+          onDelete={handleDelete}
+        />
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Basic Information */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Campaign Details</h2>
-            <div className="space-y-2">
-              {campaign.description && (
-                <p className="text-gray-600">{campaign.description}</p>
-              )}
-              {campaign.genre && (
-                <p><span className="font-medium">Genre:</span> {campaign.genre}</p>
-              )}
-              {campaign.difficulty_level && (
-                <p><span className="font-medium">Difficulty:</span> {campaign.difficulty_level}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Campaign Parameters */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Campaign Parameters</h2>
-            <div className="space-y-2">
-              {campaign.campaign_length && (
-                <p><span className="font-medium">Length:</span> {campaign.campaign_length}</p>
-              )}
-              {campaign.tone && (
-                <p><span className="font-medium">Tone:</span> {campaign.tone}</p>
-              )}
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <CampaignDetails campaign={campaign} />
+          <CampaignParameters campaign={campaign} />
         </div>
+
+        <GameSession campaignId={campaign.id} />
       </Card>
     </div>
   );

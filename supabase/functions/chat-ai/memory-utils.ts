@@ -1,32 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import { Memory, MemoryContext } from './types.ts';
+import { MEMORY_WINDOW_SIZE } from '../../src/utils/memorySelection.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
- * Calculates cosine similarity between two vectors
- */
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) return 0;
-  
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-  
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-}
-
-/**
- * Fetches relevant memories using vector similarity search
- * Falls back to keyword-based search if embeddings are not available
+ * Fetches relevant memories using vector similarity search and context window
  */
 export async function fetchRelevantMemories(
   sessionId: string, 
@@ -42,14 +23,15 @@ export async function fetchRelevantMemories(
 
     if (error) throw error;
     
+    // Apply memory window selection
     let scoredMemories = memories.map(memory => ({
       memory,
-      relevanceScore: calculateMemoryRelevance(memory, context, queryEmbedding)
+      score: calculateMemoryScore(memory, context, queryEmbedding)
     }));
     
-    // Sort by relevance score and return top memories
-    scoredMemories.sort((a, b) => b.relevanceScore - a.relevanceScore);
-    return scoredMemories.slice(0, 5).map(m => m.memory);
+    // Sort by score and return top memories within window
+    scoredMemories.sort((a, b) => b.score - a.score);
+    return scoredMemories.slice(0, MEMORY_WINDOW_SIZE).map(m => m.memory);
   } catch (error) {
     console.error('Error fetching memories:', error);
     return [];
@@ -120,14 +102,36 @@ export async function updateMemoryImportance(memories: Memory[], aiResponse: str
 }
 
 /**
- * Formats memories into a context string for the AI
+ * Formats selected memories into a context string for the AI
+ * Now includes metadata about memory selection
  */
 export function formatMemoryContext(memories: MemoryContext[]): string {
   if (!memories.length) return '';
   
   const formattedMemories = memories
-    .map(m => `[${m.memory.type.toUpperCase()}] (Relevance: ${m.relevanceScore.toFixed(2)}) ${m.memory.content}`)
+    .map(m => `[${m.memory.type.toUpperCase()}] (Relevance: ${m.relevanceScore.toFixed(2)}, Importance: ${m.memory.importance}) ${m.memory.content}`)
     .join('\n');
     
-  return `\nRelevant context from previous interactions:\n${formattedMemories}\n`;
+  return `\nRelevant context from previous interactions (${memories.length} most relevant memories):\n${formattedMemories}\n`;
+}
+
+/**
+ * Calculate memory score for selection
+ */
+function calculateMemoryScore(
+  memory: Memory, 
+  context: any,
+  queryEmbedding?: number[]
+): number {
+  // Recency score
+  const createdAt = new Date(memory.created_at).getTime();
+  const now = Date.now();
+  const hoursSinceCreation = (now - createdAt) / (1000 * 60 * 60);
+  const recencyScore = Math.exp(-hoursSinceCreation / 24);
+
+  // Importance and relevance from existing function
+  const baseScore = calculateMemoryRelevance(memory, context, queryEmbedding);
+  
+  // Combine scores (weighted average)
+  return (recencyScore * 0.4) + (baseScore * 0.6);
 }

@@ -1,3 +1,5 @@
+import { Json } from '@/integrations/supabase/types';
+
 /**
  * Interface for memory data structure
  */
@@ -7,7 +9,7 @@ export interface Memory {
   content: string;
   importance: number;
   embedding?: number[] | string | null; // Added string type to match database
-  metadata: Record<string, any>;
+  metadata: Json | null;
   created_at: string;
   session_id?: string | null;
   updated_at: string;

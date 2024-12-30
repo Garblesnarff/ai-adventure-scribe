@@ -14,7 +14,7 @@ import Equipment from './sections/Equipment';
  */
 const CharacterSheet: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { character, loading } = useCharacterData(id);
+  const { character, loading, refetch } = useCharacterData(id);
 
   // Show loading state while fetching data
   if (loading) {
@@ -30,10 +30,19 @@ const CharacterSheet: React.FC = () => {
   }
 
   // Early return if no character data is available
-  // Error handling is managed by the useCharacterData hook
   if (!character) {
     return null;
   }
+
+  // Transform ability scores into the format expected by AbilityScores component
+  const abilityStats = {
+    strength: character.abilityScores.strength.score,
+    dexterity: character.abilityScores.dexterity.score,
+    constitution: character.abilityScores.constitution.score,
+    intelligence: character.abilityScores.intelligence.score,
+    wisdom: character.abilityScores.wisdom.score,
+    charisma: character.abilityScores.charisma.score,
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -43,7 +52,11 @@ const CharacterSheet: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <BasicInfo character={character} />
           <CombatStats character={character} />
-          <AbilityScores character={character} />
+          <AbilityScores 
+            characterId={character.id || ''} 
+            stats={abilityStats}
+            onStatsUpdate={refetch}
+          />
           <Equipment character={character} />
         </div>
       </Card>

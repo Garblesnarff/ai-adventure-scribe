@@ -1,20 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
-
-/**
- * Interface for memory data structure
- */
-interface Memory {
-  id: string;
-  session_id: string;
-  type: 'location' | 'character' | 'event' | 'item' | 'general';
-  content: string;
-  importance: number;
-  embedding?: number[];
-  metadata: Record<string, any>;
-  created_at: string;
-}
+import { Memory } from '@/components/game/memory/types';
 
 /**
  * Custom hook for managing game memories with embedding support
@@ -41,6 +28,19 @@ export const useMemories = (sessionId: string | null) => {
   };
 
   /**
+   * Parse embedding string to number array
+   */
+  const parseEmbedding = (embeddingString: string | null): number[] | null => {
+    if (!embeddingString) return null;
+    try {
+      return JSON.parse(embeddingString);
+    } catch (error) {
+      console.error('Error parsing embedding:', error);
+      return null;
+    }
+  };
+
+  /**
    * Fetch memories for a specific session
    */
   const { data: memories, isLoading } = useQuery({
@@ -59,7 +59,11 @@ export const useMemories = (sessionId: string | null) => {
         throw error;
       }
 
-      return data as Memory[];
+      // Convert the embedding strings to number arrays
+      return data.map(memory => ({
+        ...memory,
+        embedding: parseEmbedding(memory.embedding),
+      })) as Memory[];
     },
     enabled: !!sessionId,
   });
@@ -68,18 +72,21 @@ export const useMemories = (sessionId: string | null) => {
    * Create a new memory entry with embedding
    */
   const createMemory = useMutation({
-    mutationFn: async (memory: Omit<Memory, 'id' | 'created_at'>) => {
+    mutationFn: async (memory: Omit<Memory, 'id' | 'created_at' | 'updated_at'>) => {
       // Generate embedding for the memory content
       const embedding = await generateEmbedding(memory.content);
       
       const { data, error } = await supabase
         .from('memories')
-        .insert([{ ...memory, embedding }])
+        .insert([{ ...memory, embedding: JSON.stringify(embedding) }])
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return {
+        ...data,
+        embedding: parseEmbedding(data.embedding),
+      } as Memory;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['memories', sessionId] });

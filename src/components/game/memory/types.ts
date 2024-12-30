@@ -6,8 +6,11 @@ export interface Memory {
   type: 'location' | 'character' | 'event' | 'item' | 'general';
   content: string;
   importance: number;
+  embedding?: number[] | null;
   metadata: Record<string, any>;
   created_at: string;
+  session_id?: string | null;
+  updated_at: string;
 }
 
 /**

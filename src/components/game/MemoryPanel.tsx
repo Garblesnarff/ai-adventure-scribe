@@ -6,6 +6,18 @@ import { useMemoryContext } from '@/contexts/MemoryContext';
 import { List, Filter, ChevronDown, ChevronUp, MapPin, User, Calendar, Archive } from 'lucide-react';
 
 /**
+ * Interface for memory data structure
+ */
+interface Memory {
+  id: string;
+  type: 'location' | 'character' | 'event' | 'item' | 'general';
+  content: string;
+  importance: number;
+  metadata: Record<string, any>;
+  created_at: string;
+}
+
+/**
  * Interface for memory category configuration
  */
 interface MemoryCategory {
@@ -30,7 +42,7 @@ const MEMORY_CATEGORIES: MemoryCategory[] = [
  * Displays and filters game memories by category
  */
 export const MemoryPanel: React.FC = () => {
-  const { memories } = useMemoryContext();
+  const { memories = [] } = useMemoryContext();
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedType, setSelectedType] = useState<string | null>(null);
 
@@ -38,13 +50,13 @@ export const MemoryPanel: React.FC = () => {
    * Filters memories based on selected type
    */
   const filteredMemories = selectedType
-    ? memories.filter(memory => memory.type === selectedType)
+    ? memories.filter((memory: Memory) => memory.type === selectedType)
     : memories;
 
   /**
    * Sorts memories by importance and creation date
    */
-  const sortedMemories = [...filteredMemories].sort((a, b) => {
+  const sortedMemories = [...filteredMemories].sort((a: Memory, b: Memory) => {
     if (b.importance !== a.importance) {
       return (b.importance || 0) - (a.importance || 0);
     }
@@ -99,7 +111,7 @@ export const MemoryPanel: React.FC = () => {
           
           <ScrollArea className="h-[calc(100%-8rem)] p-4">
             <div className="space-y-4">
-              {sortedMemories.map((memory) => (
+              {sortedMemories.map((memory: Memory) => (
                 <Card
                   key={memory.id}
                   className="p-3 bg-white/50 hover:bg-white/80 transition-colors"

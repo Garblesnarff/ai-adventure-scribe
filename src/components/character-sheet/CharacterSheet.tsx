@@ -1,9 +1,10 @@
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Character } from '@/types/character';
+import { isValidUUID } from '@/utils/validation';
 import BasicInfo from './sections/BasicInfo';
 import CombatStats from './sections/CombatStats';
 import AbilityScores from './sections/AbilityScores';
@@ -12,6 +13,7 @@ import Equipment from './sections/Equipment';
 /**
  * CharacterSheet component orchestrates the display of all character information
  * Fetches character data from Supabase and manages the overall layout
+ * Includes error handling and loading states
  */
 const CharacterSheet: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,21 +23,28 @@ const CharacterSheet: React.FC = () => {
   const { toast } = useToast();
 
   /**
+   * Validates character ID and redirects if invalid
+   */
+  React.useEffect(() => {
+    if (!id || !isValidUUID(id)) {
+      toast({
+        title: "Invalid Character",
+        description: "The character ID is invalid. Redirecting to characters page.",
+        variant: "destructive",
+      });
+      navigate('/characters');
+      return;
+    }
+  }, [id, navigate, toast]);
+
+  /**
    * Fetches character data from Supabase including related stats and equipment
    * Transforms the raw data into the required Character type format
    */
   React.useEffect(() => {
     const fetchCharacter = async () => {
       try {
-        if (!id) {
-          toast({
-            title: "Error",
-            description: "No character ID provided",
-            variant: "destructive",
-          });
-          navigate('/characters');
-          return;
-        }
+        if (!id || !isValidUUID(id)) return;
 
         // Fetch basic character info
         const { data: characterData, error: characterError } = await supabase
@@ -48,8 +57,8 @@ const CharacterSheet: React.FC = () => {
         
         if (!characterData) {
           toast({
-            title: "Error",
-            description: "Character not found",
+            title: "Character Not Found",
+            description: "The requested character could not be found. Redirecting to characters page.",
             variant: "destructive",
           });
           navigate('/characters');
@@ -138,7 +147,7 @@ const CharacterSheet: React.FC = () => {
         console.error('Error fetching character:', error);
         toast({
           title: "Error",
-          description: "Failed to load character data",
+          description: "Failed to load character data. Please try again.",
           variant: "destructive",
         });
         navigate('/characters');
@@ -147,17 +156,23 @@ const CharacterSheet: React.FC = () => {
       }
     };
 
-    if (id) {
-      fetchCharacter();
-    }
+    fetchCharacter();
   }, [id, toast, navigate]);
 
   if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading character data...</div>;
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="p-6 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+          <div className="flex justify-center items-center min-h-[200px]">
+            Loading character data...
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   if (!character) {
-    return <div className="flex justify-center items-center min-h-screen">Character not found</div>;
+    return null; // Early return handled by useEffect
   }
 
   return (

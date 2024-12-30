@@ -1,22 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { useConversation } from '@11labs/react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
-/**
- * Interface for chat message structure
- */
-interface ChatMessage {
-  text: string;
-  sender: 'player' | 'dm';
-  id?: string;
-  session_id?: string;
-  timestamp?: string;
-}
+import { ChatMessage } from '@/types/game';
+import { useGameSession } from '@/hooks/useGameSession';
+import { useMessageQueue } from '@/hooks/useMessageQueue';
+import { MessageList } from './game/MessageList';
 
 /**
  * GameInterface Component
@@ -24,9 +16,8 @@ interface ChatMessage {
  */
 export const GameInterface = () => {
   const [playerInput, setPlayerInput] = useState('');
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { sessionId } = useGameSession();
+  const { messageMutation, queueStatus } = useMessageQueue(sessionId);
 
   // Initialize conversation with ElevenLabs
   const conversation = useConversation({
@@ -36,43 +27,6 @@ export const GameInterface = () => {
       },
     },
   });
-
-  /**
-   * Create a new game session
-   */
-  const createGameSession = async () => {
-    const { data, error } = await supabase
-      .from('game_sessions')
-      .insert([{ session_number: 1 }])
-      .select('id')
-      .single();
-
-    if (error) {
-      console.error('Error creating game session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create game session",
-        variant: "destructive",
-      });
-      return null;
-    }
-
-    return data.id;
-  };
-
-  /**
-   * Initialize session on component mount
-   */
-  useEffect(() => {
-    const initSession = async () => {
-      const newSessionId = await createGameSession();
-      setSessionId(newSessionId);
-    };
-
-    if (!sessionId) {
-      initSession();
-    }
-  }, []);
 
   /**
    * Fetch messages for current session
@@ -90,66 +44,56 @@ export const GameInterface = () => {
 
       if (error) {
         console.error('Error fetching messages:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load messages",
-          variant: "destructive",
-        });
         return [];
       }
 
       return data.map(msg => ({
         text: msg.message,
-        sender: msg.speaker_type as 'player' | 'dm',
+        sender: msg.speaker_type as ChatMessage['sender'],
         id: msg.id,
         timestamp: msg.timestamp,
+        context: msg.context,
       }));
     },
     enabled: !!sessionId,
   });
 
   /**
-   * Mutation for saving new messages
-   */
-  const messageMutation = useMutation({
-    mutationFn: async (message: ChatMessage) => {
-      const { error } = await supabase
-        .from('dialogue_history')
-        .insert([{
-          session_id: sessionId,
-          message: message.text,
-          speaker_type: message.sender,
-        }]);
-
-      if (error) throw error;
-    },
-    onError: (error) => {
-      console.error('Error saving message:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save message",
-        variant: "destructive",
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', sessionId] });
-    },
-  });
-
-  /**
    * Handle sending a new message
    */
   const handleSendMessage = async () => {
-    if (!playerInput.trim() || !sessionId) return;
+    if (!playerInput.trim() || !sessionId || queueStatus === 'processing') return;
 
     // Add player message
-    const playerMessage = { text: playerInput, sender: 'player' as const };
+    const playerMessage: ChatMessage = {
+      text: playerInput,
+      sender: 'player',
+      context: {
+        emotion: 'neutral',
+        intent: 'query',
+      },
+    };
     await messageMutation.mutateAsync(playerMessage);
     
+    // Add system acknowledgment
+    const systemMessage: ChatMessage = {
+      text: "Processing your request...",
+      sender: 'system',
+      context: {
+        intent: 'acknowledgment',
+      },
+    };
+    await messageMutation.mutateAsync(systemMessage);
+    
     // Simple DM response for now
-    const dmResponse = {
+    const dmResponse: ChatMessage = {
       text: `The world responds to your words: "${playerInput}"... What would you like to do next?`,
-      sender: 'dm' as const
+      sender: 'dm',
+      context: {
+        emotion: 'neutral',
+        intent: 'response',
+        location: 'current_scene',
+      },
     };
     await messageMutation.mutateAsync(dmResponse);
     
@@ -171,20 +115,7 @@ export const GameInterface = () => {
       <Card className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm shadow-xl p-6">
         <h1 className="text-4xl text-center mb-6 text-primary">D&D Adventure</h1>
         
-        <div className="h-[60vh] overflow-y-auto mb-4 space-y-4 p-4">
-          {messages.map((message) => (
-            <div
-              key={message.id || message.timestamp}
-              className={`p-3 rounded-lg ${
-                message.sender === 'dm'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'bg-primary text-primary-foreground'
-              }`}
-            >
-              <p>{message.text}</p>
-            </div>
-          ))}
-        </div>
+        <MessageList messages={messages} />
 
         <div className="flex gap-2">
           <Input
@@ -193,8 +124,14 @@ export const GameInterface = () => {
             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder="What would you like to do?"
             className="flex-1"
+            disabled={queueStatus === 'processing'}
           />
-          <Button onClick={handleSendMessage}>Send</Button>
+          <Button 
+            onClick={handleSendMessage}
+            disabled={queueStatus === 'processing'}
+          >
+            Send
+          </Button>
         </div>
       </Card>
     </div>

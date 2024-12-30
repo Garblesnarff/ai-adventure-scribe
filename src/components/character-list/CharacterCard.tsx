@@ -24,6 +24,8 @@ interface CharacterCardProps {
 /**
  * CharacterCard component displays individual character information in a card format
  * Includes options to view or delete the character
+ * The entire card is clickable and navigates to the character sheet
+ * Delete button is separated to prevent accidental deletion
  * @param character - The character data to display
  * @param onDelete - Callback function to handle character deletion
  */
@@ -41,22 +43,29 @@ const CharacterCard: React.FC<CharacterCardProps> = ({ character, onDelete }) =>
 
   return (
     <Card 
-      className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+      className="p-4 hover:shadow-lg transition-all duration-200 cursor-pointer group relative 
+                hover:scale-[1.02] hover:bg-accent/5"
       onClick={handleViewCharacter}
     >
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-xl font-semibold">{character.name}</h2>
+          <h2 className="text-xl font-semibold group-hover:text-primary transition-colors">
+            {character.name}
+          </h2>
           <p className="text-gray-600">
             Level {character.level} {character.race?.name} {character.class?.name}
           </p>
         </div>
-        <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+        <div 
+          className="flex gap-2 z-10" 
+          onClick={e => e.stopPropagation()}
+        >
           <Button
             variant="ghost"
             size="icon"
             onClick={() => character.id && handleViewCharacter()}
             title="View Character"
+            className="opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <Eye className="w-4 h-4" />
           </Button>
@@ -65,7 +74,7 @@ const CharacterCard: React.FC<CharacterCardProps> = ({ character, onDelete }) =>
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-red-500 hover:text-red-700"
+                className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
                 title="Delete Character"
               >
                 <Trash2 className="w-4 h-4" />

@@ -3,12 +3,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useCampaign } from '@/contexts/CampaignContext';
+import { WizardStepProps } from '../wizard/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * Basic campaign details component
  * Handles campaign name and description input with validation
  */
-const BasicDetails: React.FC = () => {
+const BasicDetails: React.FC<WizardStepProps> = ({ isLoading = false }) => {
   const { state, dispatch } = useCampaign();
   const [touched, setTouched] = React.useState({
     name: false,
@@ -37,6 +39,21 @@ const BasicDetails: React.FC = () => {
   };
 
   const nameError = getNameError();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

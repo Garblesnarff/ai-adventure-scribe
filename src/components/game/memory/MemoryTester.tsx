@@ -31,19 +31,35 @@ export const MemoryTester: React.FC = () => {
   };
 
   /**
-   * Tests memory creation from player message
+   * Tests memory creation from player message with improved verification
    */
   const testMemoryCreation = async () => {
     setIsTestingMemory(true);
     const testMessage = "This is a test message for memory creation";
+    
     try {
       console.log('[MemoryTest] Starting memory creation test');
+      
+      // Store initial memory count
+      const initialMemoryCount = memories.length;
+      console.log('[MemoryTest] Initial memory count:', initialMemoryCount);
+      
+      // Extract memories
       await extractMemories(testMessage, 'general');
       
-      // Wait longer for the memory to be created and retrieved
+      // Wait for memory creation and retrieval
       console.log('[MemoryTest] Waiting for memory creation and retrieval...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
+      // Verify memory creation
+      const newMemoryCount = memories.length;
+      console.log('[MemoryTest] New memory count:', newMemoryCount);
+      
+      if (newMemoryCount <= initialMemoryCount) {
+        throw new Error('No new memories were created');
+      }
+      
+      // Check for the specific test message
       const found = memories.some(m => {
         const matches = m.content.includes(testMessage);
         console.log('[MemoryTest] Checking memory:', m, 'Matches:', matches);
@@ -52,13 +68,13 @@ export const MemoryTester: React.FC = () => {
 
       if (!found) {
         console.error('[MemoryTest] Memory not found after creation. Current memories:', memories);
-        throw new Error('Memory creation verification failed');
+        throw new Error('Memory creation verification failed - content not found');
       }
       
-      logTest('Memory Creation Test', found);
+      logTest('Memory Creation Test', true);
     } catch (error) {
       console.error('[MemoryTest] Memory Creation Test Failed:', error);
-      logTest('Memory Creation Test Failed: ' + error, false);
+      logTest(`Memory Creation Test Failed: ${error.message}`, false);
     } finally {
       setIsTestingMemory(false);
     }

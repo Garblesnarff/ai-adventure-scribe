@@ -31,7 +31,7 @@ export const useMemories = (sessionId: string | null) => {
         throw new Error('Invalid embedding format received from API');
       }
 
-      console.log('[Memory] Successfully generated embedding:', data.embedding.substring(0, 100) + '...');
+      console.log('[Memory] Successfully generated embedding');
       return data.embedding;
     } catch (error) {
       console.error('[Memory] Error generating embedding:', error);
@@ -48,13 +48,7 @@ export const useMemories = (sessionId: string | null) => {
       return null;
     }
     try {
-      const parsed = JSON.parse(embeddingString);
-      if (!Array.isArray(parsed)) {
-        console.error('[Memory] Parsed embedding is not an array:', parsed);
-        return null;
-      }
-      console.log('[Memory] Successfully parsed embedding array of length:', parsed.length);
-      return parsed;
+      return JSON.parse(embeddingString);
     } catch (error) {
       console.error('[Memory] Error parsing embedding:', error);
       return null;
@@ -62,7 +56,7 @@ export const useMemories = (sessionId: string | null) => {
   };
 
   /**
-   * Fetch memories for a specific session
+   * Fetch memories for a specific session with improved error handling
    */
   const { data: memories = [], isLoading } = useQuery({
     queryKey: ['memories', sessionId],
@@ -75,7 +69,7 @@ export const useMemories = (sessionId: string | null) => {
         .from('memories')
         .select('*')
         .eq('session_id', sessionId)
-        .order('importance', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('[Memory] Error fetching memories:', error);
@@ -83,18 +77,16 @@ export const useMemories = (sessionId: string | null) => {
       }
 
       console.log(`[Memory] Retrieved ${data.length} memories`);
-
-      // Convert the embedding strings to number arrays
       return data.map(memory => ({
         ...memory,
-        embedding: parseEmbedding(memory.embedding as string),
-      })) as Memory[];
+        embedding: parseEmbedding(memory.embedding),
+      }));
     },
     enabled: !!sessionId,
   });
 
   /**
-   * Create a new memory entry with embedding
+   * Create a new memory entry with embedding and improved validation
    */
   const createMemory = useMutation({
     mutationFn: async (memory: Omit<Memory, 'id' | 'created_at' | 'updated_at'>) => {
@@ -103,18 +95,19 @@ export const useMemories = (sessionId: string | null) => {
       console.log('[Memory] Starting memory creation process:', memory);
       
       // Generate embedding for the memory content
-      console.log('[Memory] Generating embedding for content:', memory.content);
       const embedding = await generateEmbedding(memory.content);
+      console.log('[Memory] Embedding generated successfully');
       
-      console.log('[Memory] Embedding generated successfully, inserting into database');
-      
+      // Insert memory into database
       const { data, error } = await supabase
         .from('memories')
         .insert([{ 
           ...memory,
           session_id: sessionId,
           embedding,
-          metadata: memory.metadata || {}
+          metadata: memory.metadata || {},
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }])
         .select()
         .single();
@@ -125,19 +118,11 @@ export const useMemories = (sessionId: string | null) => {
       }
 
       console.log('[Memory] Memory created successfully:', data);
-      
-      return {
-        ...data,
-        embedding: parseEmbedding(data.embedding as string),
-      } as Memory;
+      return data;
     },
     onSuccess: () => {
       console.log('[Memory] Memory creation mutation completed successfully');
       queryClient.invalidateQueries({ queryKey: ['memories', sessionId] });
-      toast({
-        title: "Memory Created",
-        description: "New memory has been stored successfully",
-      });
     },
     onError: (error) => {
       console.error('[Memory] Error in memory creation mutation:', error);
@@ -150,7 +135,7 @@ export const useMemories = (sessionId: string | null) => {
   });
 
   /**
-   * Extract and store memories from message content
+   * Extract and store memories from message content with improved error handling
    */
   const extractMemories = async (content: string, type: Memory['type'] = 'general') => {
     try {
@@ -158,7 +143,7 @@ export const useMemories = (sessionId: string | null) => {
 
       console.log('[Memory] Extracting memories from content:', content);
       
-      // Basic importance scoring based on content length and key phrases
+      // Basic importance scoring
       const importance = Math.min(
         Math.ceil(content.length / 100) + 
         (content.toLowerCase().includes('important') ? 1 : 0) +

@@ -41,13 +41,21 @@ export const validateGenreSelection = (campaign: any, toast: any): boolean => {
  * @returns boolean indicating if validation passed
  */
 export const validateCampaignParameters = (campaign: any, toast: any): boolean => {
-  if (!campaign?.difficulty_level || !campaign?.campaign_length || !campaign?.tone) {
-    toast({
-      title: "Incomplete Parameters",
-      description: "Please complete all campaign parameters before proceeding.",
-      variant: "destructive",
-    });
-    return false;
+  const requiredFields = {
+    difficulty_level: "Difficulty Level",
+    campaign_length: "Campaign Length",
+    tone: "Campaign Tone"
+  };
+
+  for (const [field, label] of Object.entries(requiredFields)) {
+    if (!campaign?.[field]) {
+      toast({
+        title: `Missing ${label}`,
+        description: `Please select a ${label.toLowerCase()} for your campaign.`,
+        variant: "destructive",
+      });
+      return false;
+    }
   }
   return true;
 };
@@ -70,10 +78,17 @@ export const validateCompleteCampaign = (campaign: any, toast: any): boolean => 
 
   const { name, description, genre, campaign_length, tone, difficulty_level } = campaign;
   
-  if (!name?.trim() || !genre || !campaign_length || !tone || !difficulty_level) {
+  const missingFields = [];
+  if (!name?.trim()) missingFields.push("Name");
+  if (!genre) missingFields.push("Genre");
+  if (!campaign_length) missingFields.push("Campaign Length");
+  if (!tone) missingFields.push("Tone");
+  if (!difficulty_level) missingFields.push("Difficulty Level");
+
+  if (missingFields.length > 0) {
     toast({
       title: "Incomplete Campaign",
-      description: "Please complete all required fields before saving.",
+      description: `Missing required fields: ${missingFields.join(", ")}`,
       variant: "destructive",
     });
     return false;

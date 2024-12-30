@@ -3,7 +3,11 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
+/**
+ * Predefined options for campaign parameters
+ */
 const difficultyLevels = [
   { value: 'easy', label: 'Easy' },
   { value: 'medium', label: 'Medium' },
@@ -22,15 +26,41 @@ const tones = [
   { value: 'gritty', label: 'Gritty' },
 ];
 
-const CampaignParameters: React.FC = () => {
+/**
+ * Campaign parameters selection component
+ * Handles difficulty, length, and tone selection with loading states
+ */
+const CampaignParameters: React.FC<{ isLoading?: boolean }> = ({ isLoading = false }) => {
   const { state, dispatch } = useCampaign();
 
+  /**
+   * Handles parameter value changes
+   * @param field - Parameter field name
+   * @param value - Selected parameter value
+   */
   const handleParameterChange = (field: string, value: string) => {
     dispatch({
       type: 'UPDATE_CAMPAIGN',
       payload: { [field]: value }
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        {[1, 2, 3].map((section) => (
+          <div key={section}>
+            <Skeleton className="h-8 w-48 mb-4" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-16" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

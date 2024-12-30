@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const genres = [
   { value: 'traditional-fantasy', label: 'Traditional Fantasy' },
@@ -13,15 +14,36 @@ const genres = [
   { value: 'horror', label: 'Horror' },
 ];
 
-const GenreSelection: React.FC = () => {
+/**
+ * Genre selection component for campaign creation
+ * Includes loading states and validation feedback
+ */
+const GenreSelection: React.FC<{ isLoading?: boolean }> = ({ isLoading = false }) => {
   const { state, dispatch } = useCampaign();
 
+  /**
+   * Handles genre selection change
+   * @param value - Selected genre value
+   */
   const handleGenreChange = (value: string) => {
     dispatch({
       type: 'UPDATE_CAMPAIGN',
       payload: { genre: value }
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48 mb-4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-16" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

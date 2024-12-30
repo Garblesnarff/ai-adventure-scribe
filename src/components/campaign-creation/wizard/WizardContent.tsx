@@ -45,7 +45,7 @@ const WizardContent: React.FC = () => {
 
   /**
    * Handles navigation to the next step
-   * On final step, validates and saves the campaign
+   * On final step, validates and saves the complete character
    */
   const handleNext = async () => {
     if (!validateCurrentStep()) {
@@ -94,7 +94,7 @@ const WizardContent: React.FC = () => {
       <Card className="p-6 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
         <WizardHeader />
         <ProgressIndicator currentStep={currentStep} totalSteps={wizardSteps.length} />
-        <CurrentStepComponent />
+        <CurrentStepComponent isLoading={isSaving} />
         <StepNavigation
           currentStep={currentStep}
           totalSteps={wizardSteps.length}

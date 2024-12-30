@@ -9,6 +9,7 @@ import { ChatInput } from './ChatInput';
 import { VoiceHandler } from './VoiceHandler';
 import { useAIResponse } from '@/hooks/useAIResponse';
 import { MemoryPanel } from './MemoryPanel';
+import { useGameSession } from '@/hooks/useGameSession';
 
 /**
  * GameContent Component
@@ -18,6 +19,7 @@ const GameContent: React.FC = () => {
   const { messages, sendMessage, queueStatus } = useMessageContext();
   const { extractMemories } = useMemoryContext();
   const { getAIResponse } = useAIResponse();
+  const { sessionId } = useGameSession();
   const { toast } = useToast();
 
   /**
@@ -54,6 +56,10 @@ const GameContent: React.FC = () => {
       await sendMessage(systemMessage);
       
       // Get AI response with session context
+      if (!sessionId) {
+        throw new Error('No active session found');
+      }
+      
       const aiResponse = await getAIResponse([...messages, playerMessage], sessionId);
       await sendMessage(aiResponse);
       

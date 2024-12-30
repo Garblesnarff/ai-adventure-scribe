@@ -1,17 +1,19 @@
 export type SpeakerType = 'player' | 'dm' | 'system';
 
+export interface MessageContext {
+  location?: string;
+  emotion?: string;
+  intent?: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface ChatMessage {
   text: string;
   sender: SpeakerType;
   id?: string;
   session_id?: string;
   timestamp?: string;
-  context?: {
-    location?: string;
-    emotion?: string;
-    intent?: string;
-    metadata?: Record<string, unknown>;
-  };
+  context?: MessageContext;
 }
 
 export interface GameSession {

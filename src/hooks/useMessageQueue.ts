@@ -7,6 +7,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
+/**
+ * Hook for managing message queue and persistence
+ * @param sessionId Current game session ID
+ */
 export const useMessageQueue = (sessionId: string | null) => {
   const [queueStatus, setQueueStatus] = useState<'idle' | 'processing' | 'error'>('idle');
   const { toast } = useToast();
@@ -23,12 +27,12 @@ export const useMessageQueue = (sessionId: string | null) => {
           setQueueStatus('processing');
           const { error } = await supabase
             .from('dialogue_history')
-            .insert([{
+            .insert({
               session_id: sessionId,
               message: message.text,
               speaker_type: message.sender,
-              context: message.context,
-            }]);
+              context: message.context || {},
+            });
 
           if (error) throw error;
           setQueueStatus('idle');

@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { useConversation } from '@11labs/react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ChatMessage } from '@/types/game';
+import { ChatMessage, MessageContext } from '@/types/game';
 import { useGameSession } from '@/hooks/useGameSession';
 import { useMessageQueue } from '@/hooks/useMessageQueue';
 import { MessageList } from './game/MessageList';
@@ -52,7 +52,7 @@ export const GameInterface = () => {
         sender: msg.speaker_type as ChatMessage['sender'],
         id: msg.id,
         timestamp: msg.timestamp,
-        context: msg.context,
+        context: msg.context as MessageContext,
       }));
     },
     enabled: !!sessionId,

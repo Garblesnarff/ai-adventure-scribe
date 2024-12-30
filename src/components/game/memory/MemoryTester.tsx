@@ -15,11 +15,13 @@ export const MemoryTester: React.FC = () => {
   const { messages, sendMessage } = useMessageContext();
   const { toast } = useToast();
   const [testResults, setTestResults] = useState<string[]>([]);
+  const [isTestingMemory, setIsTestingMemory] = useState(false);
 
   /**
    * Logs test results and shows toast notification
    */
   const logTest = (message: string, success: boolean) => {
+    console.log(`Test ${success ? 'PASSED' : 'FAILED'}: ${message}`);
     setTestResults(prev => [...prev, `${success ? '✅' : '❌'} ${message}`]);
     toast({
       title: success ? 'Test Passed' : 'Test Failed',
@@ -32,13 +34,31 @@ export const MemoryTester: React.FC = () => {
    * Tests memory creation from player message
    */
   const testMemoryCreation = async () => {
+    setIsTestingMemory(true);
     const testMessage = "This is a test message for memory creation";
     try {
+      console.log('Starting memory creation test');
       await extractMemories(testMessage, 'general');
-      const found = memories.some(m => m.content.includes(testMessage));
+      
+      // Wait briefly for the memory to be created and retrieved
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const found = memories.some(m => {
+        const matches = m.content.includes(testMessage);
+        console.log('Checking memory:', m, 'Matches:', matches);
+        return matches;
+      });
+
+      if (!found) {
+        console.error('Memory not found after creation. Current memories:', memories);
+      }
+      
       logTest('Memory Creation Test', found);
     } catch (error) {
+      console.error('Memory Creation Test Failed:', error);
       logTest('Memory Creation Test Failed: ' + error, false);
+    } finally {
+      setIsTestingMemory(false);
     }
   };
 
@@ -46,8 +66,13 @@ export const MemoryTester: React.FC = () => {
    * Tests memory retrieval and scoring
    */
   const testMemoryRetrieval = () => {
+    console.log('Testing memory retrieval with memories:', memories);
     const hasMemories = memories.length > 0;
-    const hasScoring = memories.every(m => typeof m.importance === 'number');
+    const hasScoring = memories.every(m => {
+      const hasImportance = typeof m.importance === 'number';
+      console.log('Checking memory scoring:', m, 'Has importance:', hasImportance);
+      return hasImportance;
+    });
     logTest('Memory Retrieval Test', hasMemories && hasScoring);
   };
 
@@ -55,6 +80,7 @@ export const MemoryTester: React.FC = () => {
    * Tests memory context window management
    */
   const testMemoryWindow = () => {
+    console.log('Testing memory window size with count:', memories.length);
     const isWithinLimit = memories.length <= 10;
     logTest('Memory Window Size Test', isWithinLimit);
   };
@@ -63,8 +89,17 @@ export const MemoryTester: React.FC = () => {
    * Tests memory metadata and embedding
    */
   const testMemoryMetadata = () => {
-    const hasMetadata = memories.every(m => m.metadata !== null);
-    const hasEmbedding = memories.every(m => m.embedding !== null);
+    console.log('Testing memory metadata and embeddings');
+    const hasMetadata = memories.every(m => {
+      const valid = m.metadata !== null;
+      console.log('Checking memory metadata:', m, 'Is valid:', valid);
+      return valid;
+    });
+    const hasEmbedding = memories.every(m => {
+      const valid = m.embedding !== null;
+      console.log('Checking memory embedding:', m, 'Is valid:', valid);
+      return valid;
+    });
     logTest('Memory Metadata Test', hasMetadata);
     logTest('Memory Embedding Test', hasEmbedding);
   };
@@ -74,8 +109,11 @@ export const MemoryTester: React.FC = () => {
       <h3 className="font-semibold text-lg">Memory System Tests</h3>
       
       <div className="space-x-2">
-        <Button onClick={testMemoryCreation}>
-          Test Memory Creation
+        <Button 
+          onClick={testMemoryCreation}
+          disabled={isTestingMemory}
+        >
+          {isTestingMemory ? 'Testing...' : 'Test Memory Creation'}
         </Button>
         <Button onClick={testMemoryRetrieval}>
           Test Memory Retrieval

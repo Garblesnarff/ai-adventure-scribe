@@ -15,7 +15,7 @@ export const useMemories = (sessionId: string | null) => {
    */
   const generateEmbedding = async (text: string) => {
     try {
-      console.log('Generating OpenAI embedding for text:', text);
+      console.log('Starting embedding generation for text:', text);
       
       const { data, error } = await supabase.functions.invoke('generate-embedding', {
         body: { text },
@@ -27,14 +27,15 @@ export const useMemories = (sessionId: string | null) => {
       }
       
       if (!data?.embedding) {
-        console.error('Invalid embedding format:', data);
-        return null;
+        console.error('Invalid embedding format received:', data);
+        throw new Error('Invalid embedding format received from API');
       }
 
+      console.log('Successfully generated embedding');
       return data.embedding;
     } catch (error) {
       console.error('Error generating embedding:', error);
-      return null;
+      throw error; // Re-throw to handle in mutation
     }
   };
 
@@ -42,9 +43,17 @@ export const useMemories = (sessionId: string | null) => {
    * Parse embedding string to number array
    */
   const parseEmbedding = (embeddingString: string | null): number[] | null => {
-    if (!embeddingString) return null;
+    if (!embeddingString) {
+      console.log('No embedding string provided to parse');
+      return null;
+    }
     try {
-      return JSON.parse(embeddingString);
+      const parsed = JSON.parse(embeddingString);
+      if (!Array.isArray(parsed)) {
+        console.error('Parsed embedding is not an array:', parsed);
+        return null;
+      }
+      return parsed;
     } catch (error) {
       console.error('Error parsing embedding:', error);
       return null;
@@ -72,6 +81,8 @@ export const useMemories = (sessionId: string | null) => {
         throw error;
       }
 
+      console.log(`Retrieved ${data.length} memories`);
+
       // Convert the embedding strings to number arrays
       return data.map(memory => ({
         ...memory,
@@ -88,10 +99,13 @@ export const useMemories = (sessionId: string | null) => {
     mutationFn: async (memory: Omit<Memory, 'id' | 'created_at' | 'updated_at'>) => {
       if (!sessionId) throw new Error('No active session');
 
-      console.log('Creating new memory:', memory);
+      console.log('Starting memory creation process:', memory);
       
       // Generate embedding for the memory content
+      console.log('Generating embedding for content:', memory.content);
       const embedding = await generateEmbedding(memory.content);
+      
+      console.log('Embedding generated successfully, inserting into database');
       
       const { data, error } = await supabase
         .from('memories')
@@ -104,20 +118,31 @@ export const useMemories = (sessionId: string | null) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting memory:', error);
+        throw error;
+      }
+
+      console.log('Memory created successfully:', data);
+      
       return {
         ...data,
         embedding: parseEmbedding(data.embedding as string),
       } as Memory;
     },
     onSuccess: () => {
+      console.log('Memory creation mutation completed successfully');
       queryClient.invalidateQueries({ queryKey: ['memories', sessionId] });
+      toast({
+        title: "Memory Created",
+        description: "New memory has been stored successfully",
+      });
     },
     onError: (error) => {
-      console.error('Error creating memory:', error);
+      console.error('Error in memory creation mutation:', error);
       toast({
         title: "Error",
-        description: "Failed to create memory",
+        description: "Failed to create memory: " + error.message,
         variant: "destructive",
       });
     },
@@ -140,6 +165,8 @@ export const useMemories = (sessionId: string | null) => {
         5
       );
 
+      console.log('Calculated importance score:', importance);
+
       await createMemory.mutateAsync({
         session_id: sessionId,
         type,
@@ -147,6 +174,8 @@ export const useMemories = (sessionId: string | null) => {
         importance,
         metadata: {},
       });
+
+      console.log('Memory extraction completed successfully');
     } catch (error) {
       console.error('Error extracting memories:', error);
       throw error;

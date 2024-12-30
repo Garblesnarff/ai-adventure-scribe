@@ -35,3 +35,22 @@ export interface GameSession {
   summary?: string;
   status: 'active' | 'completed' | 'expired';
 }
+
+/**
+ * Interface for campaign data
+ * Matches the structure from the Supabase campaigns table
+ */
+export interface Campaign {
+  id: string;
+  user_id?: string;
+  name: string;
+  description?: string;
+  genre?: string;
+  difficulty_level?: string;
+  status?: string;
+  campaign_length?: string;
+  tone?: string;
+  setting_details?: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
+}

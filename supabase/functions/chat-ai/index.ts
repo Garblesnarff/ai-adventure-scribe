@@ -7,6 +7,21 @@ const corsHeaders = {
 }
 
 /**
+ * Maps our application roles to Gemini API roles
+ */
+const mapRole = (role: string): string => {
+  switch (role) {
+    case 'player':
+      return 'user';
+    case 'dm':
+    case 'system':
+      return 'model';
+    default:
+      return 'user';
+  }
+};
+
+/**
  * Handles the chat request and generates AI responses
  * @param messages - Array of chat messages
  * @returns AI generated response
@@ -20,7 +35,7 @@ async function handleChat(messages: any[]) {
     
     const chat = model.startChat({
       history: messages.map(msg => ({
-        role: msg.sender === 'player' ? 'user' : 'assistant',
+        role: mapRole(msg.sender),
         parts: msg.text,
       })),
       generationConfig: {

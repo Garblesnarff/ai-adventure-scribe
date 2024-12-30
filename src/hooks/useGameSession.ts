@@ -80,7 +80,7 @@ export const useGameSession = () => {
       .update({ 
         end_time: new Date().toISOString(),
         summary,
-        status: 'completed'
+        status: 'completed' as const
       })
       .eq('id', sessionId);
 
@@ -110,7 +110,7 @@ export const useGameSession = () => {
           .eq('id', sessionId)
           .single();
 
-        if (session && isSessionExpired(session)) {
+        if (session && isSessionExpired(session as GameSession)) {
           const summary = await cleanupSession(sessionId);
           toast({
             title: "Session Expired",
@@ -139,7 +139,7 @@ export const useGameSession = () => {
           .eq('id', sessionId)
           .single();
 
-        if (session && isSessionExpired(session)) {
+        if (session && isSessionExpired(session as GameSession)) {
           await cleanupSession(sessionId);
         }
       }

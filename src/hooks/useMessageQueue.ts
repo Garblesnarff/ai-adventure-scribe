@@ -25,13 +25,21 @@ export const useMessageQueue = (sessionId: string | null) => {
       while (retries < MAX_RETRIES) {
         try {
           setQueueStatus('processing');
+          
+          // Format the context to ensure it's compatible with Supabase's Json type
+          const contextData = message.context ? {
+            location: message.context.location || null,
+            emotion: message.context.emotion || null,
+            intent: message.context.intent || null
+          } : {};
+
           const { error } = await supabase
             .from('dialogue_history')
             .insert({
               session_id: sessionId,
               message: message.text,
               speaker_type: message.sender,
-              context: message.context || {},
+              context: contextData
             });
 
           if (error) throw error;

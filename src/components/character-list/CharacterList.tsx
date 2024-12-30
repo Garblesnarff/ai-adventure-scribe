@@ -1,24 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Eye, Trash2 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { Users, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { supabase } from '@/integrations/supabase/client';
 import { Character } from '@/types/character';
 import { races } from '@/data/raceOptions';
 import { classes } from '@/data/classOptions';
+import CharacterCard from './CharacterCard';
+import EmptyState from './EmptyState';
 
 /**
  * CharacterList component displays all characters for the current user
@@ -114,10 +104,6 @@ const CharacterList: React.FC = () => {
     navigate('/characters/create');
   };
 
-  const handleViewCharacter = (id: string) => {
-    navigate(`/character/${id}`);
-  };
-
   if (loading) {
     return <div className="flex justify-center items-center min-h-screen">Loading characters...</div>;
   }
@@ -137,67 +123,15 @@ const CharacterList: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {characters.map((character) => (
-          <Card key={character.id} className="p-4 hover:shadow-lg transition-shadow">
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-xl font-semibold">{character.name}</h2>
-                <p className="text-gray-600">
-                  Level {character.level} {character.race?.name} {character.class?.name}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => character.id && handleViewCharacter(character.id)}
-                  title="View Character"
-                >
-                  <Eye className="w-4 h-4" />
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-700"
-                      title="Delete Character"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Character</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete {character.name}? This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => character.id && handleDeleteCharacter(character.id)}
-                        className="bg-red-500 hover:bg-red-700"
-                      >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          </Card>
+          <CharacterCard
+            key={character.id}
+            character={character}
+            onDelete={handleDeleteCharacter}
+          />
         ))}
       </div>
 
-      {characters.length === 0 && (
-        <div className="text-center py-8">
-          <p className="text-gray-600 mb-4">You haven't created any characters yet.</p>
-          <Button onClick={handleCreateNew} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Create Your First Character
-          </Button>
-        </div>
-      )}
+      {characters.length === 0 && <EmptyState onCreateNew={handleCreateNew} />}
     </div>
   );
 };

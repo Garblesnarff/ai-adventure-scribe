@@ -8,6 +8,7 @@ import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { VoiceHandler } from './VoiceHandler';
 import { useAIResponse } from '@/hooks/useAIResponse';
+import { MemoryPanel } from './MemoryPanel';
 
 /**
  * GameContent Component
@@ -72,23 +73,26 @@ const GameContent: React.FC = () => {
   };
 
   return (
-    <Card className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm shadow-xl p-6">
-      <h1 className="text-4xl text-center mb-6 text-primary">D&D Adventure</h1>
-      <VoiceHandler 
-        onError={(error) => {
-          toast({
-            title: "Voice Error",
-            description: error.message,
-            variant: "destructive",
-          });
-        }}
-      />
-      <MessageList messages={messages} />
-      <ChatInput 
-        onSendMessage={handleSendMessage}
-        isDisabled={queueStatus === 'processing'}
-      />
-    </Card>
+    <div className="flex gap-4 max-w-7xl mx-auto">
+      <Card className="flex-1 bg-white/90 backdrop-blur-sm shadow-xl p-6">
+        <h1 className="text-4xl text-center mb-6 text-primary">D&D Adventure</h1>
+        <VoiceHandler 
+          onError={(error) => {
+            toast({
+              title: "Voice Error",
+              description: error.message,
+              variant: "destructive",
+            });
+          }}
+        />
+        <MessageList messages={messages} />
+        <ChatInput 
+          onSendMessage={handleSendMessage}
+          isDisabled={queueStatus === 'processing'}
+        />
+      </Card>
+      <MemoryPanel />
+    </div>
   );
 };
 

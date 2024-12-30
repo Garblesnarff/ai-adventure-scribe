@@ -23,6 +23,27 @@ export class DungeonMasterAgent implements Agent {
   }
 
   /**
+   * Fetches campaign details from Supabase
+   * @param campaignId - The ID of the campaign
+   * @returns Campaign details or null if not found
+   */
+  private async fetchCampaignDetails(campaignId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('id', campaignId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching campaign details:', error);
+      return null;
+    }
+  }
+
+  /**
    * Executes a given task using the agent's capabilities
    * @param task - The task to be executed
    * @returns Promise<AgentResult>
@@ -31,6 +52,10 @@ export class DungeonMasterAgent implements Agent {
     try {
       console.log(`DM Agent executing task: ${task.description}`);
 
+      // Fetch campaign details if campaignId is provided in context
+      const campaignDetails = task.context?.campaignId ? 
+        await this.fetchCampaignDetails(task.context.campaignId) : null;
+
       // Call the AI function through our Edge Function
       const { data, error } = await supabase.functions.invoke('dm-agent-execute', {
         body: {
@@ -38,7 +63,8 @@ export class DungeonMasterAgent implements Agent {
           agentContext: {
             role: this.role,
             goal: this.goal,
-            backstory: this.backstory
+            backstory: this.backstory,
+            campaignDetails // Include campaign details in context
           }
         }
       });

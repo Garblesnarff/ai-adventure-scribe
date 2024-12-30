@@ -7,12 +7,27 @@ export interface ChatMessage {
 }
 
 /**
+ * Interface for campaign details
+ */
+export interface CampaignDetails {
+  id: string;
+  name: string;
+  description?: string;
+  genre?: string;
+  difficulty_level?: string;
+  campaign_length?: string;
+  tone?: string;
+  setting_details?: Record<string, any>;
+}
+
+/**
  * Interface for agent context information
  */
 export interface AgentContext {
   role: string;
   goal: string;
   backstory: string;
+  campaignDetails?: CampaignDetails;
 }
 
 /**

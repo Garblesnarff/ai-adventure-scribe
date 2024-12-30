@@ -25,32 +25,53 @@ serve(async (req) => {
 
     const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'));
     
-    // Format input as required by the API
+    // Use feature-extraction pipeline with specific model
     const response = await hf.featureExtraction({
       model: 'sentence-transformers/all-MiniLM-L6-v2',
-      inputs: {
-        source_sentence: cleanedText,
-        sentences: [cleanedText]
-      }
+      inputs: cleanedText
     });
 
-    console.log('Successfully generated embedding');
+    console.log('Raw embedding response:', response);
 
-    // Ensure the embedding is in the correct array format
-    const embedding = Array.isArray(response) ? response : [response];
+    // Ensure we have a valid array of numbers
+    if (!Array.isArray(response)) {
+      throw new Error('Invalid embedding format received');
+    }
 
-    // Format the response as a proper vector string
+    // Format the embedding array properly for Supabase vector storage
+    // Remove any extra quotes and ensure proper array format
+    const embedding = response.map(num => Number(num));
+    console.log('Processed embedding array:', embedding);
+
+    // Verify the embedding format
+    if (!embedding.every(num => typeof num === 'number' && !isNaN(num))) {
+      throw new Error('Invalid number in embedding array');
+    }
+
+    // Format as a proper vector string
     const vectorString = `[${embedding.join(',')}]`;
+    console.log('Final vector string format:', vectorString);
 
     return new Response(
       JSON.stringify({ embedding: vectorString }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json'
+        } 
+      }
     );
   } catch (error) {
     console.error('Error generating embedding:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json'
+        },
+        status: 500 
+      }
     );
   }
 });

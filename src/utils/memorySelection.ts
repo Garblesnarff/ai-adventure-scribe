@@ -10,6 +10,26 @@ export const IMPORTANCE_WEIGHT = 0.3;
 export const RELEVANCE_WEIGHT = 0.3;
 
 /**
+ * Calculate cosine similarity between two vectors optimized for OpenAI embeddings
+ */
+const cosineSimilarity = (a: number[], b: number[]): number => {
+  if (!a || !b || a.length !== b.length) return 0;
+  
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  
+  for (let i = 0; i < a.length; i++) {
+    dotProduct += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  
+  const normProduct = Math.sqrt(normA) * Math.sqrt(normB);
+  return normProduct === 0 ? 0 : dotProduct / normProduct;
+};
+
+/**
  * Calculate a composite score for memory selection
  * Combines recency, importance, and relevance to current context
  */
@@ -25,20 +45,25 @@ export const calculateMemoryScore = (
   const recencyScore = Math.exp(-hoursSinceCreation / 24); // Decay over 24 hours
 
   // Importance score (normalized)
-  const importanceScore = (memory.importance || 0) / 10;
+  const importanceScore = (memory.importance || 0) / 5;
 
-  // Relevance score based on context matching
+  // Relevance score based on context matching and embedding similarity
   let relevanceScore = 0;
-  if (currentContext && currentContext.location && 
+  
+  // Context matching
+  if (currentContext?.location && 
       memory.content.toLowerCase().includes(currentContext.location.toLowerCase())) {
-    relevanceScore += 0.5;
+    relevanceScore += 0.3;
   }
+  
+  // Embedding similarity if available
   if (queryEmbedding && memory.embedding) {
     try {
       const embeddingArray = Array.isArray(memory.embedding) 
         ? memory.embedding 
         : JSON.parse(memory.embedding);
-      relevanceScore += cosineSimilarity(queryEmbedding, embeddingArray) * 0.5;
+      const similarity = cosineSimilarity(queryEmbedding, embeddingArray);
+      relevanceScore += similarity * 0.7; // Weight semantic similarity higher
     } catch (error) {
       console.error('Error calculating embedding similarity:', error);
     }
@@ -50,25 +75,6 @@ export const calculateMemoryScore = (
     importanceScore * IMPORTANCE_WEIGHT +
     relevanceScore * RELEVANCE_WEIGHT
   );
-};
-
-/**
- * Calculate cosine similarity between two vectors
- */
-const cosineSimilarity = (a: number[], b: number[]): number => {
-  if (a.length !== b.length) return 0;
-  
-  let dotProduct = 0;
-  let normA = 0;
-  let normB = 0;
-  
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    normA += a[i] * a[i];
-    normB += b[i] * b[i];
-  }
-  
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 };
 
 /**

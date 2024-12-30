@@ -4,18 +4,18 @@ import { useToast } from './use-toast';
 import { Memory } from '@/components/game/memory/types';
 
 /**
- * Custom hook for managing game memories with embedding support
+ * Custom hook for managing game memories with OpenAI embedding support
  */
 export const useMemories = (sessionId: string | null) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   /**
-   * Generate embedding for text using our edge function
+   * Generate embedding for text using OpenAI's API via our edge function
    */
   const generateEmbedding = async (text: string) => {
     try {
-      console.log('Generating embedding for text:', text);
+      console.log('Generating OpenAI embedding for text:', text);
       
       const { data, error } = await supabase.functions.invoke('generate-embedding', {
         body: { text },
@@ -31,7 +31,7 @@ export const useMemories = (sessionId: string | null) => {
         return null;
       }
 
-      return JSON.stringify(data.embedding);
+      return data.embedding;
     } catch (error) {
       console.error('Error generating embedding:', error);
       return null;

@@ -26,11 +26,13 @@ serve(async (req) => {
     // Generate embedding using the sentence-transformers model
     const response = await hf.featureExtraction({
       model: 'sentence-transformers/all-MiniLM-L6-v2',
-      inputs: text,
+      inputs: {
+        source_sentence: text
+      }
     });
 
     // Ensure the embedding is properly formatted as an array
-    const embedding = Array.from(response);
+    const embedding = Array.isArray(response) ? response : Array.from(response);
     console.log('Successfully generated embedding');
 
     return new Response(

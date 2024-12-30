@@ -72,10 +72,10 @@ const CharacterCard = ({ character }: CharacterCardProps) => {
           )}
           <div className="space-y-2">
             {character.race && (
-              <p className="text-sm"><span className="font-medium">Race:</span> {character.race}</p>
+              <p className="text-sm"><span className="font-medium">Race:</span> {typeof character.race === 'string' ? character.race : character.race.name}</p>
             )}
             {character.class && (
-              <p className="text-sm"><span className="font-medium">Class:</span> {character.class}</p>
+              <p className="text-sm"><span className="font-medium">Class:</span> {typeof character.class === 'string' ? character.class : character.class.name}</p>
             )}
             {character.level && (
               <p className="text-sm"><span className="font-medium">Level:</span> {character.level}</p>

@@ -87,12 +87,16 @@ const CharacterList: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {characters.map((character) => (
-          <CharacterCard
-            key={character.id}
-            character={character}
-          />
-        ))}
+        {characters.map((character) => {
+          // Ensure character has required id and name properties
+          if (!character.id || !character.name) return null;
+          return (
+            <CharacterCard
+              key={character.id}
+              character={character}
+            />
+          );
+        })}
       </div>
 
       {characters.length === 0 && <EmptyState onCreateNew={handleCreateNew} />}

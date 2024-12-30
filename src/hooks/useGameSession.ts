@@ -24,7 +24,7 @@ export const useGameSession = () => {
         session_number: 1,
         status: 'active'
       }])
-      .select('id')
+      .select()
       .single();
 
     if (error) {

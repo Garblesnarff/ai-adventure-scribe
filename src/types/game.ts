@@ -33,5 +33,5 @@ export interface GameSession {
   start_time: string;
   end_time?: string;
   summary?: string;
-  status?: 'active' | 'completed' | 'expired';
+  status: 'active' | 'completed' | 'expired';
 }

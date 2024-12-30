@@ -392,6 +392,7 @@ export type Database = {
           id: string
           session_number: number | null
           start_time: string | null
+          status: string | null
           summary: string | null
           updated_at: string | null
         }
@@ -403,6 +404,7 @@ export type Database = {
           id?: string
           session_number?: number | null
           start_time?: string | null
+          status?: string | null
           summary?: string | null
           updated_at?: string | null
         }
@@ -414,6 +416,7 @@ export type Database = {
           id?: string
           session_number?: number | null
           start_time?: string | null
+          status?: string | null
           summary?: string | null
           updated_at?: string | null
         }

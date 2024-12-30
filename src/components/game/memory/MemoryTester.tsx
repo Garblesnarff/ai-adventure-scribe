@@ -37,25 +37,27 @@ export const MemoryTester: React.FC = () => {
     setIsTestingMemory(true);
     const testMessage = "This is a test message for memory creation";
     try {
-      console.log('Starting memory creation test');
+      console.log('[MemoryTest] Starting memory creation test');
       await extractMemories(testMessage, 'general');
       
-      // Wait briefly for the memory to be created and retrieved
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait longer for the memory to be created and retrieved
+      console.log('[MemoryTest] Waiting for memory creation and retrieval...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       const found = memories.some(m => {
         const matches = m.content.includes(testMessage);
-        console.log('Checking memory:', m, 'Matches:', matches);
+        console.log('[MemoryTest] Checking memory:', m, 'Matches:', matches);
         return matches;
       });
 
       if (!found) {
-        console.error('Memory not found after creation. Current memories:', memories);
+        console.error('[MemoryTest] Memory not found after creation. Current memories:', memories);
+        throw new Error('Memory creation verification failed');
       }
       
       logTest('Memory Creation Test', found);
     } catch (error) {
-      console.error('Memory Creation Test Failed:', error);
+      console.error('[MemoryTest] Memory Creation Test Failed:', error);
       logTest('Memory Creation Test Failed: ' + error, false);
     } finally {
       setIsTestingMemory(false);

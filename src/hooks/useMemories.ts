@@ -15,27 +15,27 @@ export const useMemories = (sessionId: string | null) => {
    */
   const generateEmbedding = async (text: string) => {
     try {
-      console.log('Starting embedding generation for text:', text);
+      console.log('[Memory] Starting embedding generation for text:', text);
       
       const { data, error } = await supabase.functions.invoke('generate-embedding', {
         body: { text },
       });
 
       if (error) {
-        console.error('Error from embedding function:', error);
+        console.error('[Memory] Error from embedding function:', error);
         throw error;
       }
       
       if (!data?.embedding) {
-        console.error('Invalid embedding format received:', data);
+        console.error('[Memory] Invalid embedding format received:', data);
         throw new Error('Invalid embedding format received from API');
       }
 
-      console.log('Successfully generated embedding');
+      console.log('[Memory] Successfully generated embedding:', data.embedding.substring(0, 100) + '...');
       return data.embedding;
     } catch (error) {
-      console.error('Error generating embedding:', error);
-      throw error; // Re-throw to handle in mutation
+      console.error('[Memory] Error generating embedding:', error);
+      throw error;
     }
   };
 
@@ -44,18 +44,19 @@ export const useMemories = (sessionId: string | null) => {
    */
   const parseEmbedding = (embeddingString: string | null): number[] | null => {
     if (!embeddingString) {
-      console.log('No embedding string provided to parse');
+      console.log('[Memory] No embedding string provided to parse');
       return null;
     }
     try {
       const parsed = JSON.parse(embeddingString);
       if (!Array.isArray(parsed)) {
-        console.error('Parsed embedding is not an array:', parsed);
+        console.error('[Memory] Parsed embedding is not an array:', parsed);
         return null;
       }
+      console.log('[Memory] Successfully parsed embedding array of length:', parsed.length);
       return parsed;
     } catch (error) {
-      console.error('Error parsing embedding:', error);
+      console.error('[Memory] Error parsing embedding:', error);
       return null;
     }
   };
@@ -68,7 +69,7 @@ export const useMemories = (sessionId: string | null) => {
     queryFn: async () => {
       if (!sessionId) return [];
       
-      console.log('Fetching memories for session:', sessionId);
+      console.log('[Memory] Fetching memories for session:', sessionId);
       
       const { data, error } = await supabase
         .from('memories')
@@ -77,11 +78,11 @@ export const useMemories = (sessionId: string | null) => {
         .order('importance', { ascending: false });
 
       if (error) {
-        console.error('Error fetching memories:', error);
+        console.error('[Memory] Error fetching memories:', error);
         throw error;
       }
 
-      console.log(`Retrieved ${data.length} memories`);
+      console.log(`[Memory] Retrieved ${data.length} memories`);
 
       // Convert the embedding strings to number arrays
       return data.map(memory => ({
@@ -99,13 +100,13 @@ export const useMemories = (sessionId: string | null) => {
     mutationFn: async (memory: Omit<Memory, 'id' | 'created_at' | 'updated_at'>) => {
       if (!sessionId) throw new Error('No active session');
 
-      console.log('Starting memory creation process:', memory);
+      console.log('[Memory] Starting memory creation process:', memory);
       
       // Generate embedding for the memory content
-      console.log('Generating embedding for content:', memory.content);
+      console.log('[Memory] Generating embedding for content:', memory.content);
       const embedding = await generateEmbedding(memory.content);
       
-      console.log('Embedding generated successfully, inserting into database');
+      console.log('[Memory] Embedding generated successfully, inserting into database');
       
       const { data, error } = await supabase
         .from('memories')
@@ -119,11 +120,11 @@ export const useMemories = (sessionId: string | null) => {
         .single();
 
       if (error) {
-        console.error('Error inserting memory:', error);
+        console.error('[Memory] Error inserting memory:', error);
         throw error;
       }
 
-      console.log('Memory created successfully:', data);
+      console.log('[Memory] Memory created successfully:', data);
       
       return {
         ...data,
@@ -131,7 +132,7 @@ export const useMemories = (sessionId: string | null) => {
       } as Memory;
     },
     onSuccess: () => {
-      console.log('Memory creation mutation completed successfully');
+      console.log('[Memory] Memory creation mutation completed successfully');
       queryClient.invalidateQueries({ queryKey: ['memories', sessionId] });
       toast({
         title: "Memory Created",
@@ -139,7 +140,7 @@ export const useMemories = (sessionId: string | null) => {
       });
     },
     onError: (error) => {
-      console.error('Error in memory creation mutation:', error);
+      console.error('[Memory] Error in memory creation mutation:', error);
       toast({
         title: "Error",
         description: "Failed to create memory: " + error.message,
@@ -155,7 +156,7 @@ export const useMemories = (sessionId: string | null) => {
     try {
       if (!sessionId) throw new Error('No active session');
 
-      console.log('Extracting memories from content:', content);
+      console.log('[Memory] Extracting memories from content:', content);
       
       // Basic importance scoring based on content length and key phrases
       const importance = Math.min(
@@ -165,7 +166,7 @@ export const useMemories = (sessionId: string | null) => {
         5
       );
 
-      console.log('Calculated importance score:', importance);
+      console.log('[Memory] Calculated importance score:', importance);
 
       await createMemory.mutateAsync({
         session_id: sessionId,
@@ -175,9 +176,9 @@ export const useMemories = (sessionId: string | null) => {
         metadata: {},
       });
 
-      console.log('Memory extraction completed successfully');
+      console.log('[Memory] Memory extraction completed successfully');
     } catch (error) {
-      console.error('Error extracting memories:', error);
+      console.error('[Memory] Error extracting memories:', error);
       throw error;
     }
   };

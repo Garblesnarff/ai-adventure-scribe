@@ -19,14 +19,16 @@ serve(async (req) => {
       throw new Error('Text is required');
     }
 
-    console.log('Generating embedding for text:', text);
+    // Truncate text to a reasonable length (1000 chars) and clean it
+    const cleanedText = text.substring(0, 1000).replace(/\n/g, ' ').trim();
+    console.log('Processing text for embedding:', cleanedText);
 
     const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'));
     
     // Generate embedding using the sentence-transformers model
     const response = await hf.featureExtraction({
       model: 'sentence-transformers/all-MiniLM-L6-v2',
-      inputs: text
+      inputs: cleanedText,
     });
 
     // Ensure the embedding is properly formatted as an array

@@ -19,10 +19,12 @@ export const useMemories = (sessionId: string | null) => {
         body: { text },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error from embedding function:', error);
+        throw error;
+      }
       
-      // Ensure the embedding is properly formatted
-      if (!data.embedding || !Array.isArray(data.embedding)) {
+      if (!data?.embedding || !Array.isArray(data.embedding)) {
         console.error('Invalid embedding format:', data);
         return null;
       }
@@ -80,13 +82,16 @@ export const useMemories = (sessionId: string | null) => {
    */
   const createMemory = useMutation({
     mutationFn: async (memory: Omit<Memory, 'id' | 'created_at' | 'updated_at'>) => {
+      if (!sessionId) throw new Error('No active session');
+
       // Generate embedding for the memory content
       const embedding = await generateEmbedding(memory.content);
       
       const { data, error } = await supabase
         .from('memories')
         .insert([{ 
-          ...memory, 
+          ...memory,
+          session_id: sessionId,
           embedding,
           metadata: memory.metadata || {}
         }])
@@ -117,6 +122,8 @@ export const useMemories = (sessionId: string | null) => {
    */
   const extractMemories = async (content: string, type: Memory['type'] = 'general') => {
     try {
+      if (!sessionId) throw new Error('No active session');
+
       // Basic importance scoring based on content length and key phrases
       const importance = Math.min(
         Math.ceil(content.length / 100) + 
@@ -126,7 +133,7 @@ export const useMemories = (sessionId: string | null) => {
       );
 
       await createMemory.mutateAsync({
-        session_id: sessionId!,
+        session_id: sessionId,
         type,
         content,
         importance,
@@ -134,6 +141,7 @@ export const useMemories = (sessionId: string | null) => {
       });
     } catch (error) {
       console.error('Error extracting memories:', error);
+      throw error;
     }
   };
 

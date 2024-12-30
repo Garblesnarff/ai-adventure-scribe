@@ -19,26 +19,22 @@ serve(async (req) => {
       throw new Error('Text is required');
     }
 
-    // Truncate text to a reasonable length (1000 chars) and clean it
+    // Clean and truncate text
     const cleanedText = text.substring(0, 1000).replace(/\n/g, ' ').trim();
     console.log('Processing text for embedding:', cleanedText);
 
     const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'));
     
-    // Format input properly for the API
+    // Use the correct parameter format for the API
     const response = await hf.featureExtraction({
       model: 'sentence-transformers/all-MiniLM-L6-v2',
-      inputs: {
-        source_sentence: cleanedText
-      }
+      inputs: cleanedText
     });
 
-    // Ensure the embedding is properly formatted as an array
-    const embedding = Array.isArray(response) ? response : [response];
     console.log('Successfully generated embedding');
 
     return new Response(
-      JSON.stringify({ embedding: embedding[0] }),
+      JSON.stringify({ embedding: response }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

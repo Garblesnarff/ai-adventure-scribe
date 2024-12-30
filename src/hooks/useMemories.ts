@@ -15,6 +15,8 @@ export const useMemories = (sessionId: string | null) => {
    */
   const generateEmbedding = async (text: string) => {
     try {
+      console.log('Generating embedding for text:', text);
+      
       const { data, error } = await supabase.functions.invoke('generate-embedding', {
         body: { text },
       });
@@ -24,7 +26,7 @@ export const useMemories = (sessionId: string | null) => {
         throw error;
       }
       
-      if (!data?.embedding || !Array.isArray(data.embedding)) {
+      if (!data?.embedding) {
         console.error('Invalid embedding format:', data);
         return null;
       }
@@ -57,6 +59,8 @@ export const useMemories = (sessionId: string | null) => {
     queryFn: async () => {
       if (!sessionId) return [];
       
+      console.log('Fetching memories for session:', sessionId);
+      
       const { data, error } = await supabase
         .from('memories')
         .select('*')
@@ -84,6 +88,8 @@ export const useMemories = (sessionId: string | null) => {
     mutationFn: async (memory: Omit<Memory, 'id' | 'created_at' | 'updated_at'>) => {
       if (!sessionId) throw new Error('No active session');
 
+      console.log('Creating new memory:', memory);
+      
       // Generate embedding for the memory content
       const embedding = await generateEmbedding(memory.content);
       
@@ -124,6 +130,8 @@ export const useMemories = (sessionId: string | null) => {
     try {
       if (!sessionId) throw new Error('No active session');
 
+      console.log('Extracting memories from content:', content);
+      
       // Basic importance scoring based on content length and key phrases
       const importance = Math.min(
         Math.ceil(content.length / 100) + 

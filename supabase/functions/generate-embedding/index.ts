@@ -25,31 +25,48 @@ serve(async (req) => {
 
     const hf = new HfInference(Deno.env.get('HUGGING_FACE_ACCESS_TOKEN'));
     
-    // Use feature-extraction pipeline with specific model
+    // Use sentence-transformers model with proper input format
     const response = await hf.featureExtraction({
       model: 'sentence-transformers/all-MiniLM-L6-v2',
-      inputs: cleanedText
+      inputs: {
+        source_sentence: cleanedText,
+        sentences: [cleanedText]
+      },
+      parameters: {
+        wait_for_model: true
+      }
     });
 
     console.log('Raw embedding response:', response);
 
+    // Handle both array and single response formats
+    let embedding;
+    if (Array.isArray(response)) {
+      embedding = response[0]; // Take first result if array
+    } else if (typeof response === 'object' && response.embeddings) {
+      embedding = response.embeddings[0]; // Extract from object if needed
+    } else {
+      embedding = response; // Use direct response
+    }
+
     // Ensure we have a valid array of numbers
-    if (!Array.isArray(response)) {
+    if (!Array.isArray(embedding)) {
       throw new Error('Invalid embedding format received');
     }
 
     // Format the embedding array properly for Supabase vector storage
-    // Remove any extra quotes and ensure proper array format
-    const embedding = response.map(num => Number(num));
-    console.log('Processed embedding array:', embedding);
+    const processedEmbedding = embedding.map(num => {
+      const parsed = Number(num);
+      if (isNaN(parsed)) {
+        throw new Error('Invalid number in embedding array');
+      }
+      return parsed;
+    });
 
-    // Verify the embedding format
-    if (!embedding.every(num => typeof num === 'number' && !isNaN(num))) {
-      throw new Error('Invalid number in embedding array');
-    }
-
+    console.log('Processed embedding array length:', processedEmbedding.length);
+    
     // Format as a proper vector string
-    const vectorString = `[${embedding.join(',')}]`;
+    const vectorString = `[${processedEmbedding.join(',')}]`;
     console.log('Final vector string format:', vectorString);
 
     return new Response(
@@ -64,7 +81,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error generating embedding:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        stack: error.stack 
+      }),
       { 
         headers: { 
           ...corsHeaders, 

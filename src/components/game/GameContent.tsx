@@ -11,6 +11,7 @@ import { useAIResponse } from '@/hooks/useAIResponse';
 import { MemoryPanel } from './MemoryPanel';
 import { useGameSession } from '@/hooks/useGameSession';
 import { MemoryTester } from './memory/MemoryTester';
+import { DungeonMasterAgent } from '@/agents/DungeonMasterAgent';
 
 /**
  * GameContent Component
@@ -19,9 +20,9 @@ import { MemoryTester } from './memory/MemoryTester';
 const GameContent: React.FC = () => {
   const { messages, sendMessage, queueStatus } = useMessageContext();
   const { extractMemories } = useMemoryContext();
-  const { getAIResponse } = useAIResponse();
-  const { sessionId } = useGameSession();
+  const { sessionId, campaignId } = useGameSession();
   const { toast } = useToast();
+  const dmAgent = new DungeonMasterAgent();
 
   /**
    * Handle sending a new message
@@ -56,24 +57,46 @@ const GameContent: React.FC = () => {
       };
       await sendMessage(systemMessage);
       
-      // Get AI response with session context
-      if (!sessionId) {
-        throw new Error('No active session found');
+      // Execute DM agent task
+      if (!sessionId || !campaignId) {
+        throw new Error('No active session or campaign found');
       }
+
+      const result = await dmAgent.executeTask({
+        description: playerInput,
+        context: {
+          campaignId,
+          currentState: 'in_progress',
+          sessionId,
+          messageHistory: messages
+        }
+      });
+
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      // Create DM response message
+      const dmResponse: ChatMessage = {
+        text: result.data.response,
+        sender: 'dm',
+        context: {
+          emotion: 'neutral',
+          intent: 'narrative',
+        },
+      };
+      await sendMessage(dmResponse);
       
-      const aiResponse = await getAIResponse([...messages, playerMessage], sessionId);
-      await sendMessage(aiResponse);
-      
-      // Extract memories from AI response
-      if (aiResponse.text) {
-        await extractMemories(aiResponse.text, 'event');
+      // Extract memories from DM response
+      if (dmResponse.text) {
+        await extractMemories(dmResponse.text, 'event');
       }
 
     } catch (error) {
       console.error('Error in message flow:', error);
       toast({
         title: "Error",
-        description: "Failed to process message. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to process message. Please try again.",
         variant: "destructive",
       });
     }

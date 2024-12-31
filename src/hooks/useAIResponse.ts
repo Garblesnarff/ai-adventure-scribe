@@ -31,35 +31,60 @@ export const useAIResponse = () => {
    */
   const fetchCampaignDetails = async (sessionId: string) => {
     try {
+      console.log('Fetching game session details for:', sessionId);
+      
       // Get game session
-      const { data: sessionData } = await supabase
+      const { data: sessionData, error: sessionError } = await supabase
         .from('game_sessions')
         .select('campaign_id, character_id')
         .eq('id', sessionId)
-        .single();
+        .maybeSingle();
 
-      if (!sessionData) return null;
+      if (sessionError) {
+        console.error('Error fetching session:', sessionError);
+        return null;
+      }
+
+      if (!sessionData?.campaign_id || !sessionData?.character_id) {
+        console.log('No campaign or character IDs found in session');
+        return null;
+      }
 
       // Get campaign details
-      const { data: campaignData } = await supabase
+      const { data: campaignData, error: campaignError } = await supabase
         .from('campaigns')
         .select('*')
         .eq('id', sessionData.campaign_id)
-        .single();
+        .maybeSingle();
+
+      if (campaignError) {
+        console.error('Error fetching campaign:', campaignError);
+        return null;
+      }
 
       // Get character details
-      const { data: characterData } = await supabase
+      const { data: characterData, error: characterError } = await supabase
         .from('characters')
         .select('*')
         .eq('id', sessionData.character_id)
-        .single();
+        .maybeSingle();
+
+      if (characterError) {
+        console.error('Error fetching character:', characterError);
+        return null;
+      }
+
+      if (!campaignData || !characterData) {
+        console.log('Campaign or character data not found');
+        return null;
+      }
 
       return {
         campaign: campaignData,
         character: characterData
       };
     } catch (error) {
-      console.error('Error fetching campaign details:', error);
+      console.error('Error in fetchCampaignDetails:', error);
       return null;
     }
   };
@@ -78,6 +103,12 @@ export const useAIResponse = () => {
       const gameContext = await fetchCampaignDetails(sessionId);
       
       if (!gameContext) {
+        console.error('Failed to fetch game context');
+        toast({
+          title: "Error",
+          description: "Failed to load game context. Please try again.",
+          variant: "destructive",
+        });
         throw new Error('Failed to fetch game context');
       }
 

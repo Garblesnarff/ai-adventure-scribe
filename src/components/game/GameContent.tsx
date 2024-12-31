@@ -7,7 +7,6 @@ import { useMemoryContext } from '@/contexts/MemoryContext';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { VoiceHandler } from './VoiceHandler';
-import { useAIResponse } from '@/hooks/useAIResponse';
 import { MemoryPanel } from './MemoryPanel';
 import { useGameSession } from '@/hooks/useGameSession';
 import { MemoryTester } from './memory/MemoryTester';
@@ -63,7 +62,9 @@ const GameContent: React.FC = () => {
       }
 
       const result = await dmAgent.executeTask({
+        id: `task_${Date.now()}`,
         description: playerInput,
+        expectedOutput: 'narrative response',
         context: {
           campaignId,
           currentState: 'in_progress',

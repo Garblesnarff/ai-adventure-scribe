@@ -32,6 +32,10 @@ const GameContent: React.FC = () => {
     if (queueStatus === 'processing') return;
 
     try {
+      if (!sessionId || !campaignId) {
+        throw new Error('No active session or campaign found');
+      }
+
       // Add player message
       const playerMessage: ChatMessage = {
         text: playerInput,
@@ -55,12 +59,14 @@ const GameContent: React.FC = () => {
         },
       };
       await sendMessage(systemMessage);
+
+      console.log('Executing DM agent task with context:', {
+        campaignId,
+        sessionId,
+        messageHistory: messages
+      });
       
       // Execute DM agent task
-      if (!sessionId || !campaignId) {
-        throw new Error('No active session or campaign found');
-      }
-
       const result = await dmAgent.executeTask({
         id: `task_${Date.now()}`,
         description: playerInput,
@@ -76,6 +82,8 @@ const GameContent: React.FC = () => {
       if (!result.success) {
         throw new Error(result.message);
       }
+
+      console.log('DM agent response:', result);
 
       // Create DM response message
       const dmResponse: ChatMessage = {

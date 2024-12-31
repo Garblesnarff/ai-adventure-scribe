@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { GameSession } from '@/types/game';
-import { useSearchParams } from 'react-router-dom';
 
 const SESSION_EXPIRY_TIME = 1000 * 60 * 60; // 1 hour
 const CLEANUP_INTERVAL = 1000 * 60 * 5; // Check every 5 minutes
@@ -13,10 +12,11 @@ const CLEANUP_INTERVAL = 1000 * 60 * 5; // Check every 5 minutes
 export const useGameSession = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionState, setSessionState] = useState<'active' | 'expired' | 'ending'>('active');
-  const [searchParams] = useSearchParams();
-  const campaignId = searchParams.get('campaign') || searchParams.get('id');
   const { toast } = useToast();
 
+  /**
+   * Creates a new game session
+   */
   const createGameSession = async () => {
     const { data, error } = await supabase
       .from('game_sessions')
@@ -150,10 +150,5 @@ export const useGameSession = () => {
     };
   }, [sessionId]);
 
-  return { 
-    sessionId, 
-    setSessionId, 
-    sessionState,
-    campaignId 
-  };
+  return { sessionId, setSessionId, sessionState };
 };

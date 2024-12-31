@@ -29,21 +29,16 @@ export class DungeonMasterAgent implements Agent {
    */
   private async fetchCampaignDetails(campaignId: string) {
     try {
-      console.log('Fetching campaign details for ID:', campaignId);
       const { data, error } = await supabase
         .from('campaigns')
         .select('*')
         .eq('id', campaignId)
         .single();
 
-      if (error) {
-        console.error('Error fetching campaign details:', error);
-        throw error;
-      }
-      console.log('Retrieved campaign details:', data);
+      if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error in fetchCampaignDetails:', error);
+      console.error('Error fetching campaign details:', error);
       return null;
     }
   }
@@ -55,30 +50,11 @@ export class DungeonMasterAgent implements Agent {
    */
   async executeTask(task: AgentTask): Promise<AgentResult> {
     try {
-      console.log(`DM Agent executing task:`, task);
+      console.log(`DM Agent executing task: ${task.description}`);
 
-      if (!task.context?.campaignId) {
-        throw new Error('Campaign ID is required for DM agent execution');
-      }
-
-      // Fetch campaign details
-      const campaignDetails = await this.fetchCampaignDetails(task.context.campaignId);
-      
-      if (!campaignDetails) {
-        throw new Error('Failed to fetch campaign details');
-      }
-
-      console.log('Calling edge function with context:', {
-        task,
-        agentContext: {
-          role: this.role,
-          goal: this.goal,
-          backstory: this.backstory,
-          campaignDetails,
-          currentState: task.context?.currentState || 'initial',
-          messageHistory: task.context?.messageHistory || []
-        }
-      });
+      // Fetch campaign details if campaignId is provided in context
+      const campaignDetails = task.context?.campaignId ? 
+        await this.fetchCampaignDetails(task.context.campaignId) : null;
 
       // Call the AI function through our Edge Function
       const { data, error } = await supabase.functions.invoke('dm-agent-execute', {
@@ -88,19 +64,12 @@ export class DungeonMasterAgent implements Agent {
             role: this.role,
             goal: this.goal,
             backstory: this.backstory,
-            campaignDetails,
-            currentState: task.context?.currentState || 'initial',
-            messageHistory: task.context?.messageHistory || []
+            campaignDetails // Include campaign details in context
           }
         }
       });
 
-      if (error) {
-        console.error('Edge function error:', error);
-        throw error;
-      }
-
-      console.log('DM Agent response:', data);
+      if (error) throw error;
 
       return {
         success: true,

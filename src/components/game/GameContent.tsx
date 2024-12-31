@@ -7,10 +7,10 @@ import { useMemoryContext } from '@/contexts/MemoryContext';
 import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import { VoiceHandler } from './VoiceHandler';
+import { useAIResponse } from '@/hooks/useAIResponse';
 import { MemoryPanel } from './MemoryPanel';
 import { useGameSession } from '@/hooks/useGameSession';
 import { MemoryTester } from './memory/MemoryTester';
-import { DungeonMasterAgent } from '@/agents/DungeonMasterAgent';
 
 /**
  * GameContent Component
@@ -19,9 +19,9 @@ import { DungeonMasterAgent } from '@/agents/DungeonMasterAgent';
 const GameContent: React.FC = () => {
   const { messages, sendMessage, queueStatus } = useMessageContext();
   const { extractMemories } = useMemoryContext();
-  const { sessionId, campaignId } = useGameSession();
+  const { getAIResponse } = useAIResponse();
+  const { sessionId } = useGameSession();
   const { toast } = useToast();
-  const dmAgent = new DungeonMasterAgent();
 
   /**
    * Handle sending a new message
@@ -32,18 +32,6 @@ const GameContent: React.FC = () => {
     if (queueStatus === 'processing') return;
 
     try {
-      // Validate session and campaign
-      if (!sessionId || !campaignId) {
-        console.error('Missing session or campaign:', { sessionId, campaignId });
-        throw new Error('No active session or campaign found');
-      }
-
-      console.log('Processing message with context:', {
-        sessionId,
-        campaignId,
-        messageCount: messages.length
-      });
-
       // Add player message
       const playerMessage: ChatMessage = {
         text: playerInput,
@@ -67,69 +55,29 @@ const GameContent: React.FC = () => {
         },
       };
       await sendMessage(systemMessage);
-
-      console.log('Executing DM agent task with context:', {
-        campaignId,
-        sessionId,
-        messageHistory: messages
-      });
       
-      // Execute DM agent task
-      const result = await dmAgent.executeTask({
-        id: `task_${Date.now()}`,
-        description: playerInput,
-        expectedOutput: 'narrative response',
-        context: {
-          campaignId,
-          currentState: 'in_progress',
-          sessionId,
-          messageHistory: messages
-        }
-      });
-
-      if (!result.success) {
-        throw new Error(result.message);
+      // Get AI response with session context
+      if (!sessionId) {
+        throw new Error('No active session found');
       }
-
-      console.log('DM agent response:', result);
-
-      // Create DM response message
-      const dmResponse: ChatMessage = {
-        text: result.data.response,
-        sender: 'dm',
-        context: {
-          emotion: 'neutral',
-          intent: 'narrative',
-        },
-      };
-      await sendMessage(dmResponse);
       
-      // Extract memories from DM response
-      if (dmResponse.text) {
-        await extractMemories(dmResponse.text, 'event');
+      const aiResponse = await getAIResponse([...messages, playerMessage], sessionId);
+      await sendMessage(aiResponse);
+      
+      // Extract memories from AI response
+      if (aiResponse.text) {
+        await extractMemories(aiResponse.text, 'event');
       }
 
     } catch (error) {
       console.error('Error in message flow:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to process message. Please try again.",
+        description: "Failed to process message. Please try again.",
         variant: "destructive",
       });
     }
   };
-
-  // Early return if no session or campaign
-  if (!sessionId || !campaignId) {
-    return (
-      <Card className="p-6 bg-white/90 backdrop-blur-sm shadow-xl">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Session Not Found</h2>
-          <p className="text-gray-600">Please make sure you have an active game session.</p>
-        </div>
-      </Card>
-    );
-  }
 
   return (
     <div className="flex gap-4 max-w-7xl mx-auto">

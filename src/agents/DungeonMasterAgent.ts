@@ -75,7 +75,8 @@ export class DungeonMasterAgent implements Agent {
           goal: this.goal,
           backstory: this.backstory,
           campaignDetails,
-          currentState: task.context?.currentState || 'initial'
+          currentState: task.context?.currentState || 'initial',
+          messageHistory: task.context?.messageHistory || []
         }
       });
 
@@ -88,7 +89,8 @@ export class DungeonMasterAgent implements Agent {
             goal: this.goal,
             backstory: this.backstory,
             campaignDetails,
-            currentState: task.context?.currentState || 'initial'
+            currentState: task.context?.currentState || 'initial',
+            messageHistory: task.context?.messageHistory || []
           }
         }
       });

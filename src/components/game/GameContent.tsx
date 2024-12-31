@@ -32,9 +32,17 @@ const GameContent: React.FC = () => {
     if (queueStatus === 'processing') return;
 
     try {
+      // Validate session and campaign
       if (!sessionId || !campaignId) {
+        console.error('Missing session or campaign:', { sessionId, campaignId });
         throw new Error('No active session or campaign found');
       }
+
+      console.log('Processing message with context:', {
+        sessionId,
+        campaignId,
+        messageCount: messages.length
+      });
 
       // Add player message
       const playerMessage: ChatMessage = {
@@ -110,6 +118,18 @@ const GameContent: React.FC = () => {
       });
     }
   };
+
+  // Early return if no session or campaign
+  if (!sessionId || !campaignId) {
+    return (
+      <Card className="p-6 bg-white/90 backdrop-blur-sm shadow-xl">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Session Not Found</h2>
+          <p className="text-gray-600">Please make sure you have an active game session.</p>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <div className="flex gap-4 max-w-7xl mx-auto">

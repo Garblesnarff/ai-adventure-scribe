@@ -10,23 +10,6 @@ const corsHeaders = {
 };
 
 /**
- * Formats campaign-specific guidelines based on parameters
- */
-const getCampaignGuidelines = (campaignDetails: any) => {
-  if (!campaignDetails) return '';
-  
-  const { genre, tone, difficulty_level, campaign_length } = campaignDetails;
-  
-  return `
-Campaign-Specific Guidelines:
-- Genre (${genre}): ${getGenreGuidelines(genre)}
-- Tone (${tone}): ${getToneGuidelines(tone)}
-- Difficulty (${difficulty_level}): ${getDifficultyGuidelines(difficulty_level)}
-- Length (${campaign_length}): ${getLengthGuidelines(campaign_length)}
-  `;
-};
-
-/**
  * Returns genre-specific guidelines
  */
 const getGenreGuidelines = (genre: string) => {
@@ -90,34 +73,41 @@ serve(async (req) => {
     console.log('Processing DM task with campaign details:', campaignDetails);
 
     // Format the complete prompt for the DM agent
-    const prompt = `
-You are a Dungeon Master with the following context:
-Role: ${agentContext.role}
-Goal: ${agentContext.goal}
-Backstory: ${agentContext.backstory}
+    const prompt = `You are a Dungeon Master for a D&D game. Your role is to:
+1. Narrate scenes and describe environments
+2. Present clear choices and opportunities for player interaction
+3. Respond to player actions
+4. Maintain the campaign's established tone and setting
 
-${campaignDetails ? `Current Campaign:
-Name: ${campaignDetails.name}
-Genre: ${campaignDetails.genre || 'Standard Fantasy'}
-Tone: ${campaignDetails.tone || 'Balanced'}
-Difficulty: ${campaignDetails.difficulty_level || 'Medium'}
-Description: ${campaignDetails.description || 'A classic D&D adventure'}
-Campaign Length: ${campaignDetails.campaign_length || 'Standard'}
-Setting Details: ${JSON.stringify(campaignDetails.setting_details || {})}
+Campaign Parameters:
+- Genre: ${campaignDetails?.genre || 'traditional-fantasy'}
+- Tone: ${campaignDetails?.tone || 'serious'}
+- Difficulty: ${campaignDetails?.difficulty_level || 'medium'}
+- Length: ${campaignDetails?.campaign_length || 'short'}
 
-${getCampaignGuidelines(campaignDetails)}` : ''}
+Campaign Context:
+Name: ${campaignDetails?.name || 'A D&D Adventure'}
+Description: ${campaignDetails?.description || 'A classic fantasy adventure'}
 
+Genre Guidelines: ${getGenreGuidelines(campaignDetails?.genre)}
+Tone Guidelines: ${getToneGuidelines(campaignDetails?.tone)}
+Difficulty Guidelines: ${getDifficultyGuidelines(campaignDetails?.difficulty_level)}
+Length Guidelines: ${getLengthGuidelines(campaignDetails?.campaign_length)}
+
+Important DM Guidelines:
+1. ALWAYS end your descriptions with "What would you like to do?" or a similar prompt for action
+2. Stay consistent with the campaign's tone and genre throughout all descriptions
+3. Present clear situations and choices that match the difficulty level
+4. Acknowledge and respond to player choices naturally
+5. Keep the scope appropriate for the campaign length
+6. Describe environments and situations vividly while maintaining the appropriate atmosphere
+7. Create opportunities for meaningful player decisions
+
+Current Game State: ${task.context?.currentState || 'initial'}
 Task Description: ${task.description}
-Expected Output: ${task.expectedOutput}
 
-Additional Context: ${JSON.stringify(task.context || {})}
-
-Important Guidelines:
-- Strictly adhere to the specified genre, tone, and difficulty level
-- Maintain consistency with the campaign's established style
-- Adapt descriptions and challenges to match the campaign parameters
-- Focus on creating an immersive experience within the defined parameters
-`;
+Remember to maintain the specified genre, tone, and difficulty in your response.
+Always end with a prompt for player action.`;
 
     console.log('Executing DM task with prompt:', prompt);
 

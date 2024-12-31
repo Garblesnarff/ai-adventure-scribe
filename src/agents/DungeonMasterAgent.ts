@@ -64,7 +64,8 @@ export class DungeonMasterAgent implements Agent {
             role: this.role,
             goal: this.goal,
             backstory: this.backstory,
-            campaignDetails // Include campaign details in context
+            campaignDetails,
+            currentState: task.context?.currentState || 'initial'
           }
         }
       });

@@ -24,6 +24,44 @@ const GameContent: React.FC = () => {
   const { toast } = useToast();
 
   /**
+   * Validates the current game session
+   * @returns boolean indicating if session is valid
+   */
+  const validateGameSession = async () => {
+    if (!sessionId) {
+      toast({
+        title: "Session Error",
+        description: "No active game session found",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Verify session exists with required data
+    const { data: session, error } = await supabase
+      .from('game_sessions')
+      .select(`
+        id,
+        campaign_id,
+        character_id
+      `)
+      .eq('id', sessionId)
+      .single();
+
+    if (error || !session?.campaign_id || !session?.character_id) {
+      console.error('Session validation failed:', error || 'Missing campaign/character IDs');
+      toast({
+        title: "Session Error",
+        description: "Invalid game session. Please try starting a new game.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  /**
    * Handle sending a new message
    * Processes player input and generates appropriate responses
    * @param playerInput - The message text from the player
@@ -32,6 +70,10 @@ const GameContent: React.FC = () => {
     if (queueStatus === 'processing') return;
 
     try {
+      // Validate session before proceeding
+      const isValid = await validateGameSession();
+      if (!isValid) return;
+
       // Add player message
       const playerMessage: ChatMessage = {
         text: playerInput,

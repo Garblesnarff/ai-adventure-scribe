@@ -8,7 +8,7 @@ import { WizardStep } from './types';
  * Each step has a component and label for navigation
  */
 export const wizardSteps: WizardStep[] = [
-  { component: BasicDetails, label: 'Details' },
   { component: GenreSelection, label: 'Genre' },
   { component: CampaignParameters, label: 'Parameters' },
+  { component: BasicDetails, label: 'Details' },
 ];

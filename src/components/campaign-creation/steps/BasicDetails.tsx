@@ -7,7 +7,7 @@ import { Loader2, Wand2 } from 'lucide-react';
 import { useCampaign } from '@/contexts/CampaignContext';
 import { WizardStepProps } from '../wizard/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -23,6 +23,11 @@ const BasicDetails: React.FC<WizardStepProps> = ({ isLoading = false }) => {
     description: false
   });
 
+  /**
+   * Handles input field changes
+   * @param field - Field name to update
+   * @param value - New value for the field
+   */
   const handleChange = (field: string, value: string) => {
     dispatch({
       type: 'UPDATE_CAMPAIGN',
@@ -30,6 +35,10 @@ const BasicDetails: React.FC<WizardStepProps> = ({ isLoading = false }) => {
     });
   };
 
+  /**
+   * Handles input field blur events
+   * @param field - Field name that was blurred
+   */
   const handleBlur = (field: string) => {
     setTouched(prev => ({
       ...prev,
@@ -37,6 +46,10 @@ const BasicDetails: React.FC<WizardStepProps> = ({ isLoading = false }) => {
     }));
   };
 
+  /**
+   * Gets validation error for campaign name
+   * @returns Error message if validation fails, empty string otherwise
+   */
   const getNameError = () => {
     if (touched.name && (!state.campaign?.name || !state.campaign.name.trim())) {
       return "Campaign name is required";
@@ -44,6 +57,10 @@ const BasicDetails: React.FC<WizardStepProps> = ({ isLoading = false }) => {
     return "";
   };
 
+  /**
+   * Generates campaign description using AI
+   * Requires genre, difficulty level, campaign length, and tone to be set
+   */
   const generateDescription = async () => {
     if (!state.campaign?.genre || !state.campaign?.difficulty_level || 
         !state.campaign?.campaign_length || !state.campaign?.tone) {

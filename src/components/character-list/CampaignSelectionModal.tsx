@@ -51,6 +51,8 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
    */
   const handleStartSession = async (campaignId: string) => {
     try {
+      console.log('Starting session with character:', characterId);
+      
       // Create new game session
       const { data: session, error } = await supabase
         .from('game_sessions')
@@ -69,8 +71,8 @@ const CampaignSelectionModal: React.FC<CampaignSelectionModalProps> = ({
         description: "Your game session has begun!",
       });
 
-      // Navigate to campaign view with session
-      navigate(`/campaign/${campaignId}?session=${session.id}`);
+      // Navigate to campaign view with both session and character IDs
+      navigate(`/campaign/${campaignId}?session=${session.id}&character=${characterId}`);
     } catch (error) {
       console.error('Error starting session:', error);
       toast({

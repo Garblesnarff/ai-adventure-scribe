@@ -12,6 +12,7 @@ import { MemoryPanel } from './MemoryPanel';
 import { useGameSession } from '@/hooks/useGameSession';
 import { MemoryTester } from './memory/MemoryTester';
 import { supabase } from '@/integrations/supabase/client';
+import { useParams, useSearchParams } from 'react-router-dom';
 
 /**
  * GameContent Component
@@ -21,7 +22,10 @@ const GameContent: React.FC = () => {
   const { messages, sendMessage, queueStatus } = useMessageContext();
   const { extractMemories } = useMemoryContext();
   const { getAIResponse } = useAIResponse();
-  const { sessionId } = useGameSession();
+  const { id: campaignId } = useParams();
+  const [searchParams] = useSearchParams();
+  const characterId = searchParams.get('character');
+  const sessionId = searchParams.get('session');
   const { toast } = useToast();
 
   /**
@@ -29,10 +33,11 @@ const GameContent: React.FC = () => {
    * @returns boolean indicating if session is valid
    */
   const validateGameSession = async () => {
-    if (!sessionId) {
+    if (!sessionId || !campaignId || !characterId) {
+      console.error('Missing required IDs:', { sessionId, campaignId, characterId });
       toast({
         title: "Session Error",
-        description: "No active game session found",
+        description: "Missing required session information",
         variant: "destructive",
       });
       return false;
@@ -41,16 +46,14 @@ const GameContent: React.FC = () => {
     // Verify session exists with required data
     const { data: session, error } = await supabase
       .from('game_sessions')
-      .select(`
-        id,
-        campaign_id,
-        character_id
-      `)
+      .select('*')
       .eq('id', sessionId)
+      .eq('campaign_id', campaignId)
+      .eq('character_id', characterId)
       .single();
 
-    if (error || !session?.campaign_id || !session?.character_id) {
-      console.error('Session validation failed:', error || 'Missing campaign/character IDs');
+    if (error || !session) {
+      console.error('Session validation failed:', error || 'Session not found');
       toast({
         title: "Session Error",
         description: "Invalid game session. Please try starting a new game.",
@@ -99,7 +102,7 @@ const GameContent: React.FC = () => {
       };
       await sendMessage(systemMessage);
       
-      // Get AI response with session context
+      // Get AI response
       if (!sessionId) {
         throw new Error('No active session found');
       }

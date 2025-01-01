@@ -5,7 +5,6 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * Hook for handling AI response generation with memory context window
- * Now uses DM Agent for D&D specific responses
  */
 export const useAIResponse = () => {
   const { toast } = useToast();
@@ -29,7 +28,7 @@ export const useAIResponse = () => {
   /**
    * Fetches campaign and character details for the DM Agent context
    */
-  const fetchCampaignDetails = async (sessionId: string) => {
+  const fetchGameContext = async (sessionId: string) => {
     try {
       console.log('Fetching game session details for:', sessionId);
       
@@ -37,17 +36,12 @@ export const useAIResponse = () => {
       const { data: sessionData, error: sessionError } = await supabase
         .from('game_sessions')
         .select(`
-          campaign_id,
-          character_id,
-          campaigns:campaign_id (
-            *
-          ),
-          characters:character_id (
-            *
-          )
+          *,
+          campaigns:campaign_id (*),
+          characters:character_id (*)
         `)
         .eq('id', sessionId)
-        .maybeSingle();
+        .single();
 
       if (sessionError) {
         console.error('Error fetching session:', sessionError);
@@ -55,23 +49,16 @@ export const useAIResponse = () => {
       }
 
       if (!sessionData?.campaign_id || !sessionData?.character_id) {
-        console.log('No campaign or character IDs found in session');
+        console.error('No campaign or character IDs found in session');
         return null;
       }
-
-      console.log('Session data retrieved:', {
-        campaignId: sessionData.campaign_id,
-        characterId: sessionData.character_id,
-        campaign: sessionData.campaigns,
-        character: sessionData.characters
-      });
 
       return {
         campaign: sessionData.campaigns,
         character: sessionData.characters
       };
     } catch (error) {
-      console.error('Error in fetchCampaignDetails:', error);
+      console.error('Error in fetchGameContext:', error);
       return null;
     }
   };
@@ -79,7 +66,7 @@ export const useAIResponse = () => {
   /**
    * Calls the DM Agent to generate a response
    */
-  const getAIResponse = async (messages: ChatMessage[], sessionId: string) => {
+  const getAIResponse = async (messages: ChatMessage[], sessionId: string): Promise<ChatMessage> => {
     try {
       console.log('Getting AI response for session:', sessionId);
 
@@ -87,15 +74,9 @@ export const useAIResponse = () => {
       const latestMessage = messages[messages.length - 1];
       
       // Fetch campaign and character context
-      const gameContext = await fetchCampaignDetails(sessionId);
+      const gameContext = await fetchGameContext(sessionId);
       
       if (!gameContext) {
-        console.error('Failed to fetch game context');
-        toast({
-          title: "Error",
-          description: "Failed to load game context. Please try again.",
-          variant: "destructive",
-        });
         throw new Error('Failed to fetch game context');
       }
 
@@ -132,11 +113,6 @@ export const useAIResponse = () => {
 
       if (error) {
         console.error('DM Agent error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to get DM response. Please try again.",
-          variant: "destructive",
-        });
         throw error;
       }
 
@@ -148,7 +124,7 @@ export const useAIResponse = () => {
           emotion: 'neutral',
           intent: 'response',
         }
-      } as ChatMessage;
+      };
     } catch (error) {
       console.error('Error in getAIResponse:', error);
       throw error;

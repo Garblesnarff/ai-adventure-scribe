@@ -11,6 +11,7 @@ import { useAIResponse } from '@/hooks/useAIResponse';
 import { MemoryPanel } from './MemoryPanel';
 import { useGameSession } from '@/hooks/useGameSession';
 import { MemoryTester } from './memory/MemoryTester';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * GameContent Component

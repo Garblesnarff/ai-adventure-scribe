@@ -27,16 +27,25 @@ export const useAIResponse = () => {
   };
 
   /**
-   * Fetches campaign details for the DM Agent context
+   * Fetches campaign and character details for the DM Agent context
    */
   const fetchCampaignDetails = async (sessionId: string) => {
     try {
       console.log('Fetching game session details for:', sessionId);
       
-      // Get game session
+      // Get game session with campaign and character details using JOIN
       const { data: sessionData, error: sessionError } = await supabase
         .from('game_sessions')
-        .select('campaign_id, character_id')
+        .select(`
+          campaign_id,
+          character_id,
+          campaigns:campaign_id (
+            *
+          ),
+          characters:character_id (
+            *
+          )
+        `)
         .eq('id', sessionId)
         .maybeSingle();
 
@@ -50,38 +59,16 @@ export const useAIResponse = () => {
         return null;
       }
 
-      // Get campaign details
-      const { data: campaignData, error: campaignError } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('id', sessionData.campaign_id)
-        .maybeSingle();
-
-      if (campaignError) {
-        console.error('Error fetching campaign:', campaignError);
-        return null;
-      }
-
-      // Get character details
-      const { data: characterData, error: characterError } = await supabase
-        .from('characters')
-        .select('*')
-        .eq('id', sessionData.character_id)
-        .maybeSingle();
-
-      if (characterError) {
-        console.error('Error fetching character:', characterError);
-        return null;
-      }
-
-      if (!campaignData || !characterData) {
-        console.log('Campaign or character data not found');
-        return null;
-      }
+      console.log('Session data retrieved:', {
+        campaignId: sessionData.campaign_id,
+        characterId: sessionData.character_id,
+        campaign: sessionData.campaigns,
+        character: sessionData.characters
+      });
 
       return {
-        campaign: campaignData,
-        character: characterData
+        campaign: sessionData.campaigns,
+        character: sessionData.characters
       };
     } catch (error) {
       console.error('Error in fetchCampaignDetails:', error);

@@ -1,4 +1,4 @@
-import BasicDetails from '../steps/BasicDetails';
+import BasicDetails from '../steps/basic-details';
 import GenreSelection from '../steps/GenreSelection';
 import CampaignParameters from '../steps/CampaignParameters';
 import { WizardStep } from './types';

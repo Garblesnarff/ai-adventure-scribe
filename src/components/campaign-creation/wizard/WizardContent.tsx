@@ -33,11 +33,11 @@ const WizardContent: React.FC = () => {
   const validateCurrentStep = () => {
     switch (currentStep) {
       case 0:
-        return validateBasicDetails(state.campaign, toast);
-      case 1:
         return validateGenreSelection(state.campaign, toast);
-      case 2:
+      case 1:
         return validateCampaignParameters(state.campaign, toast);
+      case 2:
+        return validateBasicDetails(state.campaign, toast);
       default:
         return true;
     }

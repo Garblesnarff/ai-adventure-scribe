@@ -2,7 +2,6 @@ import React from 'react';
 import { Volume2, VolumeX, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { useToast } from '@/hooks/use-toast';
 
 interface AudioControlsProps {
   isSpeaking: boolean;

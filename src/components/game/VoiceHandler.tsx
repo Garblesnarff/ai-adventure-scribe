@@ -22,7 +22,7 @@ export const VoiceHandler: React.FC = () => {
       console.error('ElevenLabs error:', error);
       toast({
         title: "Voice Error",
-        description: error.message,
+        description: typeof error === 'string' ? error : 'Failed to process voice request',
         variant: "destructive",
       });
     },
@@ -55,7 +55,22 @@ export const VoiceHandler: React.FC = () => {
       // Remove any markdown or special characters for cleaner speech
       const cleanText = lastMessage.text.replace(/[*_`#]/g, '');
       
-      conversation.setInput(cleanText);
+      // Use the conversation instance to speak the text
+      conversation.startSession({
+        agentId: "dm_agent",
+        overrides: {
+          tts: {
+            text: cleanText
+          }
+        }
+      }).catch(error => {
+        console.error('Failed to speak message:', error);
+        toast({
+          title: "Voice Error",
+          description: "Failed to speak message. Please try again.",
+          variant: "destructive",
+        });
+      });
     }
   }, [messages, conversation]);
 

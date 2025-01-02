@@ -34,9 +34,16 @@ export const VoiceHandler: React.FC = () => {
   React.useEffect(() => {
     const initVoice = async () => {
       try {
+        console.log('Initializing ElevenLabs session...');
         await conversation.startSession({
           agentId: "dm_agent",
+          overrides: {
+            agent: {
+              language: "en",
+            }
+          }
         });
+        console.log('ElevenLabs session initialized successfully');
         setIsInitialized(true);
       } catch (error) {
         console.error('Failed to initialize voice:', error);
@@ -67,12 +74,19 @@ export const VoiceHandler: React.FC = () => {
       // Remove any markdown or special characters for cleaner speech
       const cleanText = lastMessage.text.replace(/[*_`#]/g, '');
       
-      // Start a new session with the text to be spoken
+      console.log('Sending text to ElevenLabs:', cleanText);
+      
+      // Send text to be spoken
       conversation.startSession({
         agentId: "dm_agent",
         overrides: {
           agent: {
-            firstMessage: cleanText
+            firstMessage: cleanText,
+            language: "en"
+          },
+          tts: {
+            voiceId: "JBFqnCBsd6RMkjVDRZzb",
+            modelId: "eleven_multilingual_v2"
           }
         }
       }).catch(error => {

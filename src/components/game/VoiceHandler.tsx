@@ -17,7 +17,6 @@ export const VoiceHandler: React.FC = () => {
     overrides: {
       tts: {
         voiceId: "JBFqnCBsd6RMkjVDRZzb", // George - warm storyteller voice
-        modelId: "eleven_multilingual_v2", // High quality model
       }
     },
     onError: (error) => {
@@ -85,8 +84,7 @@ export const VoiceHandler: React.FC = () => {
             language: "en"
           },
           tts: {
-            voiceId: "JBFqnCBsd6RMkjVDRZzb",
-            modelId: "eleven_multilingual_v2"
+            voiceId: "JBFqnCBsd6RMkjVDRZzb"
           }
         }
       }).catch(error => {

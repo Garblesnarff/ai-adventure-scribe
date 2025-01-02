@@ -127,8 +127,15 @@ export const VoiceHandler: React.FC = () => {
       
       console.log('Sending DM response to ElevenLabs:', cleanText);
       
-      conversation.sendMessage({
-        text: cleanText,
+      // Use startSession with firstMessage to speak the text
+      conversation.startSession({
+        agentId: "dm_agent",
+        overrides: {
+          agent: {
+            firstMessage: cleanText,
+            language: "en"
+          }
+        }
       }).catch(error => {
         console.error('Failed to speak DM message:', error);
         setIsLoading(false);

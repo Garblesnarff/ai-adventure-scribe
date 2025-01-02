@@ -2,6 +2,7 @@ import React from 'react';
 import { useConversation } from '@11labs/react';
 import { useMessageContext } from '@/contexts/MessageContext';
 import { useToast } from '@/hooks/use-toast';
+import { AudioControls } from './AudioControls';
 
 /**
  * VoiceHandler component manages text-to-speech functionality using ElevenLabs
@@ -11,6 +12,9 @@ export const VoiceHandler: React.FC = () => {
   const { messages } = useMessageContext();
   const { toast } = useToast();
   const [isInitialized, setIsInitialized] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [volume, setVolume] = React.useState(0.5);
+  const [isMuted, setIsMuted] = React.useState(false);
   const [sessionId, setSessionId] = React.useState<string | null>(null);
   
   // Initialize ElevenLabs conversation with George's voice
@@ -22,6 +26,7 @@ export const VoiceHandler: React.FC = () => {
     },
     onError: (error) => {
       console.error('ElevenLabs error:', error);
+      setIsLoading(false);
       toast({
         title: "Voice Error",
         description: typeof error === 'string' ? error : 'Failed to process voice request',
@@ -30,11 +35,13 @@ export const VoiceHandler: React.FC = () => {
     },
     onConnect: () => {
       console.log('ElevenLabs session connected successfully');
+      setIsLoading(false);
     },
     onDisconnect: () => {
       console.log('ElevenLabs session disconnected');
       setIsInitialized(false);
       setSessionId(null);
+      setIsLoading(false);
     }
   });
 
@@ -42,6 +49,7 @@ export const VoiceHandler: React.FC = () => {
   React.useEffect(() => {
     const initVoice = async () => {
       try {
+        setIsLoading(true);
         console.log('Initializing ElevenLabs session...');
         
         // Start the session with the DM agent configuration
@@ -57,8 +65,10 @@ export const VoiceHandler: React.FC = () => {
         console.log('ElevenLabs session initialized successfully with ID:', newSessionId);
         setSessionId(newSessionId);
         setIsInitialized(true);
+        setIsLoading(false);
       } catch (error) {
         console.error('Failed to initialize voice:', error);
+        setIsLoading(false);
         toast({
           title: "Voice Error",
           description: "Failed to initialize voice. Please check your API key and try again.",
@@ -80,11 +90,37 @@ export const VoiceHandler: React.FC = () => {
     };
   }, [conversation, isInitialized, toast]);
 
+  // Handle volume changes
+  const handleVolumeChange = async (newVolume: number) => {
+    setVolume(newVolume);
+    if (isInitialized && !isMuted) {
+      try {
+        await conversation.setVolume({ volume: newVolume });
+      } catch (error) {
+        console.error('Failed to update volume:', error);
+      }
+    }
+  };
+
+  // Handle mute toggle
+  const handleMuteToggle = async () => {
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    if (isInitialized) {
+      try {
+        await conversation.setVolume({ volume: newMutedState ? 0 : volume });
+      } catch (error) {
+        console.error('Failed to toggle mute:', error);
+      }
+    }
+  };
+
   // Listen for new DM messages and speak them
   React.useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     
     if (lastMessage && lastMessage.sender === 'dm' && lastMessage.text && isInitialized && sessionId) {
+      setIsLoading(true);
       // Remove any markdown or special characters for cleaner speech
       const cleanText = lastMessage.text.replace(/[*_`#]/g, '');
       
@@ -101,6 +137,7 @@ export const VoiceHandler: React.FC = () => {
         }
       }).catch(error => {
         console.error('Failed to speak message:', error);
+        setIsLoading(false);
         toast({
           title: "Voice Error",
           description: "Failed to speak message. Please try again.",
@@ -110,5 +147,16 @@ export const VoiceHandler: React.FC = () => {
     }
   }, [messages, conversation, isInitialized, sessionId, toast]);
 
-  return null;
+  return (
+    <div className="fixed bottom-4 right-4 z-50">
+      <AudioControls
+        isSpeaking={isLoading}
+        isLoading={isLoading}
+        volume={volume}
+        isMuted={isMuted}
+        onVolumeChange={handleVolumeChange}
+        onMuteToggle={handleMuteToggle}
+      />
+    </div>
+  );
 };

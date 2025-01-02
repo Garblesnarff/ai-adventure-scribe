@@ -61,7 +61,10 @@ export const validateCampaignParameters = (campaign: any, toast: any): boolean =
 };
 
 /**
- * Validates the complete campaign data
+ * Validates the complete campaign data in the correct order:
+ * 1. Genre
+ * 2. Parameters
+ * 3. Basic Details
  * @param campaign - The campaign data to validate
  * @param toast - Toast function for displaying validation messages
  * @returns boolean indicating if validation passed
@@ -76,23 +79,10 @@ export const validateCompleteCampaign = (campaign: any, toast: any): boolean => 
     return false;
   }
 
-  const { name, description, genre, campaign_length, tone, difficulty_level } = campaign;
-  
-  const missingFields = [];
-  if (!name?.trim()) missingFields.push("Name");
-  if (!genre) missingFields.push("Genre");
-  if (!campaign_length) missingFields.push("Campaign Length");
-  if (!tone) missingFields.push("Tone");
-  if (!difficulty_level) missingFields.push("Difficulty Level");
-
-  if (missingFields.length > 0) {
-    toast({
-      title: "Incomplete Campaign",
-      description: `Missing required fields: ${missingFields.join(", ")}`,
-      variant: "destructive",
-    });
-    return false;
-  }
+  // Validate in the same order as the wizard steps
+  if (!validateGenreSelection(campaign, toast)) return false;
+  if (!validateCampaignParameters(campaign, toast)) return false;
+  if (!validateBasicDetails(campaign, toast)) return false;
 
   return true;
 };

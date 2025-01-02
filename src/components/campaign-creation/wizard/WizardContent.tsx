@@ -27,17 +27,20 @@ const WizardContent: React.FC = () => {
   const { saveCampaign, isSaving } = useCampaignSave();
 
   /**
-   * Validates the current step's data
+   * Validates the current step's data based on the new step order:
+   * 1. Genre Selection
+   * 2. Campaign Parameters
+   * 3. Basic Details
    * @returns boolean indicating if validation passed
    */
   const validateCurrentStep = () => {
     switch (currentStep) {
       case 0:
-        return validateBasicDetails(state.campaign, toast);
-      case 1:
         return validateGenreSelection(state.campaign, toast);
-      case 2:
+      case 1:
         return validateCampaignParameters(state.campaign, toast);
+      case 2:
+        return validateBasicDetails(state.campaign, toast);
       default:
         return true;
     }

@@ -1,5 +1,4 @@
 import React from 'react';
-import { useConversation } from '@11labs/react';
 import { useMessageContext } from '@/contexts/MessageContext';
 import { useToast } from '@/hooks/use-toast';
 import { AudioControls } from './AudioControls';
@@ -11,147 +10,130 @@ import { AudioControls } from './AudioControls';
 export const VoiceHandler: React.FC = () => {
   const { messages } = useMessageContext();
   const { toast } = useToast();
-  const [isInitialized, setIsInitialized] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isSpeaking, setIsSpeaking] = React.useState(false);
   const [volume, setVolume] = React.useState(0.5);
   const [isMuted, setIsMuted] = React.useState(false);
-  const [sessionId, setSessionId] = React.useState<string | null>(null);
-  
-  // Initialize ElevenLabs conversation with George's voice
-  const conversation = useConversation({
-    overrides: {
-      tts: {
-        voiceId: "JBFqnCBsd6RMkjVDRZzb", // George - warm storyteller voice
-      }
-    },
-    onError: (error) => {
-      console.error('ElevenLabs error:', error);
-      setIsLoading(false);
-      toast({
-        title: "Voice Error",
-        description: typeof error === 'string' ? error : 'Failed to process voice request',
-        variant: "destructive",
-      });
-    },
-    onConnect: () => {
-      console.log('ElevenLabs session connected successfully');
-      setIsLoading(false);
-    },
-    onDisconnect: () => {
-      console.log('ElevenLabs session disconnected');
-      setIsInitialized(false);
-      setSessionId(null);
-      setIsLoading(false);
-    }
-  });
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
-  // Initialize voice session when component mounts
-  React.useEffect(() => {
-    const initVoice = async () => {
-      try {
-        setIsLoading(true);
-        console.log('Initializing ElevenLabs session...');
-        
-        // Start the session with the DM agent configuration
-        const newSessionId = await conversation.startSession({
-          agentId: "dm_agent",
-          overrides: {
-            agent: {
-              language: "en",
+  /**
+   * Handles text-to-speech conversion and playback
+   * @param text - The text to convert to speech
+   */
+  const speakText = async (text: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Clean text by removing markdown or special characters
+      const cleanText = text.replace(/[*_`#]/g, '');
+      
+      // Create headers with API key from environment
+      const headers = new Headers();
+      headers.append('xi-api-key', process.env.ELEVEN_LABS_API_KEY || '');
+      headers.append('Content-Type', 'application/json');
+
+      // Make request to ElevenLabs API
+      const response = await fetch(
+        'https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb', // George voice
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            text: cleanText,
+            model_id: 'eleven_monolingual_v1',
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.5,
             }
-          }
-        });
-        
-        console.log('ElevenLabs session initialized successfully with ID:', newSessionId);
-        setSessionId(newSessionId);
-        setIsInitialized(true);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Failed to initialize voice:', error);
-        setIsLoading(false);
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to convert text to speech');
+      }
+
+      // Get audio blob and create URL
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      // Create and configure audio element
+      if (!audioRef.current) {
+        audioRef.current = new Audio();
+      }
+      
+      audioRef.current.src = audioUrl;
+      audioRef.current.volume = isMuted ? 0 : volume;
+
+      // Set up audio event handlers
+      audioRef.current.onplay = () => setIsSpeaking(true);
+      audioRef.current.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+      audioRef.current.onerror = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
         toast({
-          title: "Voice Error",
-          description: "Failed to initialize voice. Please try again.",
+          title: "Audio Error",
+          description: "Failed to play audio message",
           variant: "destructive",
         });
-      }
-    };
+      };
 
-    if (!isInitialized) {
-      initVoice();
-    }
-
-    return () => {
-      // Cleanup on unmount
-      if (isInitialized && sessionId) {
-        console.log('Cleaning up ElevenLabs session:', sessionId);
-        conversation.endSession().catch(console.error);
-      }
-    };
-  }, [conversation, isInitialized, toast]);
-
-  // Handle volume changes
-  const handleVolumeChange = async (newVolume: number) => {
-    setVolume(newVolume);
-    if (isInitialized && !isMuted) {
-      try {
-        await conversation.setVolume({ volume: newVolume });
-      } catch (error) {
-        console.error('Failed to update volume:', error);
-      }
-    }
-  };
-
-  // Handle mute toggle
-  const handleMuteToggle = async () => {
-    const newMutedState = !isMuted;
-    setIsMuted(newMutedState);
-    if (isInitialized) {
-      try {
-        await conversation.setVolume({ volume: newMutedState ? 0 : volume });
-      } catch (error) {
-        console.error('Failed to toggle mute:', error);
-      }
+      // Play the audio
+      await audioRef.current.play();
+      
+    } catch (error) {
+      console.error('Text-to-speech error:', error);
+      toast({
+        title: "Voice Error",
+        description: "Failed to process voice message",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Listen for new DM messages and speak them
   React.useEffect(() => {
     const lastMessage = messages[messages.length - 1];
-    
-    if (lastMessage && lastMessage.sender === 'dm' && lastMessage.text && isInitialized && sessionId) {
-      setIsLoading(true);
-      
-      // Remove any markdown or special characters for cleaner speech
-      const cleanText = lastMessage.text.replace(/[*_`#]/g, '');
-      
-      console.log('Sending DM response to ElevenLabs:', cleanText);
-      
-      // Use startSession with firstMessage to speak the text
-      conversation.startSession({
-        agentId: "dm_agent",
-        overrides: {
-          agent: {
-            firstMessage: cleanText,
-            language: "en"
-          }
-        }
-      }).catch(error => {
-        console.error('Failed to speak DM message:', error);
-        setIsLoading(false);
-        toast({
-          title: "Voice Error",
-          description: "Failed to speak message. Please try again.",
-          variant: "destructive",
-        });
-      });
+    if (lastMessage && lastMessage.sender === 'dm' && lastMessage.text) {
+      speakText(lastMessage.text);
     }
-  }, [messages, conversation, isInitialized, sessionId, toast]);
+  }, [messages]);
+
+  // Handle volume changes
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+    if (audioRef.current && !isMuted) {
+      audioRef.current.volume = newVolume;
+    }
+  };
+
+  // Handle mute toggle
+  const handleMuteToggle = () => {
+    setIsMuted(!isMuted);
+    if (audioRef.current) {
+      audioRef.current.volume = !isMuted ? 0 : volume;
+    }
+  };
+
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <AudioControls
-        isSpeaking={isLoading}
+        isSpeaking={isSpeaking}
         isLoading={isLoading}
         volume={volume}
         isMuted={isMuted}

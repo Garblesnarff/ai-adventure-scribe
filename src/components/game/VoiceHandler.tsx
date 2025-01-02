@@ -2,6 +2,7 @@ import React from 'react';
 import { useMessageContext } from '@/contexts/MessageContext';
 import { useToast } from '@/hooks/use-toast';
 import { AudioControls } from './AudioControls';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * VoiceHandler component manages text-to-speech functionality using ElevenLabs
@@ -27,34 +28,15 @@ export const VoiceHandler: React.FC = () => {
       // Clean text by removing markdown or special characters
       const cleanText = text.replace(/[*_`#]/g, '');
       
-      // Create headers with API key from environment
-      const headers = new Headers();
-      headers.append('xi-api-key', process.env.ELEVEN_LABS_API_KEY || '');
-      headers.append('Content-Type', 'application/json');
+      // Call the Edge Function for text-to-speech conversion
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: { text: cleanText },
+      });
 
-      // Make request to ElevenLabs API
-      const response = await fetch(
-        'https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb', // George voice
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            text: cleanText,
-            model_id: 'eleven_monolingual_v1',
-            voice_settings: {
-              stability: 0.5,
-              similarity_boost: 0.5,
-            }
-          })
-        }
-      );
+      if (error) throw error;
 
-      if (!response.ok) {
-        throw new Error('Failed to convert text to speech');
-      }
-
-      // Get audio blob and create URL
-      const audioBlob = await response.blob();
+      // Create blob from the response
+      const audioBlob = new Blob([data], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
 
       // Create and configure audio element

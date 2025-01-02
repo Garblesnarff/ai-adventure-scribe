@@ -4,19 +4,21 @@ import { useMessageContext } from '@/contexts/MessageContext';
 import { useToast } from '@/hooks/use-toast';
 
 /**
- * Handles voice integration with ElevenLabs
+ * VoiceHandler component manages text-to-speech functionality using ElevenLabs
  * Listens for DM messages and converts them to speech
  */
 export const VoiceHandler: React.FC = () => {
   const { messages } = useMessageContext();
   const { toast } = useToast();
+  const [isInitialized, setIsInitialized] = React.useState(false);
   
+  // Initialize ElevenLabs conversation with George's voice
   const conversation = useConversation({
     overrides: {
       tts: {
         voiceId: "JBFqnCBsd6RMkjVDRZzb", // George - warm storyteller voice
         modelId: "eleven_multilingual_v2", // High quality model
-      },
+      }
     },
     onError: (error) => {
       console.error('ElevenLabs error:', error);
@@ -28,13 +30,14 @@ export const VoiceHandler: React.FC = () => {
     },
   });
 
-  // Initialize voice when component mounts
+  // Initialize voice session when component mounts
   React.useEffect(() => {
     const initVoice = async () => {
       try {
         await conversation.startSession({
-          agentId: "dm_agent", // This is a placeholder - you can customize this
+          agentId: "dm_agent",
         });
+        setIsInitialized(true);
       } catch (error) {
         console.error('Failed to initialize voice:', error);
         toast({
@@ -45,13 +48,22 @@ export const VoiceHandler: React.FC = () => {
       }
     };
 
-    initVoice();
-  }, [conversation]);
+    if (!isInitialized) {
+      initVoice();
+    }
+
+    return () => {
+      // Cleanup on unmount
+      if (isInitialized) {
+        conversation.endSession().catch(console.error);
+      }
+    };
+  }, [conversation, isInitialized, toast]);
 
   // Listen for new DM messages and speak them
   React.useEffect(() => {
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.sender === 'dm' && lastMessage.text) {
+    if (lastMessage && lastMessage.sender === 'dm' && lastMessage.text && isInitialized) {
       // Remove any markdown or special characters for cleaner speech
       const cleanText = lastMessage.text.replace(/[*_`#]/g, '');
       
@@ -60,7 +72,7 @@ export const VoiceHandler: React.FC = () => {
         agentId: "dm_agent",
         overrides: {
           agent: {
-            firstMessage: cleanText // Properly place the text in the agent configuration
+            firstMessage: cleanText
           }
         }
       }).catch(error => {
@@ -72,7 +84,7 @@ export const VoiceHandler: React.FC = () => {
         });
       });
     }
-  }, [messages, conversation]);
+  }, [messages, conversation, isInitialized, toast]);
 
   return null;
 };

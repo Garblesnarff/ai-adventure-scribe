@@ -90,8 +90,16 @@ export const VoiceHandler: React.FC = () => {
       
       console.log('Sending text to ElevenLabs:', cleanText);
       
-      // Use conversation.speak() to send text for speech
-      conversation.speak(cleanText).catch(error => {
+      // Send the message using the correct method
+      conversation.startSession({
+        agentId: "dm_agent",
+        overrides: {
+          agent: {
+            firstMessage: cleanText,
+            language: "en"
+          }
+        }
+      }).catch(error => {
         console.error('Failed to speak message:', error);
         toast({
           title: "Voice Error",

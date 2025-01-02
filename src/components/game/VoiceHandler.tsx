@@ -16,6 +16,7 @@ export const VoiceHandler: React.FC = () => {
   const [volume, setVolume] = React.useState(0.5);
   const [isMuted, setIsMuted] = React.useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const lastProcessedMessageRef = React.useRef<string | null>(null);
 
   /**
    * Handles text-to-speech conversion and playback
@@ -23,14 +24,12 @@ export const VoiceHandler: React.FC = () => {
    */
   const speakText = async (text: string) => {
     try {
+      console.log('Converting text to speech:', text.substring(0, 50) + '...');
       setIsLoading(true);
-      
-      // Clean text by removing markdown or special characters
-      const cleanText = text.replace(/[*_`#]/g, '');
       
       // Call the Edge Function for text-to-speech conversion
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { text: cleanText },
+        body: { text },
       });
 
       if (error) throw error;
@@ -81,7 +80,13 @@ export const VoiceHandler: React.FC = () => {
   // Listen for new DM messages and speak them
   React.useEffect(() => {
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage && lastMessage.sender === 'dm' && lastMessage.text) {
+    
+    if (lastMessage && 
+        lastMessage.sender === 'dm' && 
+        lastMessage.text && 
+        lastMessage.text !== lastProcessedMessageRef.current) {
+      console.log('New DM message detected:', lastMessage.text.substring(0, 50) + '...');
+      lastProcessedMessageRef.current = lastMessage.text;
       speakText(lastMessage.text);
     }
   }, [messages]);

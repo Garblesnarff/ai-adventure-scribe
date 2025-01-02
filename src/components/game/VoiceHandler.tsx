@@ -55,12 +55,12 @@ export const VoiceHandler: React.FC = () => {
       // Remove any markdown or special characters for cleaner speech
       const cleanText = lastMessage.text.replace(/[*_`#]/g, '');
       
-      // Use the conversation instance to speak the text
+      // Start a new session with the text to be spoken
       conversation.startSession({
         agentId: "dm_agent",
         overrides: {
-          tts: {
-            text: cleanText
+          agent: {
+            firstMessage: cleanText // Properly place the text in the agent configuration
           }
         }
       }).catch(error => {

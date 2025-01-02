@@ -71,7 +71,7 @@ export const VoiceHandler: React.FC = () => {
         setIsLoading(false);
         toast({
           title: "Voice Error",
-          description: "Failed to initialize voice. Please check your API key and try again.",
+          description: "Failed to initialize voice. Please try again.",
           variant: "destructive",
         });
       }
@@ -121,22 +121,16 @@ export const VoiceHandler: React.FC = () => {
     
     if (lastMessage && lastMessage.sender === 'dm' && lastMessage.text && isInitialized && sessionId) {
       setIsLoading(true);
+      
       // Remove any markdown or special characters for cleaner speech
       const cleanText = lastMessage.text.replace(/[*_`#]/g, '');
       
-      console.log('Sending text to ElevenLabs:', cleanText);
+      console.log('Sending DM response to ElevenLabs:', cleanText);
       
-      // Send the message using the correct method
-      conversation.startSession({
-        agentId: "dm_agent",
-        overrides: {
-          agent: {
-            firstMessage: cleanText,
-            language: "en"
-          }
-        }
+      conversation.sendMessage({
+        text: cleanText,
       }).catch(error => {
-        console.error('Failed to speak message:', error);
+        console.error('Failed to speak DM message:', error);
         setIsLoading(false);
         toast({
           title: "Voice Error",

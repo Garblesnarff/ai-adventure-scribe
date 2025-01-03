@@ -50,13 +50,17 @@ serve(async (req) => {
     }
 
     const audioData = await response.arrayBuffer()
+    const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioData)))
     
-    return new Response(audioData, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'audio/mpeg',
-      },
-    })
+    return new Response(
+      JSON.stringify({ data: base64Audio }),
+      {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+        },
+      }
+    )
   } catch (error) {
     console.error('Text-to-speech error:', error)
     return new Response(

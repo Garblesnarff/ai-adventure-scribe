@@ -27,7 +27,6 @@ export const VoiceHandler: React.FC = () => {
       console.log('Converting text to speech:', text.substring(0, 50) + '...');
       setIsLoading(true);
       
-      // Call the Edge Function for text-to-speech conversion
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { text }
       });
@@ -37,12 +36,12 @@ export const VoiceHandler: React.FC = () => {
         throw error;
       }
 
-      if (!data) {
+      if (!data?.data) {
         throw new Error('No audio data received');
       }
 
       // Convert base64 to blob
-      const binaryData = atob(data);
+      const binaryData = atob(data.data);
       const arrayBuffer = new ArrayBuffer(binaryData.length);
       const uint8Array = new Uint8Array(arrayBuffer);
       for (let i = 0; i < binaryData.length; i++) {

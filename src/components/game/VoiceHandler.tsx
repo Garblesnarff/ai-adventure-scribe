@@ -29,13 +29,26 @@ export const VoiceHandler: React.FC = () => {
       
       // Call the Edge Function for text-to-speech conversion
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { text },
+        body: { text }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge Function error:', error);
+        throw error;
+      }
 
-      // Create blob from the response
-      const audioBlob = new Blob([data], { type: 'audio/mpeg' });
+      if (!data) {
+        throw new Error('No audio data received');
+      }
+
+      // Convert base64 to blob
+      const binaryData = atob(data);
+      const arrayBuffer = new ArrayBuffer(binaryData.length);
+      const uint8Array = new Uint8Array(arrayBuffer);
+      for (let i = 0; i < binaryData.length; i++) {
+        uint8Array[i] = binaryData.charCodeAt(i);
+      }
+      const audioBlob = new Blob([uint8Array], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
 
       // Create and configure audio element
@@ -52,7 +65,8 @@ export const VoiceHandler: React.FC = () => {
         setIsSpeaking(false);
         URL.revokeObjectURL(audioUrl);
       };
-      audioRef.current.onerror = () => {
+      audioRef.current.onerror = (e) => {
+        console.error('Audio playback error:', e);
         setIsSpeaking(false);
         URL.revokeObjectURL(audioUrl);
         toast({

@@ -46,21 +46,28 @@ serve(async (req) => {
     )
 
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error('ElevenLabs API error:', response.status, errorText)
       throw new Error(`ElevenLabs API error: ${response.status}`)
     }
 
-    const audioData = await response.arrayBuffer()
-    const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioData)))
-    
-    return new Response(
-      JSON.stringify({ data: base64Audio }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    try {
+      const audioData = await response.arrayBuffer()
+      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioData)))
+      
+      return new Response(
+        JSON.stringify({ data: base64Audio }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+    } catch (error) {
+      console.error('Error processing audio data:', error)
+      throw new Error('Failed to process audio data')
+    }
   } catch (error) {
     console.error('Text-to-speech error:', error)
     return new Response(

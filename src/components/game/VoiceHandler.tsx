@@ -12,11 +12,9 @@ export const VoiceHandler: React.FC = () => {
   const [volume, setVolume] = React.useState(0.5);
   const [isMuted, setIsMuted] = React.useState(false);
   const audioRef = React.useRef<HTMLAudioElement>(new Audio());
-  const lastProcessedMessageRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     const audio = audioRef.current;
-    
     audio.onplay = () => setIsSpeaking(true);
     audio.onended = () => setIsSpeaking(false);
     audio.onerror = () => {
@@ -37,11 +35,7 @@ export const VoiceHandler: React.FC = () => {
 
   React.useEffect(() => {
     const lastMessage = messages[messages.length - 1];
-    
-    if (lastMessage?.sender === 'dm' && 
-        lastMessage.text && 
-        lastMessage.text !== lastProcessedMessageRef.current) {
-      lastProcessedMessageRef.current = lastMessage.text;
+    if (lastMessage?.sender === 'dm' && lastMessage.text) {
       speakText(lastMessage.text);
     }
   }, [messages]);
@@ -57,9 +51,17 @@ export const VoiceHandler: React.FC = () => {
       if (error) throw error;
 
       const audio = audioRef.current;
-      audio.src = `data:audio/mpeg;base64,${btoa(String.fromCharCode(...new Uint8Array(data)))}`;
+      const blob = new Blob([data], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      
+      audio.src = url;
       audio.volume = isMuted ? 0 : volume;
+      
       await audio.play();
+      
+      // Clean up the URL after the audio loads
+      audio.onloadeddata = () => URL.revokeObjectURL(url);
+      
     } catch (error) {
       console.error('Voice error:', error);
       toast({

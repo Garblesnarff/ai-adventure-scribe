@@ -17,7 +17,7 @@ serve(async (req) => {
     const { text } = await req.json()
     if (!text) throw new Error('No text provided')
 
-    console.log('Sending to ElevenLabs:', { text })
+    console.log('Sending to ElevenLabs:', text)
 
     const response = await fetch(
       'https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM',
@@ -40,16 +40,16 @@ serve(async (req) => {
     )
 
     if (!response.ok) {
-      console.error('ElevenLabs API error:', response.status)
-      throw new Error(`ElevenLabs API error: ${response.status}`)
+      console.error('ElevenLabs error:', response.status)
+      throw new Error(`ElevenLabs error: ${response.status}`)
     }
 
-    const audioBuffer = await response.arrayBuffer()
+    const audioData = await response.arrayBuffer()
     
-    return new Response(audioBuffer, {
+    return new Response(audioData, {
       headers: {
         ...corsHeaders,
-        'Content-Type': 'audio/mpeg',
+        'Content-Type': 'audio/mpeg'
       }
     })
 

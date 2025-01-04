@@ -19,6 +19,7 @@ serve(async (req) => {
 
     console.log('Sending to ElevenLabs:', text)
 
+    // Make request to ElevenLabs API
     const response = await fetch(
       'https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM',
       {
@@ -40,12 +41,14 @@ serve(async (req) => {
     )
 
     if (!response.ok) {
-      console.error('ElevenLabs error:', response.status)
+      console.error('ElevenLabs error:', await response.text())
       throw new Error(`ElevenLabs error: ${response.status}`)
     }
 
+    // Get the audio data and pass it through directly
     const audioData = await response.arrayBuffer()
-    
+    console.log('Received audio data of size:', audioData.byteLength)
+
     return new Response(audioData, {
       headers: {
         ...corsHeaders,

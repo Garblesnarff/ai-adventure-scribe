@@ -3,38 +3,92 @@ import { useMessageContext } from '@/contexts/MessageContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+// ElevenLabs API types
+interface ElevenLabsResponse {
+  audio: ArrayBuffer;
+}
+
+interface VoiceSettings {
+  stability: number;
+  similarity_boost: number;
+}
+
 /**
  * VoiceHandler Component
- * Monitors messages and converts DM text to speech using ElevenLabs API
+ * Monitors messages and converts DM text to speech using ElevenLabs API directly
  */
 export const VoiceHandler: React.FC = () => {
   const { messages } = useMessageContext();
   const { toast } = useToast();
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const [apiKey, setApiKey] = React.useState<string | null>(null);
 
-  /**
-   * Converts text to speech and plays the audio
-   * @param text - Text to be converted to speech
-   */
-  const playAudio = async (text: string) => {
-    try {
-      console.log('Converting text to speech:', text);
-      
-      // Get the session for authentication
+  // Fetch ElevenLabs API key from Supabase secrets on mount
+  React.useEffect(() => {
+    const fetchApiKey = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      // Make the request to the edge function using invoke
+      if (!session) return;
+
       const response = await fetch(
-        `${process.env.SUPABASE_URL}/functions/v1/text-to-speech`,
+        `${process.env.SUPABASE_URL}/rest/v1/rpc/get_secret`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-            // Use the public anon key
+            'Authorization': `Bearer ${session.access_token}`,
             'apikey': process.env.SUPABASE_ANON_KEY || '',
           },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({
+            name: 'ELEVEN_LABS_API_KEY'
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const key = await response.text();
+        setApiKey(key);
+      } else {
+        console.error('Failed to fetch ElevenLabs API key');
+      }
+    };
+
+    fetchApiKey();
+  }, []);
+
+  /**
+   * Converts text to speech using ElevenLabs API and plays the audio
+   * @param text - Text to be converted to speech
+   */
+  const playAudio = async (text: string) => {
+    try {
+      if (!apiKey) {
+        throw new Error('ElevenLabs API key not available');
+      }
+
+      console.log('Converting text to speech:', text);
+
+      // Voice ID for "Rachel" - you can change this to use a different voice
+      const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
+      
+      // Voice settings for stability and similarity boost
+      const voiceSettings: VoiceSettings = {
+        stability: 0.5,
+        similarity_boost: 0.75
+      };
+
+      const response = await fetch(
+        `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}/stream`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'xi-api-key': apiKey,
+          },
+          body: JSON.stringify({
+            text,
+            voice_settings: voiceSettings,
+            model_id: 'eleven_monolingual_v1'
+          }),
         }
       );
 

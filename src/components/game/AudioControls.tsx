@@ -48,20 +48,20 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
 
   return (
     <TooltipProvider>
-      <div className="fixed bottom-4 right-4 flex items-center gap-2 p-2 bg-black/40 backdrop-blur-md rounded-lg shadow-xl border-2 border-white/30 hover:border-white/40 transition-all duration-200">
+      <div className="flex items-center gap-2 p-4 mb-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-200">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
               onClick={onToggleMute}
-              className={`bg-white/20 hover:bg-white/30 transition-colors ${
+              className={`bg-primary/10 hover:bg-primary/20 transition-colors ${
                 isSpeaking ? 'animate-pulse ring-2 ring-primary shadow-lg shadow-primary/50' : ''
               }`}
             >
               {isMuted ? 
-                <VolumeX className="h-4 w-4 text-white drop-shadow-md" /> : 
-                <Volume2 className="h-4 w-4 text-white drop-shadow-md" />
+                <VolumeX className="h-4 w-4 text-primary" /> : 
+                <Volume2 className="h-4 w-4 text-primary" />
               }
             </Button>
           </TooltipTrigger>
@@ -72,7 +72,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
         
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className="w-24">
+            <div className="w-32">
               <Slider
                 value={[volume * 100]}
                 max={100}
@@ -91,7 +91,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
         </Tooltip>
         
         {isSpeaking && (
-          <div className="text-xs font-medium text-white drop-shadow-md animate-pulse">
+          <div className="text-xs font-medium text-primary animate-pulse">
             Speaking...
           </div>
         )}

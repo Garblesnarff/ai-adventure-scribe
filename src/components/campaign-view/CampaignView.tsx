@@ -5,11 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { isValidUUID } from '@/utils/validation';
 import { CampaignHeader } from './sections/CampaignHeader';
-import { CampaignDetails } from './sections/CampaignDetails';
-import { CampaignParameters } from './sections/CampaignParameters';
+import { CampaignCollapsible } from './sections/CampaignCollapsible';
 import { GameSession } from './sections/GameSession';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown } from 'lucide-react';
 
 /**
  * CampaignView component displays campaign details and handles game sessions
@@ -138,31 +135,11 @@ const CampaignView: React.FC = () => {
           onDelete={handleDelete}
         />
         
-        <Collapsible
-          open={isDetailsOpen}
+        <CampaignCollapsible
+          campaign={campaign}
+          isOpen={isDetailsOpen}
           onOpenChange={setIsDetailsOpen}
-          className="mb-8"
-        >
-          <CollapsibleTrigger className="flex items-center justify-between w-full p-4 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 border-2 border-primary shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-            <div className="flex items-center gap-3">
-              <ChevronDown 
-                className={`h-6 w-6 transition-transform duration-200 ${
-                  isDetailsOpen ? 'transform rotate-180' : ''
-                }`} 
-              />
-              <span className="font-bold text-lg">Campaign Information</span>
-            </div>
-            <span className="text-sm opacity-80">
-              {isDetailsOpen ? 'Click to collapse' : 'Click to expand'}
-            </span>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <CampaignDetails campaign={campaign} />
-              <CampaignParameters campaign={campaign} />
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+        />
 
         <GameSession campaignId={campaign.id} />
       </Card>

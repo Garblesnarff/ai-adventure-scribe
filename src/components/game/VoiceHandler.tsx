@@ -20,18 +20,34 @@ export const VoiceHandler: React.FC = () => {
     try {
       console.log('Converting text to speech:', text);
       
-      // Call the text-to-speech edge function with binary response handling
-      const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { text },
+      // Get the function URL
+      const functionUrl = `${supabase.functions.url('text-to-speech')}`;
+      
+      // Get the session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Make the request to the edge function
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+          'apikey': supabase.supabaseKey,
+        },
+        body: JSON.stringify({ text }),
       });
 
-      if (error) {
-        console.error('Error calling text-to-speech:', error);
-        throw error;
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
       }
 
+      // Get the binary audio data
+      const arrayBuffer = await response.arrayBuffer();
+      console.log('Received audio data of size:', arrayBuffer.byteLength);
+
       // Create a blob from the array buffer
-      const blob = new Blob([data], { type: 'audio/mpeg' });
+      const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
 
       // Create and play audio

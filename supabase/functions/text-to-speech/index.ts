@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     const { text } = await req.json()
-    console.log('Converting text to speech:', text)
+    console.log('Received text input:', text)
 
     const ELEVEN_LABS_API_KEY = Deno.env.get('ELEVEN_LABS_API_KEY')
     if (!ELEVEN_LABS_API_KEY) {
@@ -51,7 +51,7 @@ serve(async (req) => {
     }
 
     const audioData = await response.arrayBuffer()
-    console.log('Received audio data of size:', audioData.byteLength)
+    console.log('Received audio response. Size:', audioData.byteLength, 'bytes')
 
     return new Response(audioData, {
       headers: {

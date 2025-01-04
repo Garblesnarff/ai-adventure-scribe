@@ -21,7 +21,7 @@ serve(async (req) => {
     console.log('Sending to ElevenLabs:', { text })
 
     const response = await fetch(
-      'https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', // Default voice
+      'https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM',
       {
         method: 'POST',
         headers: {
@@ -45,9 +45,9 @@ serve(async (req) => {
       throw new Error(`ElevenLabs API error: ${response.status}`)
     }
 
-    const audioData = await response.arrayBuffer()
+    const audioBuffer = await response.arrayBuffer()
     
-    return new Response(audioData, {
+    return new Response(audioBuffer, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'audio/mpeg',

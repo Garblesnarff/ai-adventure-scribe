@@ -17,7 +17,6 @@ export const VoiceHandler: React.FC = () => {
   React.useEffect(() => {
     const audio = audioRef.current;
     
-    // Set up audio event handlers
     audio.onplay = () => setIsSpeaking(true);
     audio.onended = () => setIsSpeaking(false);
     audio.onerror = () => {
@@ -30,14 +29,12 @@ export const VoiceHandler: React.FC = () => {
       });
     };
 
-    // Cleanup
     return () => {
       audio.pause();
       audio.src = '';
     };
   }, [toast]);
 
-  // Process new DM messages
   React.useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     
@@ -59,8 +56,17 @@ export const VoiceHandler: React.FC = () => {
 
       if (error) throw error;
 
+      // Create a blob URL directly from the response data
       const audio = audioRef.current;
-      audio.src = URL.createObjectURL(new Blob([data], { type: 'audio/mpeg' }));
+      const audioBlob = new Blob([data], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      // Clean up previous URL if it exists
+      if (audio.src) {
+        URL.revokeObjectURL(audio.src);
+      }
+      
+      audio.src = audioUrl;
       audio.volume = isMuted ? 0 : volume;
       await audio.play();
     } catch (error) {

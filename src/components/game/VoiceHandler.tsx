@@ -1,102 +1,63 @@
 import React from 'react';
+import { useConversation } from '@11labs/react';
 import { useMessageContext } from '@/contexts/MessageContext';
 import { useToast } from '@/hooks/use-toast';
-import { AudioControls } from './AudioControls';
-import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Handles voice integration with ElevenLabs
+ * Listens for DM messages and converts them to speech
+ */
 export const VoiceHandler: React.FC = () => {
   const { messages } = useMessageContext();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = React.useState(false);
-  const [isSpeaking, setIsSpeaking] = React.useState(false);
-  const [volume, setVolume] = React.useState(0.5);
-  const [isMuted, setIsMuted] = React.useState(false);
-  const audioRef = React.useRef(new Audio());
-
-  React.useEffect(() => {
-    const audio = audioRef.current;
-    audio.onplay = () => setIsSpeaking(true);
-    audio.onended = () => setIsSpeaking(false);
-    audio.onerror = () => {
-      setIsSpeaking(false);
-      console.error('Audio playback error:', audio.error);
-      toast({
-        title: "Audio Error",
-        description: "Failed to play audio message",
-        variant: "destructive",
-      });
-    };
-
-    return () => {
-      audio.pause();
-      audio.src = '';
-    };
-  }, [toast]);
-
-  React.useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.sender === 'dm' && lastMessage.text) {
-      speakText(lastMessage.text);
-    }
-  }, [messages]);
-
-  const speakText = async (text: string) => {
-    try {
-      setIsLoading(true);
-      
-      const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { text }
-      });
-
-      if (error) throw error;
-
-      const audio = audioRef.current;
-      const url = URL.createObjectURL(new Blob([data]));
-      
-      if (audio.src) {
-        URL.revokeObjectURL(audio.src);
-      }
-      
-      audio.src = url;
-      audio.volume = isMuted ? 0 : volume;
-      await audio.play();
-      
-    } catch (error) {
-      console.error('Voice error:', error);
+  
+  const conversation = useConversation({
+    overrides: {
+      tts: {
+        voiceId: "JBFqnCBsd6RMkjVDRZzb", // George - warm storyteller voice
+        modelId: "eleven_multilingual_v2", // High quality model
+      },
+    },
+    onError: (error) => {
+      console.error('ElevenLabs error:', error);
       toast({
         title: "Voice Error",
-        description: "Failed to process voice message",
+        description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+  });
 
-  const handleVolumeChange = (newVolume: number) => {
-    setVolume(newVolume);
-    if (audioRef.current && !isMuted) {
-      audioRef.current.volume = newVolume;
-    }
-  };
+  // Initialize voice when component mounts
+  React.useEffect(() => {
+    const initVoice = async () => {
+      try {
+        await conversation.startSession({
+          agentId: "dm_agent", // This is a placeholder - you can customize this
+        });
+      } catch (error) {
+        console.error('Failed to initialize voice:', error);
+        toast({
+          title: "Voice Error",
+          description: "Failed to initialize voice. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
 
-  const handleMuteToggle = () => {
-    setIsMuted(!isMuted);
-    if (audioRef.current) {
-      audioRef.current.volume = !isMuted ? 0 : volume;
-    }
-  };
+    initVoice();
+  }, [conversation]);
 
-  return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <AudioControls
-        isSpeaking={isSpeaking}
-        isLoading={isLoading}
-        volume={volume}
-        isMuted={isMuted}
-        onVolumeChange={handleVolumeChange}
-        onMuteToggle={handleMuteToggle}
-      />
-    </div>
-  );
+  // Listen for new DM messages and speak them
+  React.useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && lastMessage.sender === 'dm' && lastMessage.text) {
+      // Remove any markdown or special characters for cleaner speech
+      const cleanText = lastMessage.text.replace(/[*_`#]/g, '');
+      
+      conversation.setInput(cleanText);
+    }
+  }, [messages, conversation]);
+
+  return null;
 };

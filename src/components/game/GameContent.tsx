@@ -129,8 +129,15 @@ const GameContent: React.FC = () => {
     <div className="flex gap-4 max-w-7xl mx-auto">
       <Card className="flex-1 bg-white/90 backdrop-blur-sm shadow-xl p-6">
         <h1 className="text-4xl text-center mb-6 text-primary">D&D Adventure</h1>
-        {/* Add VoiceHandler at the top level to ensure it has access to messages */}
-        <VoiceHandler />
+        <VoiceHandler 
+          onError={(error) => {
+            toast({
+              title: "Voice Error",
+              description: error.message,
+              variant: "destructive",
+            });
+          }}
+        />
         <MessageList messages={messages} />
         <ChatInput 
           onSendMessage={handleSendMessage}

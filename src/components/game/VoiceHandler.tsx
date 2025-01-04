@@ -14,13 +14,15 @@ export const VoiceHandler: React.FC = () => {
   const audioRef = React.useRef<HTMLAudioElement>(new Audio());
   const lastProcessedMessageRef = React.useRef<string | null>(null);
 
-  // Set up audio element event handlers
   React.useEffect(() => {
     const audio = audioRef.current;
+    
+    // Set up audio event handlers
     audio.onplay = () => setIsSpeaking(true);
     audio.onended = () => setIsSpeaking(false);
     audio.onerror = () => {
       setIsSpeaking(false);
+      console.error('Audio playback error:', audio.error);
       toast({
         title: "Audio Error",
         description: "Failed to play audio message",
@@ -28,6 +30,7 @@ export const VoiceHandler: React.FC = () => {
       });
     };
 
+    // Cleanup
     return () => {
       audio.pause();
       audio.src = '';
@@ -38,8 +41,7 @@ export const VoiceHandler: React.FC = () => {
   React.useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     
-    if (lastMessage && 
-        lastMessage.sender === 'dm' && 
+    if (lastMessage?.sender === 'dm' && 
         lastMessage.text && 
         lastMessage.text !== lastProcessedMessageRef.current) {
       lastProcessedMessageRef.current = lastMessage.text;
@@ -58,8 +60,7 @@ export const VoiceHandler: React.FC = () => {
       if (error) throw error;
 
       const audio = audioRef.current;
-      const blob = new Blob([data], { type: 'audio/mpeg' });
-      audio.src = URL.createObjectURL(blob);
+      audio.src = URL.createObjectURL(new Blob([data], { type: 'audio/mpeg' }));
       audio.volume = isMuted ? 0 : volume;
       await audio.play();
     } catch (error) {

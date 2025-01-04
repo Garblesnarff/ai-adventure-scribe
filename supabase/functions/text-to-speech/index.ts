@@ -6,6 +6,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -17,10 +18,10 @@ serve(async (req) => {
     const { text } = await req.json()
     if (!text) throw new Error('No text provided')
 
-    console.log('Sending to ElevenLabs:', text.substring(0, 50) + '...')
+    console.log('Sending to ElevenLabs:', { text })
 
     const response = await fetch(
-      'https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb',
+      'https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', // Default voice
       {
         method: 'POST',
         headers: {
@@ -39,9 +40,13 @@ serve(async (req) => {
       }
     )
 
-    if (!response.ok) throw new Error(`ElevenLabs API error: ${response.status}`)
+    if (!response.ok) {
+      console.error('ElevenLabs API error:', response.status)
+      throw new Error(`ElevenLabs API error: ${response.status}`)
+    }
 
     const audioData = await response.arrayBuffer()
+    
     return new Response(audioData, {
       headers: {
         ...corsHeaders,

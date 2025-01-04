@@ -51,8 +51,20 @@ export const VoiceHandler: React.FC = () => {
       if (error) throw error;
 
       const audio = audioRef.current;
-      audio.src = URL.createObjectURL(new Blob([data], { type: 'audio/mpeg' }));
+      const blob = new Blob([data], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      
+      audio.src = url;
       audio.volume = isMuted ? 0 : volume;
+      
+      // Clean up previous URL when loading new audio
+      const oldUrl = audio.src;
+      audio.onloadeddata = () => {
+        if (oldUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(oldUrl);
+        }
+      };
+      
       await audio.play();
       
     } catch (error) {

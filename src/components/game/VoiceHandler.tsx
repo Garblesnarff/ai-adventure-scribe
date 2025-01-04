@@ -68,8 +68,8 @@ export const VoiceHandler: React.FC = () => {
 
       console.log('Converting text to speech:', text);
 
-      // Voice ID for "Rachel" - you can change this to use a different voice
-      const VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
+      // Voice ID for custom voice
+      const VOICE_ID = 'T0GKiSwCb51L7pv1sshd';
       
       // Voice settings for stability and similarity boost
       const voiceSettings: VoiceSettings = {
@@ -88,7 +88,7 @@ export const VoiceHandler: React.FC = () => {
           body: JSON.stringify({
             text,
             voice_settings: voiceSettings,
-            model_id: 'eleven_monolingual_v1'
+            model_id: 'eleven_turbo_v2_5'
           }),
         }
       );

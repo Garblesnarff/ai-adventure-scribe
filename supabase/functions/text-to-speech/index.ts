@@ -6,7 +6,7 @@ const corsHeaders = {
 }
 
 /**
- * Handles text-to-speech conversion using ElevenLabs API
+ * Edge Function to handle text-to-speech conversion using ElevenLabs API
  * Streams audio data directly without base64 conversion
  */
 serve(async (req) => {
@@ -22,14 +22,22 @@ serve(async (req) => {
       throw new Error('API key configuration error')
     }
 
+    // Parse and validate request body
     const { text } = await req.json()
     if (!text || typeof text !== 'string') {
+      console.error('Invalid request body:', { text })
       throw new Error('Invalid or missing text input')
+    }
+
+    // Validate text length (ElevenLabs has a limit)
+    if (text.length > 5000) {
+      console.error('Text too long:', text.length)
+      throw new Error('Text exceeds maximum length of 5000 characters')
     }
 
     console.log('Converting text to speech:', text.substring(0, 50) + '...')
 
-    // Call ElevenLabs API
+    // Call ElevenLabs API with specific voice ID
     const response = await fetch(
       'https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb',
       {

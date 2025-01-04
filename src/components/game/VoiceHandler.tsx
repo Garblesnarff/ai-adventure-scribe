@@ -51,12 +51,8 @@ export const VoiceHandler: React.FC = () => {
       if (error) throw error;
 
       const audio = audioRef.current;
+      const url = URL.createObjectURL(new Blob([data], { type: 'audio/mpeg' }));
       
-      // Create URL directly from the response data
-      const blob = new Blob([data], { type: 'audio/mpeg' });
-      const url = URL.createObjectURL(blob);
-      
-      // Clean up old URL if it exists
       if (audio.src) {
         URL.revokeObjectURL(audio.src);
       }

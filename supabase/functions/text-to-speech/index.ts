@@ -17,8 +17,6 @@ serve(async (req) => {
     const { text } = await req.json()
     if (!text) throw new Error('No text provided')
 
-    console.log('Sending to ElevenLabs:', text)
-
     const response = await fetch(
       'https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM',
       {
@@ -44,9 +42,9 @@ serve(async (req) => {
       throw new Error(`ElevenLabs error: ${response.status}`)
     }
 
-    // Simply pass through the audio data
+    // Pass through the MP3 directly
     const audioData = await response.arrayBuffer()
-    console.log('Received audio data of size:', audioData.byteLength)
+    console.log('Received MP3 data of size:', audioData.byteLength)
 
     return new Response(audioData, {
       headers: {

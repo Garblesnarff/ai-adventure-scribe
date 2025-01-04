@@ -52,19 +52,17 @@ export const VoiceHandler: React.FC = () => {
 
       const audio = audioRef.current;
       
-      // Create a new Blob from the binary data
+      // Create URL directly from the response data
       const blob = new Blob([data], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
       
-      // Clean up previous URL when loading new audio
+      // Clean up old URL if it exists
       if (audio.src) {
         URL.revokeObjectURL(audio.src);
       }
       
       audio.src = url;
       audio.volume = isMuted ? 0 : volume;
-      
-      await audio.load(); // Explicitly load the audio
       await audio.play();
       
     } catch (error) {

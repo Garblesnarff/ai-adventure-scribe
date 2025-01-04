@@ -44,18 +44,14 @@ serve(async (req) => {
       throw new Error(`ElevenLabs error: ${response.status}`)
     }
 
-    // Get the audio as an ArrayBuffer
-    const audioBuffer = await response.arrayBuffer()
-    console.log('Received audio data of size:', audioBuffer.byteLength)
-
-    // Convert ArrayBuffer to Uint8Array for proper binary handling
-    const audioData = new Uint8Array(audioBuffer)
+    // Simply pass through the audio data
+    const audioData = await response.arrayBuffer()
+    console.log('Received audio data of size:', audioData.byteLength)
 
     return new Response(audioData, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'audio/mpeg',
-        'Content-Length': audioData.byteLength.toString()
       }
     })
 

@@ -1,52 +1,52 @@
 import React from 'react';
-import { useConversation } from '@11labs/react';
 import { useMessageContext } from '@/contexts/MessageContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
-/**
- * Handles voice integration with ElevenLabs
- * Listens for DM messages and converts them to speech
- */
 export const VoiceHandler: React.FC = () => {
   const { messages } = useMessageContext();
   const { toast } = useToast();
-  
-  const conversation = useConversation({
-    overrides: {
-      tts: {
-        voiceId: "JBFqnCBsd6RMkjVDRZzb", // George - warm storyteller voice
-        modelId: "eleven_multilingual_v2", // High quality model
-      },
-    },
-    onError: (error) => {
-      console.error('ElevenLabs error:', error);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  const playAudio = async (text: string) => {
+    try {
+      console.log('Converting text to speech:', text);
+      
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: { text }
+      });
+
+      if (error) {
+        console.error('Error calling text-to-speech:', error);
+        throw error;
+      }
+
+      // Create a blob from the response data
+      const blob = new Blob([data], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+
+      // Create and play audio
+      if (!audioRef.current) {
+        audioRef.current = new Audio();
+      }
+      
+      audioRef.current.src = url;
+      await audioRef.current.play();
+
+      // Clean up the URL after playback
+      audioRef.current.onended = () => {
+        URL.revokeObjectURL(url);
+      };
+
+    } catch (error) {
+      console.error('Voice error:', error);
       toast({
         title: "Voice Error",
         description: error.message,
         variant: "destructive",
       });
-    },
-  });
-
-  // Initialize voice when component mounts
-  React.useEffect(() => {
-    const initVoice = async () => {
-      try {
-        await conversation.startSession({
-          agentId: "dm_agent", // This is a placeholder - you can customize this
-        });
-      } catch (error) {
-        console.error('Failed to initialize voice:', error);
-        toast({
-          title: "Voice Error",
-          description: "Failed to initialize voice. Please try again.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    initVoice();
-  }, [conversation]);
+    }
+  };
 
   // Listen for new DM messages and speak them
   React.useEffect(() => {
@@ -54,10 +54,9 @@ export const VoiceHandler: React.FC = () => {
     if (lastMessage && lastMessage.sender === 'dm' && lastMessage.text) {
       // Remove any markdown or special characters for cleaner speech
       const cleanText = lastMessage.text.replace(/[*_`#]/g, '');
-      
-      conversation.setInput(cleanText);
+      playAudio(cleanText);
     }
-  }, [messages, conversation]);
+  }, [messages]);
 
   return null;
 };

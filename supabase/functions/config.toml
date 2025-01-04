@@ -1,7 +1,4 @@
 project_id = "cnalyhtalikwsopogula"
 
-[functions.chat-ai]
-verify_jwt = false
-
-[functions.generate-embedding]
+[functions.text-to-speech]
 verify_jwt = false

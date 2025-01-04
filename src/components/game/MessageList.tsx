@@ -1,14 +1,17 @@
 import React from 'react';
 import { ChatMessage } from '@/types/game';
+import { useMessageContext } from '@/contexts/MessageContext';
 
-interface MessageListProps {
-  messages: ChatMessage[];
-}
+/**
+ * MessageList Component
+ * Displays a list of chat messages with styling based on sender type
+ */
+export const MessageList: React.FC = () => {
+  const { messages = [] } = useMessageContext();
 
-export const MessageList: React.FC<MessageListProps> = ({ messages }) => {
   return (
     <div className="h-[60vh] overflow-y-auto mb-4 space-y-4 p-4">
-      {messages.map((message) => (
+      {messages?.map((message) => (
         <div
           key={message.id || message.timestamp}
           className={`p-3 rounded-lg ${

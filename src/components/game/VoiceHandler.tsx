@@ -13,7 +13,8 @@ export const VoiceHandler: React.FC = () => {
       console.log('Converting text to speech:', text);
       
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { text }
+        body: { text },
+        responseType: 'arraybuffer'
       });
 
       if (error) {
@@ -21,7 +22,7 @@ export const VoiceHandler: React.FC = () => {
         throw error;
       }
 
-      // Create a blob from the response data
+      // Create a blob from the array buffer
       const blob = new Blob([data], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
 

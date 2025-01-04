@@ -13,15 +13,17 @@ serve(async (req) => {
 
   try {
     const { text } = await req.json()
-    console.log('Received text to convert:', text)
+    console.log('Converting text to speech:', text)
 
     const ELEVEN_LABS_API_KEY = Deno.env.get('ELEVEN_LABS_API_KEY')
     if (!ELEVEN_LABS_API_KEY) {
       throw new Error('Missing ElevenLabs API key')
     }
 
-    // Using the George voice ID and multilingual model
+    // Using George voice and multilingual v2 model
     const VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'
+    console.log('Making request to ElevenLabs API...')
+    
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
       {
@@ -32,7 +34,7 @@ serve(async (req) => {
           'xi-api-key': ELEVEN_LABS_API_KEY,
         },
         body: JSON.stringify({
-          text: text,
+          text,
           model_id: 'eleven_multilingual_v2',
           voice_settings: {
             stability: 0.5,

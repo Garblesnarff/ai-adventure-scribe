@@ -3,18 +3,26 @@ import { useMessageContext } from '@/contexts/MessageContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * VoiceHandler Component
+ * Monitors messages and converts DM text to speech using ElevenLabs API
+ */
 export const VoiceHandler: React.FC = () => {
   const { messages } = useMessageContext();
   const { toast } = useToast();
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
+  /**
+   * Converts text to speech and plays the audio
+   * @param text - Text to be converted to speech
+   */
   const playAudio = async (text: string) => {
     try {
       console.log('Converting text to speech:', text);
       
+      // Call the text-to-speech edge function with binary response handling
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { text },
-        responseType: 'arraybuffer'
       });
 
       if (error) {

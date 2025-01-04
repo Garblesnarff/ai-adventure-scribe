@@ -24,7 +24,6 @@ export const VoiceHandler: React.FC = () => {
    */
   const speakText = async (text: string) => {
     try {
-      console.log('Converting text to speech:', text.substring(0, 50) + '...');
       setIsLoading(true);
       
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
@@ -32,32 +31,30 @@ export const VoiceHandler: React.FC = () => {
       });
 
       if (error) {
-        console.error('Edge Function error:', error);
         throw error;
       }
-
-      // Create audio blob from response
-      const audioBlob = new Blob([data], { type: 'audio/mpeg' });
-      const audioUrl = URL.createObjectURL(audioBlob);
 
       // Create and configure audio element
       if (!audioRef.current) {
         audioRef.current = new Audio();
       }
       
-      audioRef.current.src = audioUrl;
+      audioRef.current.src = URL.createObjectURL(new Blob([data]));
       audioRef.current.volume = isMuted ? 0 : volume;
 
       // Set up audio event handlers
       audioRef.current.onplay = () => setIsSpeaking(true);
       audioRef.current.onended = () => {
         setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl);
+        if (audioRef.current?.src) {
+          URL.revokeObjectURL(audioRef.current.src);
+        }
       };
-      audioRef.current.onerror = (e) => {
-        console.error('Audio playback error:', e);
+      audioRef.current.onerror = () => {
         setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl);
+        if (audioRef.current?.src) {
+          URL.revokeObjectURL(audioRef.current.src);
+        }
         toast({
           title: "Audio Error",
           description: "Failed to play audio message",
@@ -69,7 +66,6 @@ export const VoiceHandler: React.FC = () => {
       await audioRef.current.play();
       
     } catch (error) {
-      console.error('Text-to-speech error:', error);
       toast({
         title: "Voice Error",
         description: "Failed to process voice message",
@@ -88,7 +84,6 @@ export const VoiceHandler: React.FC = () => {
         lastMessage.sender === 'dm' && 
         lastMessage.text && 
         lastMessage.text !== lastProcessedMessageRef.current) {
-      console.log('New DM message detected:', lastMessage.text.substring(0, 50) + '...');
       lastProcessedMessageRef.current = lastMessage.text;
       speakText(lastMessage.text);
     }
@@ -115,6 +110,9 @@ export const VoiceHandler: React.FC = () => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
+        if (audioRef.current.src) {
+          URL.revokeObjectURL(audioRef.current.src);
+        }
         audioRef.current = null;
       }
     };

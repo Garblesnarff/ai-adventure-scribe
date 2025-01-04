@@ -31,13 +31,13 @@ export const VoiceHandler: React.FC = () => {
         if (!session) return;
 
         const response = await fetch(
-          `${supabase.supabaseUrl}/rest/v1/rpc/get_secret`,
+          `https://cnalyhtalikwsopogula.supabase.co/rest/v1/rpc/get_secret`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${session.access_token}`,
-              'apikey': supabase.supabaseKey,
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYWx5aHRhbGlrd3NvcG9ndWxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjYyMzc2MDEsImV4cCI6MjA0MTgxMzYwMX0.GaBwZWM0dKP_0hHy8Dzw75u15eXVG3vi8RmD7mv7PkQ',
             },
             body: JSON.stringify({
               name: 'ELEVEN_LABS_API_KEY'

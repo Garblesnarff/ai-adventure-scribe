@@ -19,16 +19,9 @@ const CampaignList = () => {
     queryKey: ['campaigns'],
     queryFn: async () => {
       try {
-        const { data: session } = await supabase.auth.getSession();
-        
-        if (!session?.session?.user) {
-          throw new Error('Please sign in to view campaigns');
-        }
-
         const { data, error: supabaseError } = await supabase
           .from('campaigns')
           .select('*')
-          .eq('user_id', session.session.user.id)
           .order('created_at', { ascending: false });
         
         if (supabaseError) {
@@ -40,7 +33,7 @@ const CampaignList = () => {
         console.error('Error fetching campaigns:', err);
         toast({
           title: "Error loading campaigns",
-          description: err instanceof Error ? err.message : "There was a problem loading your campaigns. Please try again.",
+          description: "There was a problem loading your campaigns. Please try again.",
           variant: "destructive",
         });
         throw err;

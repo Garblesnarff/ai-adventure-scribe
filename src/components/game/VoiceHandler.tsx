@@ -20,23 +20,23 @@ export const VoiceHandler: React.FC = () => {
     try {
       console.log('Converting text to speech:', text);
       
-      // Get the function URL - using the correct method call
-      const functionUrl = supabase.functions.url('text-to-speech');
-      
       // Get the session for authentication
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Make the request to the edge function
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-          // Use the public anon key
-          'apikey': process.env.SUPABASE_ANON_KEY || '',
-        },
-        body: JSON.stringify({ text }),
-      });
+      // Make the request to the edge function using invoke
+      const response = await fetch(
+        `${process.env.SUPABASE_URL}/functions/v1/text-to-speech`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+            // Use the public anon key
+            'apikey': process.env.SUPABASE_ANON_KEY || '',
+          },
+          body: JSON.stringify({ text }),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.text();

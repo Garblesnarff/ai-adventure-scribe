@@ -6,23 +6,18 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
     const apiKey = Deno.env.get('ELEVEN_LABS_API_KEY')
-    if (!apiKey) {
-      throw new Error('API key configuration error')
-    }
+    if (!apiKey) throw new Error('API key not configured')
 
     const { text } = await req.json()
-    if (!text || typeof text !== 'string') {
-      throw new Error('Invalid or missing text input')
-    }
+    if (!text) throw new Error('No text provided')
 
-    console.log('Converting text:', text.substring(0, 50) + '...')
+    console.log('Sending to ElevenLabs:', text.substring(0, 50) + '...')
 
     const response = await fetch(
       'https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb',
@@ -34,7 +29,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: text,
+          text,
           model_id: 'eleven_monolingual_v1',
           voice_settings: {
             stability: 0.5,
@@ -44,9 +39,7 @@ serve(async (req) => {
       }
     )
 
-    if (!response.ok) {
-      throw new Error(`ElevenLabs API error: ${response.status}`)
-    }
+    if (!response.ok) throw new Error(`ElevenLabs API error: ${response.status}`)
 
     const audioData = await response.arrayBuffer()
     return new Response(audioData, {

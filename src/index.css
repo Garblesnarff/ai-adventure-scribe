@@ -29,7 +29,7 @@
   }
 
   button {
-    @apply bg-primary text-white rounded-md px-4 py-2;
+    @apply flex items-center justify-between w-full p-4 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 border-2 border-primary shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
   }
 
   .container {

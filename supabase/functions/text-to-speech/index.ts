@@ -1,11 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+/**
+ * Handles text-to-speech conversion using ElevenLabs API
+ * Streams audio data directly without base64 conversion
+ */
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -15,16 +18,18 @@ serve(async (req) => {
   try {
     const apiKey = Deno.env.get('ELEVEN_LABS_API_KEY')
     if (!apiKey) {
-      throw new Error('ELEVEN_LABS_API_KEY is not set')
+      console.error('ELEVEN_LABS_API_KEY is not set')
+      throw new Error('API key configuration error')
     }
 
     const { text } = await req.json()
-    if (!text) {
-      throw new Error('No text provided')
+    if (!text || typeof text !== 'string') {
+      throw new Error('Invalid or missing text input')
     }
 
     console.log('Converting text to speech:', text.substring(0, 50) + '...')
 
+    // Call ElevenLabs API
     const response = await fetch(
       'https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb',
       {
@@ -51,23 +56,15 @@ serve(async (req) => {
       throw new Error(`ElevenLabs API error: ${response.status}`)
     }
 
-    try {
-      const audioData = await response.arrayBuffer()
-      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioData)))
-      
-      return new Response(
-        JSON.stringify({ data: base64Audio }),
-        {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-    } catch (error) {
-      console.error('Error processing audio data:', error)
-      throw new Error('Failed to process audio data')
-    }
+    // Stream the audio data directly
+    const audioData = await response.arrayBuffer()
+    
+    return new Response(audioData, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'audio/mpeg',
+      }
+    })
   } catch (error) {
     console.error('Text-to-speech error:', error)
     return new Response(

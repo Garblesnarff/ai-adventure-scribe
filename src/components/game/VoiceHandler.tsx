@@ -36,18 +36,8 @@ export const VoiceHandler: React.FC = () => {
         throw error;
       }
 
-      if (!data?.data) {
-        throw new Error('No audio data received');
-      }
-
-      // Convert base64 to blob
-      const binaryData = atob(data.data);
-      const arrayBuffer = new ArrayBuffer(binaryData.length);
-      const uint8Array = new Uint8Array(arrayBuffer);
-      for (let i = 0; i < binaryData.length; i++) {
-        uint8Array[i] = binaryData.charCodeAt(i);
-      }
-      const audioBlob = new Blob([uint8Array], { type: 'audio/mpeg' });
+      // Create audio blob from response
+      const audioBlob = new Blob([data], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(audioBlob);
 
       // Create and configure audio element

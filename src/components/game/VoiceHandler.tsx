@@ -2,26 +2,31 @@ import React from 'react';
 import { useMessageContext } from '@/contexts/MessageContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { AudioControls } from './AudioControls';
 
-// ElevenLabs API types
 interface VoiceSettings {
   stability: number;
   similarity_boost: number;
 }
 
-interface ElevenLabsResponse {
-  audio: ArrayBuffer;
-}
-
 /**
  * VoiceHandler Component
  * Monitors messages and converts DM text to speech using ElevenLabs API directly
+ * Includes audio control functionality
  */
 export const VoiceHandler: React.FC = () => {
   const { messages } = useMessageContext();
   const { toast } = useToast();
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [apiKey, setApiKey] = React.useState<string | null>(null);
+  const [volume, setVolume] = React.useState(() => {
+    const savedVolume = localStorage.getItem('voice-volume');
+    return savedVolume ? parseFloat(savedVolume) : 1;
+  });
+  const [isMuted, setIsMuted] = React.useState(() => {
+    return localStorage.getItem('voice-muted') === 'true';
+  });
+  const [isSpeaking, setIsSpeaking] = React.useState(false);
 
   // Fetch ElevenLabs API key from Supabase secrets on mount
   React.useEffect(() => {
@@ -57,8 +62,30 @@ export const VoiceHandler: React.FC = () => {
   }, [toast]);
 
   /**
+   * Handle volume change and persist to localStorage
+   */
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+    localStorage.setItem('voice-volume', newVolume.toString());
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+  };
+
+  /**
+   * Handle mute toggle and persist to localStorage
+   */
+  const handleToggleMute = () => {
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    localStorage.setItem('voice-muted', newMutedState.toString());
+    if (audioRef.current) {
+      audioRef.current.muted = newMutedState;
+    }
+  };
+
+  /**
    * Converts text to speech using ElevenLabs API and plays the audio
-   * @param text - Text to be converted to speech
    */
   const playAudio = async (text: string) => {
     try {
@@ -67,11 +94,10 @@ export const VoiceHandler: React.FC = () => {
       }
 
       console.log('Converting text to speech:', text);
+      setIsSpeaking(true);
 
-      // Voice ID for custom voice
       const VOICE_ID = 'T0GKiSwCb51L7pv1sshd';
       
-      // Voice settings for stability and similarity boost
       const voiceSettings: VoiceSettings = {
         stability: 0.5,
         similarity_boost: 0.75
@@ -82,6 +108,7 @@ export const VoiceHandler: React.FC = () => {
         {
           method: 'POST',
           headers: {
+            'Accept': 'audio/mpeg',
             'Content-Type': 'application/json',
             'xi-api-key': apiKey,
           },
@@ -98,29 +125,29 @@ export const VoiceHandler: React.FC = () => {
         throw new Error(error);
       }
 
-      // Get the binary audio data
       const arrayBuffer = await response.arrayBuffer();
-      console.log('Received audio data of size:', arrayBuffer.byteLength);
+      console.log('Received audio data of size:', arrayBuffer.byteLength, 'bytes');
 
-      // Create a blob from the array buffer
       const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
 
-      // Create and play audio
       if (!audioRef.current) {
         audioRef.current = new Audio();
       }
       
       audioRef.current.src = url;
+      audioRef.current.volume = volume;
+      audioRef.current.muted = isMuted;
       await audioRef.current.play();
 
-      // Clean up the URL after playback
       audioRef.current.onended = () => {
         URL.revokeObjectURL(url);
+        setIsSpeaking(false);
       };
 
     } catch (error) {
       console.error('Voice error:', error);
+      setIsSpeaking(false);
       toast({
         title: "Voice Error",
         description: error instanceof Error ? error.message : 'Failed to process voice',
@@ -139,5 +166,13 @@ export const VoiceHandler: React.FC = () => {
     }
   }, [messages]);
 
-  return null;
+  return (
+    <AudioControls
+      isSpeaking={isSpeaking}
+      volume={volume}
+      onVolumeChange={handleVolumeChange}
+      onToggleMute={handleToggleMute}
+      isMuted={isMuted}
+    />
+  );
 };

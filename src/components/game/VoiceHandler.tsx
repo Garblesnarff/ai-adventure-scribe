@@ -4,13 +4,13 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 // ElevenLabs API types
-interface ElevenLabsResponse {
-  audio: ArrayBuffer;
-}
-
 interface VoiceSettings {
   stability: number;
   similarity_boost: number;
+}
+
+interface ElevenLabsResponse {
+  audio: ArrayBuffer;
 }
 
 /**
@@ -26,29 +26,33 @@ export const VoiceHandler: React.FC = () => {
   // Fetch ElevenLabs API key from Supabase secrets on mount
   React.useEffect(() => {
     const fetchApiKey = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
 
-      const response = await fetch(
-        `${process.env.SUPABASE_URL}/rest/v1/rpc/get_secret`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-            'apikey': process.env.SUPABASE_ANON_KEY || '',
-          },
-          body: JSON.stringify({
-            name: 'ELEVEN_LABS_API_KEY'
-          }),
+        const response = await fetch(
+          `${supabase.supabaseUrl}/rest/v1/rpc/get_secret`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+              'apikey': supabase.supabaseKey,
+            },
+            body: JSON.stringify({
+              name: 'ELEVEN_LABS_API_KEY'
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const key = await response.text();
+          setApiKey(key);
+        } else {
+          console.error('Failed to fetch ElevenLabs API key');
         }
-      );
-
-      if (response.ok) {
-        const key = await response.text();
-        setApiKey(key);
-      } else {
-        console.error('Failed to fetch ElevenLabs API key');
+      } catch (error) {
+        console.error('Error fetching API key:', error);
       }
     };
 

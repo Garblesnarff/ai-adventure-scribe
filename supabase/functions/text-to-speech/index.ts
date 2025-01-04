@@ -5,10 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-/**
- * Edge Function to handle text-to-speech conversion using ElevenLabs API
- * Returns audio data directly from ElevenLabs response
- */
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -16,29 +12,18 @@ serve(async (req) => {
   }
 
   try {
-    // Validate API key
     const apiKey = Deno.env.get('ELEVEN_LABS_API_KEY')
     if (!apiKey) {
-      console.error('ELEVEN_LABS_API_KEY is not set')
       throw new Error('API key configuration error')
     }
 
-    // Parse and validate request body
     const { text } = await req.json()
     if (!text || typeof text !== 'string') {
-      console.error('Invalid request body:', { text })
       throw new Error('Invalid or missing text input')
-    }
-
-    // Validate text length
-    if (text.length > 5000) {
-      console.error('Text too long:', text.length)
-      throw new Error('Text exceeds maximum length of 5000 characters')
     }
 
     console.log('Converting text:', text.substring(0, 50) + '...')
 
-    // Call ElevenLabs API
     const response = await fetch(
       'https://api.elevenlabs.io/v1/text-to-speech/JBFqnCBsd6RMkjVDRZzb',
       {
@@ -60,12 +45,9 @@ serve(async (req) => {
     )
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('ElevenLabs API error:', response.status, errorText)
       throw new Error(`ElevenLabs API error: ${response.status}`)
     }
 
-    // Return audio data directly
     const audioData = await response.arrayBuffer()
     return new Response(audioData, {
       headers: {

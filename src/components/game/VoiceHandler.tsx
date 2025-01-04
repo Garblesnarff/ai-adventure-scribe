@@ -18,6 +18,28 @@ export const VoiceHandler: React.FC = () => {
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const lastProcessedMessageRef = React.useRef<string | null>(null);
 
+  // Initialize audio element once
+  React.useEffect(() => {
+    audioRef.current = new Audio();
+    audioRef.current.onplay = () => setIsSpeaking(true);
+    audioRef.current.onended = () => setIsSpeaking(false);
+    audioRef.current.onerror = () => {
+      setIsSpeaking(false);
+      toast({
+        title: "Audio Error",
+        description: "Failed to play audio message",
+        variant: "destructive",
+      });
+    };
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [toast]);
+
   /**
    * Handles text-to-speech conversion and playback
    * @param text - The text to convert to speech
@@ -30,42 +52,16 @@ export const VoiceHandler: React.FC = () => {
         body: { text }
       });
 
-      if (error) {
-        throw error;
+      if (error) throw error;
+
+      if (audioRef.current) {
+        const audioBlob = new Blob([data], { type: 'audio/mpeg' });
+        audioRef.current.src = URL.createObjectURL(audioBlob);
+        audioRef.current.volume = isMuted ? 0 : volume;
+        await audioRef.current.play();
       }
-
-      // Create and configure audio element
-      if (!audioRef.current) {
-        audioRef.current = new Audio();
-      }
-      
-      audioRef.current.src = URL.createObjectURL(new Blob([data]));
-      audioRef.current.volume = isMuted ? 0 : volume;
-
-      // Set up audio event handlers
-      audioRef.current.onplay = () => setIsSpeaking(true);
-      audioRef.current.onended = () => {
-        setIsSpeaking(false);
-        if (audioRef.current?.src) {
-          URL.revokeObjectURL(audioRef.current.src);
-        }
-      };
-      audioRef.current.onerror = () => {
-        setIsSpeaking(false);
-        if (audioRef.current?.src) {
-          URL.revokeObjectURL(audioRef.current.src);
-        }
-        toast({
-          title: "Audio Error",
-          description: "Failed to play audio message",
-          variant: "destructive",
-        });
-      };
-
-      // Play the audio
-      await audioRef.current.play();
-      
     } catch (error) {
+      console.error('Voice error:', error);
       toast({
         title: "Voice Error",
         description: "Failed to process voice message",
@@ -104,19 +100,6 @@ export const VoiceHandler: React.FC = () => {
       audioRef.current.volume = !isMuted ? 0 : volume;
     }
   };
-
-  // Cleanup on unmount
-  React.useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        if (audioRef.current.src) {
-          URL.revokeObjectURL(audioRef.current.src);
-        }
-        audioRef.current = null;
-      }
-    };
-  }, []);
 
   return (
     <div className="fixed bottom-4 right-4 z-50">

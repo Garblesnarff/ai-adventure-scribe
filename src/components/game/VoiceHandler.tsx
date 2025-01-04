@@ -47,17 +47,29 @@ export const VoiceHandler: React.FC = () => {
 
         if (response.ok) {
           const key = await response.text();
-          setApiKey(key);
+          console.log('Successfully retrieved ElevenLabs API key');
+          if (key && key.length > 0) {
+            setApiKey(key.replace(/['"]/g, '')); // Remove any quotes from the response
+          } else {
+            console.error('Retrieved ElevenLabs API key is empty');
+            throw new Error('ElevenLabs API key is empty');
+          }
         } else {
-          console.error('Failed to fetch ElevenLabs API key');
+          console.error('Failed to fetch ElevenLabs API key:', await response.text());
+          throw new Error('Failed to fetch ElevenLabs API key');
         }
       } catch (error) {
         console.error('Error fetching API key:', error);
+        toast({
+          title: "API Key Error",
+          description: "Failed to retrieve ElevenLabs API key. Please check your configuration.",
+          variant: "destructive",
+        });
       }
     };
 
     fetchApiKey();
-  }, []);
+  }, [toast]);
 
   /**
    * Converts text to speech using ElevenLabs API and plays the audio

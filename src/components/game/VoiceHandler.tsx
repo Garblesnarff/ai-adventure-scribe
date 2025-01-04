@@ -11,7 +11,7 @@ export const VoiceHandler: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = React.useState(false);
   const [volume, setVolume] = React.useState(0.5);
   const [isMuted, setIsMuted] = React.useState(false);
-  const audioRef = React.useRef<HTMLAudioElement>(new Audio());
+  const audioRef = React.useRef(new Audio());
 
   React.useEffect(() => {
     const audio = audioRef.current;
@@ -51,7 +51,7 @@ export const VoiceHandler: React.FC = () => {
       if (error) throw error;
 
       const audio = audioRef.current;
-      const url = URL.createObjectURL(new Blob([data], { type: 'audio/mpeg' }));
+      const url = URL.createObjectURL(new Blob([data]));
       
       if (audio.src) {
         URL.revokeObjectURL(audio.src);

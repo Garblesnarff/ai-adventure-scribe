@@ -8,6 +8,8 @@ import { CampaignHeader } from './sections/CampaignHeader';
 import { CampaignDetails } from './sections/CampaignDetails';
 import { CampaignParameters } from './sections/CampaignParameters';
 import { GameSession } from './sections/GameSession';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 
 /**
  * CampaignView component displays campaign details and handles game sessions
@@ -18,6 +20,7 @@ const CampaignView: React.FC = () => {
   const [campaign, setCampaign] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = React.useState(true);
   const { toast } = useToast();
 
   /**
@@ -135,10 +138,22 @@ const CampaignView: React.FC = () => {
           onDelete={handleDelete}
         />
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <CampaignDetails campaign={campaign} />
-          <CampaignParameters campaign={campaign} />
-        </div>
+        <Collapsible
+          open={isDetailsOpen}
+          onOpenChange={setIsDetailsOpen}
+          className="mb-8"
+        >
+          <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 hover:bg-black/5 rounded-lg transition-colors">
+            <ChevronDown className={`h-4 w-4 transition-transform ${isDetailsOpen ? 'transform rotate-180' : ''}`} />
+            <span className="font-medium">Campaign Information</span>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <CampaignDetails campaign={campaign} />
+              <CampaignParameters campaign={campaign} />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         <GameSession campaignId={campaign.id} />
       </Card>

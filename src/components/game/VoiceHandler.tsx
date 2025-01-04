@@ -27,39 +27,24 @@ export const VoiceHandler: React.FC = () => {
   React.useEffect(() => {
     const fetchApiKey = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+        const { data, error } = await supabase.functions.invoke('get-secret', {
+          body: { secretName: 'ELEVEN_LABS_API_KEY' }
+        });
 
-        const response = await fetch(
-          `https://cnalyhtalikwsopogula.supabase.co/rest/v1/rpc/get_secret`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNuYWx5aHRhbGlrd3NvcG9ndWxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjYyMzc2MDEsImV4cCI6MjA0MTgxMzYwMX0.GaBwZWM0dKP_0hHy8Dzw75u15eXVG3vi8RmD7mv7PkQ',
-            },
-            body: JSON.stringify({
-              name: 'ELEVEN_LABS_API_KEY'
-            }),
-          }
-        );
+        if (error) {
+          console.error('Error fetching ElevenLabs API key:', error);
+          throw error;
+        }
 
-        if (response.ok) {
-          const key = await response.text();
+        if (data?.secret) {
           console.log('Successfully retrieved ElevenLabs API key');
-          if (key && key.length > 0) {
-            setApiKey(key.replace(/['"]/g, '')); // Remove any quotes from the response
-          } else {
-            console.error('Retrieved ElevenLabs API key is empty');
-            throw new Error('ElevenLabs API key is empty');
-          }
+          setApiKey(data.secret);
         } else {
-          console.error('Failed to fetch ElevenLabs API key:', await response.text());
-          throw new Error('Failed to fetch ElevenLabs API key');
+          console.error('Retrieved ElevenLabs API key is empty');
+          throw new Error('ElevenLabs API key is empty');
         }
       } catch (error) {
-        console.error('Error fetching API key:', error);
+        console.error('Error in fetchApiKey:', error);
         toast({
           title: "API Key Error",
           description: "Failed to retrieve ElevenLabs API key. Please check your configuration.",
@@ -138,7 +123,7 @@ export const VoiceHandler: React.FC = () => {
       console.error('Voice error:', error);
       toast({
         title: "Voice Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Failed to process voice',
         variant: "destructive",
       });
     }

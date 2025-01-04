@@ -27,18 +27,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isDisabled 
   };
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col gap-4">
       <Input
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
         placeholder="What would you like to do?"
-        className="flex-1"
+        className="w-full p-4 text-lg"
         disabled={isDisabled}
       />
       <Button 
         onClick={handleSubmit}
         disabled={isDisabled}
+        className="w-full"
       >
         Send
       </Button>

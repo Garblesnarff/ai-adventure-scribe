@@ -28,18 +28,36 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
   onToggleMute,
   isMuted,
 }) => {
+  // Add debug logs
+  React.useEffect(() => {
+    console.log('AudioControls mounted');
+    console.log('Initial state:', {
+      isSpeaking,
+      volume,
+      isMuted
+    });
+  }, []);
+
+  React.useEffect(() => {
+    console.log('Audio state changed:', {
+      isSpeaking,
+      volume,
+      isMuted
+    });
+  }, [isSpeaking, volume, isMuted]);
+
   return (
     <TooltipProvider>
-      <div className="fixed bottom-4 right-4 flex items-center gap-2 p-2 bg-white/50 backdrop-blur-sm rounded-lg shadow-sm">
+      <div className="fixed bottom-4 right-4 flex items-center gap-2 p-2 bg-black/20 backdrop-blur-sm rounded-lg shadow-lg border border-white/20">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
               onClick={onToggleMute}
-              className={isSpeaking ? 'animate-pulse' : ''}
+              className={`bg-white/10 hover:bg-white/20 ${isSpeaking ? 'animate-pulse ring-2 ring-primary' : ''}`}
             >
-              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              {isMuted ? <VolumeX className="h-4 w-4 text-white" /> : <Volume2 className="h-4 w-4 text-white" />}
             </Button>
           </TooltipTrigger>
           <TooltipContent>
@@ -54,7 +72,11 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
                 value={[volume * 100]}
                 max={100}
                 step={1}
-                onValueChange={(values) => onVolumeChange(values[0] / 100)}
+                onValueChange={(values) => {
+                  console.log('Volume changed:', values[0] / 100);
+                  onVolumeChange(values[0] / 100);
+                }}
+                className="cursor-pointer"
               />
             </div>
           </TooltipTrigger>
@@ -64,7 +86,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
         </Tooltip>
         
         {isSpeaking && (
-          <div className="text-xs text-muted-foreground animate-pulse">
+          <div className="text-xs text-white animate-pulse">
             Speaking...
           </div>
         )}

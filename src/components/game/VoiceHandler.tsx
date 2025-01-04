@@ -20,8 +20,8 @@ export const VoiceHandler: React.FC = () => {
     try {
       console.log('Converting text to speech:', text);
       
-      // Get the function URL
-      const functionUrl = `${supabase.functions.url('text-to-speech')}`;
+      // Get the function URL - using the correct method call
+      const functionUrl = supabase.functions.url('text-to-speech');
       
       // Get the session for authentication
       const { data: { session } } = await supabase.auth.getSession();
@@ -32,7 +32,8 @@ export const VoiceHandler: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session?.access_token}`,
-          'apikey': supabase.supabaseKey,
+          // Use the public anon key
+          'apikey': process.env.SUPABASE_ANON_KEY || '',
         },
         body: JSON.stringify({ text }),
       });

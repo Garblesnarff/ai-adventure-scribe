@@ -143,9 +143,13 @@ const CampaignView: React.FC = () => {
           onOpenChange={setIsDetailsOpen}
           className="mb-8"
         >
-          <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 hover:bg-black/5 rounded-lg transition-colors">
-            <ChevronDown className={`h-4 w-4 transition-transform ${isDetailsOpen ? 'transform rotate-180' : ''}`} />
-            <span className="font-medium">Campaign Information</span>
+          <CollapsibleTrigger className="flex items-center gap-2 w-full p-4 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors border border-primary/20 shadow-sm hover:shadow-md">
+            <ChevronDown 
+              className={`h-5 w-5 text-primary transition-transform duration-200 ${
+                isDetailsOpen ? 'transform rotate-180' : ''
+              }`} 
+            />
+            <span className="font-semibold text-primary text-lg">Campaign Information</span>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

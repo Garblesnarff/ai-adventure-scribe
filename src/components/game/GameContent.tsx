@@ -10,7 +10,6 @@ import { VoiceHandler } from './VoiceHandler';
 import { useAIResponse } from '@/hooks/useAIResponse';
 import { MemoryPanel } from './MemoryPanel';
 import { useGameSession } from '@/hooks/useGameSession';
-import { MemoryTester } from './memory/MemoryTester';
 import { supabase } from '@/integrations/supabase/client';
 import { useParams, useSearchParams } from 'react-router-dom';
 
@@ -131,7 +130,6 @@ const GameContent: React.FC = () => {
           onSendMessage={handleSendMessage}
           isDisabled={queueStatus === 'processing'}
         />
-        <MemoryTester />
       </Card>
       <MemoryPanel />
     </div>

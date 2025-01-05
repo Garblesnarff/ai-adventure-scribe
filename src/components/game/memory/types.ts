@@ -1,14 +1,19 @@
 import { Json } from '@/integrations/supabase/types';
 
 /**
+ * Available memory types
+ */
+export type MemoryType = 'location' | 'character' | 'event' | 'item' | 'general';
+
+/**
  * Interface for memory data structure
  */
 export interface Memory {
   id: string;
-  type: string; // Changed from union type to string to match database
+  type: MemoryType;
   content: string;
   importance: number;
-  embedding?: number[] | string | null; // Added string type to match database
+  embedding?: number[] | string | null;
   metadata: Json | null;
   created_at: string;
   session_id?: string | null;
@@ -19,7 +24,7 @@ export interface Memory {
  * Interface for memory category configuration
  */
 export interface MemoryCategory {
-  type: string;
+  type: MemoryType;
   label: string;
   icon: React.ReactNode;
 }

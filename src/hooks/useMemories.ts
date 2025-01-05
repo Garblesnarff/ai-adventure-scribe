@@ -2,6 +2,55 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from './use-toast';
 import { Memory } from '@/components/game/memory/types';
+import { MEMORY_CATEGORIES } from '@/components/game/memory/memoryConstants';
+
+/**
+ * Determine memory type based on content analysis
+ * @param content - The memory content to analyze
+ * @returns The classified memory type
+ */
+const classifyMemoryType = (content: string): string => {
+  const lowerContent = content.toLowerCase();
+  
+  // Location indicators
+  if (lowerContent.includes('arrived at') || 
+      lowerContent.includes('entered') || 
+      lowerContent.includes('location') ||
+      lowerContent.includes('place') ||
+      lowerContent.includes('area')) {
+    return 'location';
+  }
+  
+  // Character indicators
+  if (lowerContent.includes('met') || 
+      lowerContent.includes('spoke with') || 
+      lowerContent.includes('talked to') ||
+      lowerContent.includes('npc') ||
+      lowerContent.includes('character')) {
+    return 'character';
+  }
+  
+  // Event indicators
+  if (lowerContent.includes('happened') || 
+      lowerContent.includes('occurred') || 
+      lowerContent.includes('event') ||
+      lowerContent.includes('battle') ||
+      lowerContent.includes('fight')) {
+    return 'event';
+  }
+  
+  // Item indicators
+  if (lowerContent.includes('found') || 
+      lowerContent.includes('acquired') || 
+      lowerContent.includes('item') ||
+      lowerContent.includes('weapon') ||
+      lowerContent.includes('armor')) {
+    return 'item';
+  }
+  
+  // Default to general if no specific category is detected
+  return 'general';
+};
 
 /**
  * Custom hook for managing game memories with OpenAI embedding support
@@ -98,11 +147,16 @@ export const useMemories = (sessionId: string | null) => {
       const embedding = await generateEmbedding(memory.content);
       console.log('[Memory] Embedding generated successfully');
       
+      // Determine memory type if not provided
+      const type = memory.type || classifyMemoryType(memory.content);
+      console.log('[Memory] Classified memory type:', type);
+      
       // Insert memory into database
       const { data, error } = await supabase
         .from('memories')
         .insert([{ 
           ...memory,
+          type,
           session_id: sessionId,
           embedding,
           metadata: memory.metadata || {},
@@ -135,13 +189,17 @@ export const useMemories = (sessionId: string | null) => {
   });
 
   /**
-   * Extract and store memories from message content with improved error handling
+   * Extract and store memories from message content with improved classification
    */
-  const extractMemories = async (content: string, type: Memory['type'] = 'general') => {
+  const extractMemories = async (content: string, suggestedType?: string) => {
     try {
       if (!sessionId) throw new Error('No active session');
 
       console.log('[Memory] Extracting memories from content:', content);
+      
+      // Use suggested type or classify based on content
+      const type = suggestedType || classifyMemoryType(content);
+      console.log('[Memory] Using memory type:', type);
       
       // Basic importance scoring
       const importance = Math.min(

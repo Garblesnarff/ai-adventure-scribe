@@ -29,18 +29,27 @@ export const useMemoryRetrieval = (sessionId: string | null) => {
 
       console.log(`[Memory] Retrieved ${data.length} memories`);
       
+      // Transform and validate the data to match Memory type
       return data.map((memory): Memory => {
-        // Validate memory type
-        if (!isValidMemoryType(memory.type)) {
+        // Validate and ensure memory type is correct
+        const validatedType = isValidMemoryType(memory.type) ? memory.type : 'general';
+        
+        if (validatedType !== memory.type) {
           console.warn(`[Memory] Invalid memory type detected: ${memory.type}, defaulting to 'general'`);
-          memory.type = 'general';
         }
 
         return {
-          ...memory,
+          id: memory.id,
+          type: validatedType,
+          content: memory.content,
+          importance: memory.importance || 0,
           embedding: typeof memory.embedding === 'string' 
             ? JSON.parse(memory.embedding)
             : memory.embedding,
+          metadata: memory.metadata,
+          created_at: memory.created_at || new Date().toISOString(),
+          session_id: memory.session_id,
+          updated_at: memory.updated_at || new Date().toISOString(),
         };
       });
     },

@@ -3,7 +3,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Memory } from '@/components/game/memory/types';
+import { Memory, isValidMemoryType } from '@/components/game/memory/types';
 
 /**
  * Custom hook for retrieving and managing memories
@@ -29,12 +29,20 @@ export const useMemoryRetrieval = (sessionId: string | null) => {
 
       console.log(`[Memory] Retrieved ${data.length} memories`);
       
-      return data.map((memory: Memory) => ({
-        ...memory,
-        embedding: typeof memory.embedding === 'string' 
-          ? JSON.parse(memory.embedding)
-          : memory.embedding,
-      }));
+      return data.map((memory): Memory => {
+        // Validate memory type
+        if (!isValidMemoryType(memory.type)) {
+          console.warn(`[Memory] Invalid memory type detected: ${memory.type}, defaulting to 'general'`);
+          memory.type = 'general';
+        }
+
+        return {
+          ...memory,
+          embedding: typeof memory.embedding === 'string' 
+            ? JSON.parse(memory.embedding)
+            : memory.embedding,
+        };
+      });
     },
     enabled: !!sessionId,
   });

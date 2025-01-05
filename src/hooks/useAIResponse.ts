@@ -2,6 +2,7 @@ import { ChatMessage } from '@/types/game';
 import { supabase } from '@/integrations/supabase/client';
 import { selectRelevantMemories } from '@/utils/memorySelection';
 import { useToast } from '@/hooks/use-toast';
+import { Memory, isValidMemoryType } from '@/components/game/memory/types';
 
 /**
  * Hook for handling AI response generation with memory context window
@@ -81,15 +82,24 @@ export const useAIResponse = () => {
       }
 
       // Fetch and select relevant memories
-      const { data: memories } = await supabase
+      const { data: memoriesData } = await supabase
         .from('memories')
         .select('*')
         .eq('session_id', sessionId);
 
-      const selectedMemories = selectRelevantMemories(
-        memories || [],
-        latestMessage.context
-      );
+      // Validate and transform memories
+      const memories: Memory[] = (memoriesData || []).map((memory): Memory => {
+        if (!isValidMemoryType(memory.type)) {
+          console.warn(`[Memory] Invalid memory type detected: ${memory.type}, defaulting to 'general'`);
+          memory.type = 'general';
+        }
+        return {
+          ...memory,
+          type: isValidMemoryType(memory.type) ? memory.type : 'general'
+        };
+      });
+
+      const selectedMemories = selectRelevantMemories(memories, latestMessage.context);
 
       console.log('Calling DM Agent with context:', {
         gameContext,

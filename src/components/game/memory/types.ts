@@ -6,6 +6,13 @@ import { Json } from '@/integrations/supabase/types';
 export type MemoryType = 'location' | 'character' | 'event' | 'item' | 'general';
 
 /**
+ * Type guard to check if a string is a valid MemoryType
+ */
+export function isValidMemoryType(type: string): type is MemoryType {
+  return ['location', 'character', 'event', 'item', 'general'].includes(type);
+}
+
+/**
  * Interface for memory data structure
  */
 export interface Memory {

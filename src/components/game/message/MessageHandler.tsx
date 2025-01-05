@@ -4,7 +4,7 @@ import { ChatMessage } from '@/types/game';
 import { useMessageContext } from '@/contexts/MessageContext';
 import { useMemoryContext } from '@/contexts/MemoryContext';
 import { useAIResponse } from '@/hooks/useAIResponse';
-import { SessionValidator } from '../session/SessionValidator';
+import { useSessionValidator } from '../session/SessionValidator';
 
 interface MessageHandlerProps {
   sessionId: string | null;
@@ -30,18 +30,14 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
   const { extractMemories } = useMemoryContext();
   const { getAIResponse } = useAIResponse();
   const { toast } = useToast();
+  const validateSession = useSessionValidator({ sessionId, campaignId, characterId });
 
   const handleSendMessage = async (playerInput: string) => {
     if (queueStatus === 'processing') return;
 
     try {
       // Validate session before proceeding
-      const isValid = await SessionValidator({
-        sessionId,
-        campaignId,
-        characterId,
-      });
-      
+      const isValid = await validateSession();
       if (!isValid) return;
 
       // Add player message
@@ -56,7 +52,7 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
       await sendMessage(playerMessage);
       
       // Extract memories from player input
-      await extractMemories(playerInput, 'general');
+      await extractMemories(playerInput);
       
       // Add system acknowledgment
       const systemMessage: ChatMessage = {
@@ -78,7 +74,7 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
       
       // Extract memories from AI response
       if (aiResponse.text) {
-        await extractMemories(aiResponse.text, 'event');
+        await extractMemories(aiResponse.text);
       }
 
     } catch (error) {

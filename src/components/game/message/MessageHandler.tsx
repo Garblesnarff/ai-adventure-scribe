@@ -73,7 +73,11 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
       if (!sessionId) throw new Error('No active session found');
 
       const aiResponse = await new Promise<ChatMessage>((resolve, reject) => {
-        const processor = (
+        // Create a container element to render the MessageProcessor
+        const container = document.createElement('div');
+        
+        // Render MessageProcessor into the container
+        React.render(
           <MessageProcessor
             sessionId={sessionId}
             messages={[...messages, playerMessage]}
@@ -84,11 +88,9 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
               console.error('[MessageHandler] Processing error:', error);
               reject(error);
             }}
-          />
+          />,
+          container
         );
-        
-        // Render the processor component to trigger hooks
-        React.createElement(processor);
       });
 
       await sendMessage(aiResponse);

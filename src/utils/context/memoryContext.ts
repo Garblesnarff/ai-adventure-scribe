@@ -9,6 +9,8 @@ interface MemoryFilterOptions {
   timeframe?: 'recent' | 'all';
   importance?: number;
   limit?: number;
+  includeLocations?: boolean;
+  includeNPCs?: boolean;
 }
 
 /**
@@ -24,33 +26,16 @@ export const buildMemoryContext = async (
   try {
     console.log('[Context] Fetching memories for session:', sessionId);
 
-    // Build query with filters
-    let query = supabase
-      .from('memories')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: false });
+    // Fetch memories and related location/NPC data in parallel
+    const [memoriesResult, locationResult, npcResult] = await Promise.all([
+      fetchMemories(sessionId, options),
+      fetchLocationDetails(sessionId),
+      fetchActiveNPCs(sessionId)
+    ]);
 
-    // Apply time-based filtering
-    if (options.timeframe === 'recent') {
-      const recentTime = new Date();
-      recentTime.setHours(recentTime.getHours() - 1);
-      query = query.gte('created_at', recentTime.toISOString());
+    if (!memoriesResult.data) {
+      throw new Error('Failed to fetch memories');
     }
-
-    // Apply importance filtering
-    if (options.importance) {
-      query = query.gte('importance', options.importance);
-    }
-
-    // Apply limit
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
-
-    const { data: memories, error } = await query;
-
-    if (error) throw error;
 
     // Initialize context categories
     const context: MemoryContext = {
@@ -58,11 +43,12 @@ export const buildMemoryContext = async (
       importantLocations: [],
       keyCharacters: [],
       plotPoints: [],
+      currentLocation: locationResult.data?.[0] || null,
+      activeNPCs: npcResult.data || []
     };
 
     // Process and categorize memories
-    memories?.forEach(memory => {
-      // Validate memory type
+    memoriesResult.data.forEach(memory => {
       const validatedType = isValidMemoryType(memory.type) ? memory.type : 'general';
       
       const memoryObj: Memory = {
@@ -94,9 +80,18 @@ export const buildMemoryContext = async (
       }
     });
 
-    // Sort each category by importance
+    // Sort each category by importance and recency
     Object.values(context).forEach(category => {
-      category.sort((a, b) => (b.importance || 0) - (a.importance || 0));
+      if (Array.isArray(category)) {
+        category.sort((a, b) => {
+          // Primary sort by importance
+          const importanceDiff = (b.importance || 0) - (a.importance || 0);
+          if (importanceDiff !== 0) return importanceDiff;
+          
+          // Secondary sort by recency
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+      }
     });
 
     return context;
@@ -107,9 +102,63 @@ export const buildMemoryContext = async (
 };
 
 /**
+ * Fetches memories for a session with filtering
+ */
+const fetchMemories = async (sessionId: string, options: MemoryFilterOptions) => {
+  let query = supabase
+    .from('memories')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: false });
+
+  if (options.timeframe === 'recent') {
+    const recentTime = new Date();
+    recentTime.setHours(recentTime.getHours() - 1);
+    query = query.gte('created_at', recentTime.toISOString());
+  }
+
+  if (options.importance) {
+    query = query.gte('importance', options.importance);
+  }
+
+  if (options.limit) {
+    query = query.limit(options.limit);
+  }
+
+  return query;
+};
+
+/**
+ * Fetches current location details for a session
+ */
+const fetchLocationDetails = async (sessionId: string) => {
+  return supabase
+    .from('locations')
+    .select(`
+      *,
+      world:worlds(name, climate_type)
+    `)
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+};
+
+/**
+ * Fetches active NPCs in the current scene
+ */
+const fetchActiveNPCs = async (sessionId: string) => {
+  return supabase
+    .from('npcs')
+    .select(`
+      *,
+      current_location:locations(name)
+    `)
+    .eq('session_id', sessionId)
+    .eq('status', 'active');
+};
+
+/**
  * Calculates memory importance based on various factors
- * @param memory - Memory object to calculate importance for
- * @returns Calculated importance score
  */
 const calculateImportance = (memory: any): number => {
   let importance = memory.importance || 0;

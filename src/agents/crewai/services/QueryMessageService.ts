@@ -2,8 +2,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { BaseMessageService } from './BaseMessageService';
 import { QueryMessagePayload } from '../types/messages';
 import { MessageType } from '../types/communication';
+import { QueryRouterService } from './QueryRouterService';
+import { QueryType, QueryParameters } from '../types/query';
 
 export class QueryMessageService extends BaseMessageService {
+  private queryRouter: QueryRouterService;
+
+  constructor() {
+    super();
+    this.queryRouter = QueryRouterService.getInstance();
+  }
+
   public async handleQueryMessage(payload: QueryMessagePayload): Promise<void> {
     try {
       console.log('[QueryMessageService] Processing query message:', payload);
@@ -32,11 +41,13 @@ export class QueryMessageService extends BaseMessageService {
   }
 
   private async routeQuery(payload: QueryMessagePayload): Promise<any> {
-    return {
+    const queryParams: QueryParameters = {
       queryId: payload.queryId,
-      status: 'success',
-      data: { message: 'Query processed' }
+      ...payload.parameters,
+      timeout: payload.timeout
     };
+
+    return this.queryRouter.routeQuery(payload.queryType as QueryType, queryParams);
   }
 
   private async sendResponse(agentId: string, response: any): Promise<void> {

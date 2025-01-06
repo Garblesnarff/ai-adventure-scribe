@@ -45,8 +45,8 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
       // Create the player message
       const playerMessage: ChatMessage = {
         id: crypto.randomUUID(),
-        content: messageContent,
-        role: 'user',
+        text: messageContent, // Changed from 'content' to 'text' to match ChatMessage type
+        sender: 'player',
         timestamp: new Date().toISOString(),
       };
 

@@ -66,8 +66,10 @@ export const buildMemoryContext = async (
         content: memory.content,
         importance: memory.importance || 0,
         created_at: memory.created_at || new Date().toISOString(),
+        updated_at: memory.updated_at || new Date().toISOString(), // Add the missing updated_at field
         session_id: memory.session_id,
         metadata: memory.metadata || {},
+        embedding: memory.embedding,
       };
 
       switch (memory.type) {

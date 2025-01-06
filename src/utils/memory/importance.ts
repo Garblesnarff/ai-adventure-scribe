@@ -1,80 +1,64 @@
 /**
- * Utility functions for calculating memory importance
+ * Calculates importance score for a memory based on various factors
+ * @param content - Memory content
+ * @param age - Age of memory in hours
+ * @param type - Type of memory
+ * @returns Importance score between 1-10
  */
+export const calculateImportance = (
+  content: string,
+  age: number,
+  type: string
+): number => {
+  let score = 0;
 
-interface ImportanceFactors {
-  namedEntities: number;
-  questRelevance: number;
-  characterIntroduction: number;
-  locationDescription: number;
-  eventSignificance: number;
-  itemRarity: number;
-}
+  // Base score by type
+  switch (type) {
+    case 'plot':
+      score += 3;
+      break;
+    case 'character':
+      score += 2;
+      break;
+    case 'location':
+      score += 2;
+      break;
+    case 'event':
+      score += 1;
+      break;
+    default:
+      score += 0;
+  }
+
+  // Content length factor
+  if (content.length > 200) score += 1;
+  if (content.length > 500) score += 1;
+
+  // Recency factor
+  if (age < 1) score += 3;
+  else if (age < 24) score += 2;
+  else if (age < 72) score += 1;
+
+  // Named entity bonus
+  const namedEntities = content.match(/[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/g) || [];
+  score += Math.min(2, namedEntities.length);
+
+  // Cap final score
+  return Math.min(10, Math.max(1, score));
+};
 
 /**
- * Calculates importance score based on content analysis
- * Returns a score between 1 and 5
+ * Sorts memories by importance and recency
+ * @param memories - Array of memories to sort
+ * @returns Sorted array of memories
  */
-export const calculateImportance = (content: string): number => {
-  const factors = analyzeContent(content);
-  return computeImportanceScore(factors);
-};
+export const sortMemoriesByImportance = (memories: any[]): any[] => {
+  return [...memories].sort((a, b) => {
+    // Primary sort by importance
+    const importanceDiff = (b.importance || 0) - (a.importance || 0);
+    if (importanceDiff !== 0) return importanceDiff;
 
-/**
- * Analyzes content for various importance factors
- */
-const analyzeContent = (content: string): ImportanceFactors => {
-  const lowerContent = content.toLowerCase();
-  
-  return {
-    // Named entities (proper nouns) carry high importance
-    namedEntities: (content.match(/[A-Z][a-z]+/g) || []).length * 0.5,
-    
-    // Quest-related content is highly important
-    questRelevance: containsQuestTerms(lowerContent) ? 1.5 : 0,
-    
-    // Character introductions are significant
-    characterIntroduction: containsCharacterIntro(lowerContent) ? 1 : 0,
-    
-    // Location descriptions add importance
-    locationDescription: containsLocationDesc(lowerContent) ? 1 : 0,
-    
-    // Significant events are important
-    eventSignificance: containsSignificantEvent(lowerContent) ? 1 : 0,
-    
-    // Rare or magical items are important
-    itemRarity: containsRareItem(lowerContent) ? 1 : 0,
-  };
-};
-
-/**
- * Computes final importance score from factors
- * Scales and clamps the score between 1 and 5
- */
-const computeImportanceScore = (factors: ImportanceFactors): number => {
-  const rawScore = Object.values(factors).reduce((sum, score) => sum + score, 0);
-  // Scale the score to 1-5 range and ensure it's within bounds
-  const scaledScore = Math.min(Math.max(Math.round(rawScore), 1), 5);
-  return scaledScore;
-};
-
-// Helper functions for content analysis
-const containsQuestTerms = (content: string): boolean => {
-  return /\b(quest|mission|task|journey|adventure)\b/i.test(content);
-};
-
-const containsCharacterIntro = (content: string): boolean => {
-  return /\b(meet|encounter|approach|greet)\b/i.test(content);
-};
-
-const containsLocationDesc = (content: string): boolean => {
-  return /\b(enter|arrive|reach|discover|find)\b/i.test(content);
-};
-
-const containsSignificantEvent = (content: string): boolean => {
-  return /\b(battle|war|ceremony|prophecy|revelation)\b/i.test(content);
-};
-
-const containsRareItem = (content: string): boolean => {
-  return /\b(magical|ancient|legendary|rare|unique)\b/i.test(content);
+    // Secondary sort by recency
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
 };

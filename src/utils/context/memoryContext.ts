@@ -1,26 +1,56 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Memory, MemoryType, isValidMemoryType } from '@/components/game/memory/types';
-import { MemoryContext } from '@/types/memory';
+import { Memory, MemoryContext, MemoryType } from '@/types/memory';
 
 /**
- * Builds memory context for a given session
+ * Interface for memory filtering options
+ */
+interface MemoryFilterOptions {
+  timeframe?: 'recent' | 'all';
+  importance?: number;
+  limit?: number;
+}
+
+/**
+ * Fetches and formats memory context with enhanced filtering and sorting
  * @param sessionId - UUID of the game session
- * @returns Formatted memory context or null if not found
+ * @param options - Optional filtering parameters
+ * @returns Formatted memory context or null if error
  */
 export const buildMemoryContext = async (
-  sessionId: string
+  sessionId: string,
+  options: MemoryFilterOptions = {}
 ): Promise<MemoryContext | null> => {
   try {
-    console.log('[Memory] Fetching memories for session:', sessionId);
-    
-    const { data: memories, error } = await supabase
+    console.log('[Context] Fetching memories for session:', sessionId);
+
+    let query = supabase
       .from('memories')
       .select('*')
       .eq('session_id', sessionId)
       .order('importance', { ascending: false });
 
+    // Apply time-based filtering
+    if (options.timeframe === 'recent') {
+      const recentTime = new Date();
+      recentTime.setHours(recentTime.getHours() - 1); // Last hour
+      query = query.gte('created_at', recentTime.toISOString());
+    }
+
+    // Apply importance filtering
+    if (options.importance) {
+      query = query.gte('importance', options.importance);
+    }
+
+    // Apply limit if specified
+    if (options.limit) {
+      query = query.limit(options.limit);
+    }
+
+    const { data: memories, error } = await query;
+
     if (error) throw error;
-    
+
+    // Initialize context categories
     const context: MemoryContext = {
       recentEvents: [],
       importantLocations: [],
@@ -28,33 +58,42 @@ export const buildMemoryContext = async (
       plotPoints: [],
     };
 
+    // Sort and categorize memories
     memories?.forEach(memory => {
-      if (!memory.type || !isValidMemoryType(memory.type)) return;
-
-      const typedMemory = {
-        ...memory,
-        type: memory.type as MemoryType
+      const memoryObj: Memory = {
+        id: memory.id,
+        type: memory.type as MemoryType,
+        content: memory.content,
+        importance: memory.importance || 0,
+        created_at: memory.created_at || new Date().toISOString(),
+        session_id: memory.session_id,
+        metadata: memory.metadata || {},
       };
 
-      switch (typedMemory.type) {
+      switch (memory.type) {
         case 'event':
-          context.recentEvents.push(typedMemory);
+          context.recentEvents.push(memoryObj);
           break;
         case 'location':
-          context.importantLocations.push(typedMemory);
+          context.importantLocations.push(memoryObj);
           break;
         case 'character':
-          context.keyCharacters.push(typedMemory);
+          context.keyCharacters.push(memoryObj);
           break;
         case 'plot':
-          context.plotPoints.push(typedMemory);
+          context.plotPoints.push(memoryObj);
           break;
       }
     });
 
+    // Sort each category by importance
+    Object.values(context).forEach(category => {
+      category.sort((a, b) => (b.importance || 0) - (a.importance || 0));
+    });
+
     return context;
   } catch (error) {
-    console.error('[Memory] Error building memory context:', error);
+    console.error('[Context] Error building memory context:', error);
     return null;
   }
 };

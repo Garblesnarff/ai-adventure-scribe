@@ -8,21 +8,38 @@ export { buildMemoryContext } from './memoryContext';
 
 /**
  * Builds complete game context by combining campaign, character, and memory data
+ * @param campaignId - UUID of the campaign
+ * @param characterId - UUID of the character
+ * @param sessionId - UUID of the game session
+ * @returns Combined context object or null if any context fails to build
  */
 export const buildGameContext = async (
   campaignId: string,
   characterId: string,
   sessionId: string
 ) => {
-  const [campaignContext, characterContext, memoryContext] = await Promise.all([
-    buildCampaignContext(campaignId),
-    buildCharacterContext(characterId),
-    buildMemoryContext(sessionId),
-  ]);
+  try {
+    console.log('[Context] Building complete game context');
+    
+    const [campaignContext, characterContext, memoryContext] = await Promise.all([
+      buildCampaignContext(campaignId),
+      buildCharacterContext(characterId),
+      buildMemoryContext(sessionId),
+    ]);
 
-  return {
-    campaign: campaignContext,
-    character: characterContext,
-    memories: memoryContext,
-  };
+    // Validate that all contexts were built successfully
+    if (!campaignContext || !characterContext || !memoryContext) {
+      console.error('[Context] One or more contexts failed to build');
+      return null;
+    }
+
+    return {
+      campaign: campaignContext,
+      character: characterContext,
+      memories: memoryContext,
+    };
+  } catch (error) {
+    console.error('[Context] Error building game context:', error);
+    return null;
+  }
 };

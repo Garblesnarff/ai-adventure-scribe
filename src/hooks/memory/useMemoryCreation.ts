@@ -39,6 +39,14 @@ export const useMemoryCreation = (sessionId: string | null) => {
   };
 
   /**
+   * Ensure importance value is within valid range (1-10)
+   */
+  const validateImportance = (importance: number | undefined): number => {
+    if (typeof importance !== 'number') return 5; // Default importance
+    return Math.min(Math.max(Math.round(importance), 1), 10); // Clamp between 1-10
+  };
+
+  /**
    * Create a new memory entry with embedding
    */
   const createMemory = useMutation({
@@ -48,6 +56,7 @@ export const useMemoryCreation = (sessionId: string | null) => {
       console.log('[Memory] Starting memory creation process:', memory);
       
       const embedding = await generateEmbedding(memory.content);
+      const validatedImportance = validateImportance(memory.importance);
       
       const { data, error } = await supabase
         .from('memories')
@@ -55,6 +64,7 @@ export const useMemoryCreation = (sessionId: string | null) => {
           ...memory,
           session_id: sessionId,
           embedding,
+          importance: validatedImportance,
           metadata: memory.metadata || {},
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -62,7 +72,10 @@ export const useMemoryCreation = (sessionId: string | null) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Memory] Error in memory creation:', error);
+        throw error;
+      }
 
       return data;
     },
@@ -98,7 +111,7 @@ export const useMemoryCreation = (sessionId: string | null) => {
           session_id: sessionId,
           type: segment.type,
           content: segment.content,
-          importance: segment.importance,
+          importance: validateImportance(segment.importance),
           metadata: {},
         });
       }

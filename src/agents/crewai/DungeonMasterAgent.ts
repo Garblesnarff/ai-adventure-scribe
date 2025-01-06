@@ -17,6 +17,11 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
   backstory: string;
   verbose: boolean;
   allowDelegation: boolean;
+  crewAIConfig: {
+    tools: AgentTool[];
+    memory: AgentMemory;
+    communicate: (message: AgentMessage) => Promise<void>;
+  };
   private memoryAdapter: MemoryAdapter;
   private messageHandler: MessageHandler;
   private tools: AgentTool[];
@@ -52,7 +57,7 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
       {
         name: 'fetch_campaign_context',
         description: 'Retrieves relevant campaign context and history',
-        handler: async (params: any) => {
+        execute: async (params: any) => {
           const { data, error } = await supabase
             .from('campaigns')
             .select('*')
@@ -66,7 +71,7 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
       {
         name: 'query_memories',
         description: 'Searches through session memories for relevant information',
-        handler: async (params: any) => {
+        execute: async (params: any) => {
           const memories = await this.memoryAdapter.getRecentMemories(params.limit || 5);
           return memories;
         }

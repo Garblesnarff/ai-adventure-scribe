@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { processContent } from '@/utils/memoryClassification';
-import { Memory } from '@/components/game/memory/types';
+import { Memory, MemoryType, isValidMemoryType } from '@/components/game/memory/types';
 
 /**
  * Custom hook for creating memories with improved classification
@@ -39,6 +39,28 @@ export const useMemoryCreation = (sessionId: string | null) => {
   };
 
   /**
+   * Validates memory data before creation
+   */
+  const validateMemory = (memory: Partial<Memory>): boolean => {
+    if (!memory.content || typeof memory.content !== 'string') {
+      console.error('[Memory] Invalid content:', memory.content);
+      return false;
+    }
+
+    if (!isValidMemoryType(memory.type)) {
+      console.error('[Memory] Invalid memory type:', memory.type);
+      return false;
+    }
+
+    if (memory.importance && (memory.importance < 1 || memory.importance > 5)) {
+      console.error('[Memory] Invalid importance score:', memory.importance);
+      return false;
+    }
+
+    return true;
+  };
+
+  /**
    * Create a new memory entry with embedding
    */
   const createMemory = useMutation({
@@ -47,6 +69,10 @@ export const useMemoryCreation = (sessionId: string | null) => {
 
       console.log('[Memory] Starting memory creation process:', memory);
       
+      if (!validateMemory(memory)) {
+        throw new Error('Invalid memory data');
+      }
+
       const embedding = await generateEmbedding(memory.content);
       
       const { data, error } = await supabase
@@ -94,6 +120,11 @@ export const useMemoryCreation = (sessionId: string | null) => {
 
       // Create memories for each classified segment
       for (const segment of memorySegments) {
+        if (!isValidMemoryType(segment.type)) {
+          console.warn('[Memory] Skipping segment with invalid type:', segment);
+          continue;
+        }
+
         await createMemory.mutateAsync({
           session_id: sessionId,
           type: segment.type,

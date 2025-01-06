@@ -39,8 +39,14 @@ export const buildCampaignContext = async (
     if (error) throw error;
     if (!campaign) return null;
 
-    // Type assertion for thematic_elements
-    const thematicElements = campaign.thematic_elements as ThematicElements;
+    // Type assertion and validation for thematic_elements
+    const rawThematicElements = campaign.thematic_elements as Record<string, unknown>;
+    const thematicElements: ThematicElements = {
+      mainThemes: Array.isArray(rawThematicElements?.mainThemes) ? rawThematicElements.mainThemes as string[] : [],
+      recurringMotifs: Array.isArray(rawThematicElements?.recurringMotifs) ? rawThematicElements.recurringMotifs as string[] : [],
+      keyLocations: Array.isArray(rawThematicElements?.keyLocations) ? rawThematicElements.keyLocations as string[] : [],
+      importantNPCs: Array.isArray(rawThematicElements?.importantNPCs) ? rawThematicElements.importantNPCs as string[] : [],
+    };
 
     return {
       basicInfo: {
@@ -54,12 +60,7 @@ export const buildCampaignContext = async (
         location: campaign.location,
         atmosphere: campaign.atmosphere,
       },
-      thematicElements: {
-        mainThemes: Array.isArray(thematicElements?.mainThemes) ? thematicElements.mainThemes : [],
-        recurringMotifs: Array.isArray(thematicElements?.recurringMotifs) ? thematicElements.recurringMotifs : [],
-        keyLocations: Array.isArray(thematicElements?.keyLocations) ? thematicElements.keyLocations : [],
-        importantNPCs: Array.isArray(thematicElements?.importantNPCs) ? thematicElements.importantNPCs : [],
-      },
+      thematicElements,
     };
   } catch (error) {
     console.error('[Context] Error building campaign context:', error);

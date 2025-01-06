@@ -40,6 +40,8 @@ export const buildMemoryContext = async (
     };
 
     memories?.forEach(memory => {
+      if (!memory.type) return;
+
       const typedMemory = {
         ...memory,
         type: memory.type as MemoryType

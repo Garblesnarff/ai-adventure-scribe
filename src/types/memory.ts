@@ -1,4 +1,4 @@
-import { Memory } from '@/components/game/memory/types';
+import { Memory, MemoryType } from '@/components/game/memory/types';
 
 /**
  * Interface for categorized memory context
@@ -27,5 +27,5 @@ export interface MemoryFilter {
   timeframe?: 'recent' | 'all';
 }
 
-// Re-export the Memory type
-export type { Memory };
+// Re-export the Memory and MemoryType types
+export type { Memory, MemoryType };

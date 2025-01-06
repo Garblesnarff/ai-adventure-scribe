@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChatMessage } from '@/types/game';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useMessageContext } from '@/contexts/MessageContext';
 
 interface MessageHandlerProps {
   sessionId: string | null;
@@ -25,6 +26,7 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const { sendMessage } = useMessageContext();
 
   /**
    * Handles sending a new message
@@ -51,6 +53,9 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
         timestamp: new Date().toISOString(),
       };
 
+      // Send player message to context
+      await sendMessage(playerMessage);
+
       console.log('Sending message to chat function:', {
         message: playerMessage,
         sessionId,
@@ -68,11 +73,14 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
         },
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       console.log('Chat function response:', data);
+
+      // Send DM response to context
+      if (data) {
+        await sendMessage(data);
+      }
 
     } catch (error) {
       console.error('[MessageHandler] Error:', error);

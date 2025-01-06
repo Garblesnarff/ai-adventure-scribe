@@ -29,7 +29,7 @@ serve(async (req) => {
     console.log(`Retrieved ${memories.length} relevant memories`);
 
     // Call DM Agent through edge function with memories
-    const { data: agentResponse, error: agentError } = await fetch(
+    const agentResponse = await fetch(
       `${Deno.env.get('SUPABASE_URL')}/functions/v1/dm-agent-execute`,
       {
         method: 'POST',
@@ -52,20 +52,28 @@ serve(async (req) => {
           }
         })
       }
-    ).then(res => res.json());
+    );
 
-    if (agentError) throw agentError;
+    if (!agentResponse.ok) {
+      throw new Error(`DM Agent responded with status: ${agentResponse.status}`);
+    }
 
-    console.log('DM Agent response:', agentResponse);
+    const agentData = await agentResponse.json();
+    
+    if (!agentData || !agentData.response) {
+      throw new Error('Invalid response from DM Agent');
+    }
+
+    console.log('DM Agent response:', agentData);
 
     // Update memory importance based on agent response
     if (memories.length > 0) {
-      await updateMemoryImportance(memories, agentResponse.response);
+      await updateMemoryImportance(memories, agentData.response);
     }
 
     const aiResponse = {
       id: crypto.randomUUID(),
-      text: agentResponse.response,
+      text: agentData.response,
       sender: 'dm',
       timestamp: new Date().toISOString(),
       context: {

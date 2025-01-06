@@ -13,10 +13,12 @@ interface MemoryCardProps {
  * @param {Memory} memory - The memory object to display
  */
 export const MemoryCard: React.FC<MemoryCardProps> = ({ memory }) => {
+  const category = MEMORY_CATEGORIES.find(cat => cat.type === memory.type);
+  
   return (
     <Card className="p-3 bg-white/50 hover:bg-white/80 transition-colors">
       <div className="flex items-start gap-2">
-        {MEMORY_CATEGORIES.find(cat => cat.type === memory.type)?.icon}
+        {category?.icon}
         <div>
           <p className="text-sm">{memory.content}</p>
           {memory.metadata && Object.keys(memory.metadata).length > 0 && (

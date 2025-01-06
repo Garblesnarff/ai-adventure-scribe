@@ -5,6 +5,7 @@ import { VolumeSlider } from './audio/VolumeSlider';
 import { SpeakingIndicator } from './audio/SpeakingIndicator';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Mic, MicOff } from 'lucide-react';
 
 interface AudioControlsProps {
   isSpeaking: boolean;
@@ -70,8 +71,19 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
             id="voice-mode"
             checked={isVoiceEnabled}
             onCheckedChange={onToggleVoice}
+            className={`${isVoiceEnabled ? 'bg-primary' : 'bg-input'}`}
           />
-          <Label htmlFor="voice-mode" className="text-sm font-medium">
+          <Label 
+            htmlFor="voice-mode" 
+            className={`text-sm font-medium flex items-center gap-2 ${
+              isVoiceEnabled ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            {isVoiceEnabled ? (
+              <Mic className="h-4 w-4" />
+            ) : (
+              <MicOff className="h-4 w-4" />
+            )}
             Voice Mode
           </Label>
         </div>

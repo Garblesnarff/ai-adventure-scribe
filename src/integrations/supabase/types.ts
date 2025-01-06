@@ -801,6 +801,7 @@ export type Database = {
           category_id: string | null
           created_at: string | null
           created_by: string | null
+          description: string | null
           id: string
           metadata: Json | null
           source_file_path: string | null
@@ -813,6 +814,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          description?: string | null
           id?: string
           metadata?: Json | null
           source_file_path?: string | null
@@ -825,6 +827,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          description?: string | null
           id?: string
           metadata?: Json | null
           source_file_path?: string | null

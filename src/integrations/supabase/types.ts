@@ -9,6 +9,84 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      agent_communications: {
+        Row: {
+          content: Json
+          created_at: string | null
+          id: string
+          message_type: string
+          read_at: string | null
+          receiver_id: string | null
+          sender_id: string | null
+        }
+        Insert: {
+          content: Json
+          created_at?: string | null
+          id?: string
+          message_type: string
+          read_at?: string | null
+          receiver_id?: string | null
+          sender_id?: string | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string | null
+          id?: string
+          message_type?: string
+          read_at?: string | null
+          receiver_id?: string | null
+          sender_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_communications_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "agent_states"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_communications_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "agent_states"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_states: {
+        Row: {
+          agent_role: string
+          agent_type: string
+          configuration: Json | null
+          created_at: string | null
+          id: string
+          last_active: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          agent_role: string
+          agent_type: string
+          configuration?: Json | null
+          created_at?: string | null
+          id?: string
+          last_active?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          agent_role?: string
+          agent_type?: string
+          configuration?: Json | null
+          created_at?: string | null
+          id?: string
+          last_active?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           atmosphere: string | null
@@ -754,6 +832,86 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rule_validations: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          rule_category: string
+          rule_type: string
+          updated_at: string | null
+          validation_data: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_category: string
+          rule_type: string
+          updated_at?: string | null
+          validation_data: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_category?: string
+          rule_type?: string
+          updated_at?: string | null
+          validation_data?: Json
+        }
+        Relationships: []
+      }
+      task_queue: {
+        Row: {
+          assigned_agent_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          data: Json
+          error: string | null
+          id: string
+          priority: number | null
+          result: Json | null
+          status: string
+          task_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_agent_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          data?: Json
+          error?: string | null
+          id?: string
+          priority?: number | null
+          result?: Json | null
+          status?: string
+          task_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_agent_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          data?: Json
+          error?: string | null
+          id?: string
+          priority?: number | null
+          result?: Json | null
+          status?: string
+          task_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_queue_assigned_agent_id_fkey"
+            columns: ["assigned_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agent_states"
             referencedColumns: ["id"]
           },
         ]

@@ -1,10 +1,9 @@
 import { CrewAIAgentBridge } from './types/base';
-import { AgentMemory } from './types/memory';
 import { AgentMessage } from './types/communication';
-import { AgentTool } from './types/tasks';
-import { MemoryAdapter } from './adapters/MemoryAdapter';
 import { MessageHandler } from './handlers/MessageHandler';
-import { supabase } from '@/integrations/supabase/client';
+import { DMAgentTools } from './tools/DMAgentTools';
+import { DMMemoryManager } from './memory/DMMemoryManager';
+import { DMTaskExecutor } from './tasks/DMTaskExecutor';
 
 /**
  * CrewAI-enabled Dungeon Master Agent
@@ -17,19 +16,16 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
   backstory: string;
   verbose: boolean;
   allowDelegation: boolean;
-  crewAIConfig: {
-    tools: AgentTool[];
-    memory: AgentMemory;
-    communicate: (message: AgentMessage) => Promise<void>;
-  };
-  private memoryAdapter: MemoryAdapter;
+  crewAIConfig: any;
+
   private messageHandler: MessageHandler;
-  private tools: AgentTool[];
+  private memoryManager: DMMemoryManager;
+  private toolManager: DMAgentTools;
+  private taskExecutor: DMTaskExecutor;
 
   constructor(sessionId: string) {
     this.initializeBaseProperties();
-    this.initializeAdapters(sessionId);
-    this.tools = this.initializeTools();
+    this.initializeManagers(sessionId);
     this.crewAIConfig = this.initializeCrewAIConfig();
   }
 
@@ -46,55 +42,13 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
   }
 
   /**
-   * Initialize adapters with session context
+   * Initialize managers with session context
    */
-  private initializeAdapters(sessionId: string): void {
-    this.memoryAdapter = new MemoryAdapter(sessionId);
+  private initializeManagers(sessionId: string): void {
+    this.memoryManager = new DMMemoryManager(sessionId);
     this.messageHandler = new MessageHandler();
-  }
-
-  /**
-   * Initialize agent tools
-   */
-  private initializeTools(): AgentTool[] {
-    return [
-      this.createCampaignContextTool(),
-      this.createMemoryQueryTool()
-    ];
-  }
-
-  /**
-   * Create campaign context fetching tool
-   */
-  private createCampaignContextTool(): AgentTool {
-    return {
-      name: 'fetch_campaign_context',
-      description: 'Retrieves relevant campaign context and history',
-      execute: async (params: any) => {
-        const { data, error } = await supabase
-          .from('campaigns')
-          .select('*')
-          .eq('id', params.campaignId)
-          .single();
-        
-        if (error) throw error;
-        return data;
-      }
-    };
-  }
-
-  /**
-   * Create memory query tool
-   */
-  private createMemoryQueryTool(): AgentTool {
-    return {
-      name: 'query_memories',
-      description: 'Searches through session memories for relevant information',
-      execute: async (params: any) => {
-        const memories = await this.memoryAdapter.getRecentMemories(params.limit || 5);
-        return memories;
-      }
-    };
+    this.toolManager = new DMAgentTools(this.memoryManager.getMemoryAdapter());
+    this.taskExecutor = new DMTaskExecutor(this.memoryManager.getMemoryAdapter());
   }
 
   /**
@@ -102,28 +56,9 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
    */
   private initializeCrewAIConfig() {
     return {
-      tools: this.tools,
-      memory: this.initializeMemory(),
+      tools: this.toolManager.getTools(),
+      memory: this.memoryManager.initializeMemory(),
       communicate: this.communicate.bind(this)
-    };
-  }
-
-  /**
-   * Initialize memory system
-   */
-  private initializeMemory(): AgentMemory {
-    return {
-      shortTerm: [],
-      longTerm: [],
-      retrieve: async (context: any) => {
-        return this.memoryAdapter.getRecentMemories(5);
-      },
-      store: async (memory: any) => {
-        await this.memoryAdapter.storeMemory(memory);
-      },
-      forget: async (memoryId: string) => {
-        console.log('Memory forget not implemented yet:', memoryId);
-      }
     };
   }
 
@@ -143,62 +78,6 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
    * Execute a task using CrewAI capabilities
    */
   async executeTask(task: any): Promise<any> {
-    return this.handleTaskExecution(task);
-  }
-
-  /**
-   * Handle task execution with memory integration
-   */
-  private async handleTaskExecution(task: any): Promise<any> {
-    console.log('CrewAI DM Agent executing task:', task);
-    
-    try {
-      const memories = await this.memoryAdapter.getRecentMemories();
-      const result = await this.executeAIFunction(task, memories);
-      await this.storeTaskResult(result);
-      
-      return {
-        success: true,
-        message: 'Task executed successfully',
-        data: result
-      };
-    } catch (error) {
-      console.error('Error executing CrewAI DM agent task:', error);
-      return {
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to execute task'
-      };
-    }
-  }
-
-  /**
-   * Execute AI function through Edge Function
-   */
-  private async executeAIFunction(task: any, memories: any[]): Promise<any> {
-    const { data, error } = await supabase.functions.invoke('dm-agent-execute', {
-      body: {
-        task,
-        memories,
-        agentContext: {
-          role: this.role,
-          goal: this.goal,
-          backstory: this.backstory
-        }
-      }
-    });
-
-    if (error) throw error;
-    return data;
-  }
-
-  /**
-   * Store task result in memory
-   */
-  private async storeTaskResult(result: any): Promise<void> {
-    await this.memoryAdapter.storeMemory({
-      content: JSON.stringify(result),
-      type: 'general',
-      importance: 3
-    });
+    return this.taskExecutor.executeTask(task);
   }
 }

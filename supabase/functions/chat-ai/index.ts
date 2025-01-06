@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { ChatMessage } from './types.ts';
+import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3";
+
+const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || '');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,12 +25,25 @@ serve(async (req) => {
     }
     
     console.log('Request data:', { sessionId, messageContent: message.text });
+
+    // Initialize Gemini model
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+    // Create chat context
+    const prompt = `You are a Dungeon Master in a D&D game. Respond to the player's message in an engaging and immersive way.
+    Keep responses concise but descriptive. Focus on advancing the story and creating an engaging atmosphere.
     
-    // For now, just echo back a simple response
-    // This will be enhanced with AI integration later
-    const response = {
+    Player's message: "${message.text}"`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const dmResponse = response.text();
+    
+    console.log('Generated DM response:', dmResponse);
+
+    const aiResponse = {
       id: crypto.randomUUID(),
-      text: `Received your message: ${message.text}`,
+      text: dmResponse,
       sender: 'dm',
       timestamp: new Date().toISOString(),
       context: {
@@ -38,7 +53,7 @@ serve(async (req) => {
     };
 
     return new Response(
-      JSON.stringify(response),
+      JSON.stringify(aiResponse),
       { 
         headers: { 
           ...corsHeaders,

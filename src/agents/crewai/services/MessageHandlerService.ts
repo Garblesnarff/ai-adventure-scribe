@@ -36,19 +36,21 @@ export class MessageHandlerService {
     try {
       console.log('[MessageHandler] Processing task message:', payload);
 
-      // Store task in database
+      const taskData = {
+        task_type: 'agent_task',
+        priority: payload.priority,
+        data: {
+          task: payload.task,
+          delegatedBy: payload.delegatedBy,
+          requiredCapabilities: payload.requiredCapabilities
+        },
+        assigned_agent_id: payload.receiver,
+        status: 'pending'
+      };
+
       const { error } = await supabase
         .from('task_queue')
-        .insert({
-          task_type: 'agent_task',
-          priority: payload.priority,
-          data: {
-            task: payload.task,
-            delegatedBy: payload.delegatedBy,
-            requiredCapabilities: payload.requiredCapabilities
-          },
-          assigned_agent_id: payload.receiver
-        });
+        .insert(taskData);
 
       if (error) throw error;
 
@@ -102,15 +104,16 @@ export class MessageHandlerService {
     try {
       console.log('[MessageHandler] Processing query message:', payload);
 
-      // Store query in database
+      const communicationData = {
+        sender_id: payload.sender,
+        receiver_id: payload.receiver,
+        message_type: MessageType.QUERY,
+        content: JSON.stringify(payload)
+      };
+
       const { error } = await supabase
         .from('agent_communications')
-        .insert({
-          sender_id: payload.sender,
-          receiver_id: payload.receiver,
-          message_type: MessageType.QUERY,
-          content: payload
-        });
+        .insert(communicationData);
 
       if (error) throw error;
 
@@ -275,13 +278,15 @@ export class MessageHandlerService {
    */
   private async notifyAgent(agentId: string, message: any): Promise<void> {
     try {
+      const notificationData = {
+        receiver_id: agentId,
+        message_type: message.type,
+        content: JSON.stringify(message.content)
+      };
+
       await supabase
         .from('agent_communications')
-        .insert({
-          receiver_id: agentId,
-          message_type: message.type,
-          content: message.content
-        });
+        .insert(notificationData);
     } catch (error) {
       console.error('[MessageHandler] Error notifying agent:', error);
       throw error;

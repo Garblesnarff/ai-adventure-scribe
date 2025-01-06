@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ChatMessage } from '@/types/game';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MessageHandlerProps {
   sessionId: string | null;
@@ -45,24 +46,33 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
       // Create the player message
       const playerMessage: ChatMessage = {
         id: crypto.randomUUID(),
-        text: messageContent, // Changed from 'content' to 'text' to match ChatMessage type
+        text: messageContent,
         sender: 'player',
         timestamp: new Date().toISOString(),
       };
 
-      // Process the message through the AI system
-      await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      console.log('Sending message to chat function:', {
+        message: playerMessage,
+        sessionId,
+        campaignId,
+        characterId
+      });
+
+      // Process the message through the AI system using Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('chat-ai', {
+        body: {
           message: playerMessage,
           sessionId,
           campaignId,
           characterId,
-        }),
+        },
       });
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('Chat function response:', data);
 
     } catch (error) {
       console.error('[MessageHandler] Error:', error);

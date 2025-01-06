@@ -18,10 +18,19 @@ serve(async (req) => {
   try {
     const { task, agentContext } = await req.json();
     const campaignDetails = agentContext.campaignDetails;
+    const characterDetails = agentContext.characterDetails;
+    const memories = agentContext.memories || [];
+
+    // Format memories context
+    const recentMemories = memories
+      .sort((a, b) => b.importance - a.importance)
+      .slice(0, 5)
+      .map(m => `- ${m.content} (Type: ${m.type}, Importance: ${m.importance})`)
+      .join('\n');
 
     // Format campaign-specific instructions
     const campaignContext = campaignDetails ? `
-      Campaign Context:
+      Campaign Setting:
       Name: ${campaignDetails.name}
       Genre: ${campaignDetails.genre || 'Standard Fantasy'}
       Tone: ${campaignDetails.tone || 'Balanced'}
@@ -31,28 +40,74 @@ serve(async (req) => {
       Setting Details: ${JSON.stringify(campaignDetails.setting_details || {})}
     ` : '';
 
-    // Format the complete prompt for the DM agent
-    const prompt = `
-      You are a Dungeon Master with the following context:
-      Role: ${agentContext.role}
-      Goal: ${agentContext.goal}
-      Backstory: ${agentContext.backstory}
+    // Format character context if available
+    const characterContext = characterDetails ? `
+      Active Character:
+      Name: ${characterDetails.name}
+      Race: ${characterDetails.race}
+      Class: ${characterDetails.class}
+      Level: ${characterDetails.level}
+      Background: ${characterDetails.background}
+    ` : '';
 
+    // Enhanced prompt structure
+    const prompt = `
+      You are an expert Dungeon Master with the following directives:
+
+      ROLE AND RESPONSIBILITIES:
+      - You are a skilled storyteller who creates immersive, engaging D&D experiences
+      - You maintain narrative consistency while adapting to player choices
+      - You balance challenge and accessibility based on player experience
+      - You create vivid descriptions that engage all senses
+      - You maintain the appropriate tone and atmosphere for the campaign's genre
+
+      CAMPAIGN CONTEXT:
       ${campaignContext}
 
-      Task Description: ${task.description}
-      Expected Output: ${task.expectedOutput}
+      CHARACTER CONTEXT:
+      ${characterContext}
 
-      Please execute this task and provide a response that matches the expected output.
+      RECENT MEMORIES AND EVENTS:
+      ${recentMemories}
+
+      RESPONSE GUIDELINES:
+      1. Structure:
+         - Begin with an immediate reaction or acknowledgment of player action
+         - Provide rich environmental descriptions
+         - Include NPC reactions when relevant
+         - End with clear hooks for player interaction
+
+      2. Tone and Style:
+         - Match the campaign's genre and tone
+         - Use descriptive language that engages all senses
+         - Balance narrative depth with accessibility
+         - Maintain consistent voice and atmosphere
+
+      3. Player Engagement:
+         - Acknowledge player agency and choices
+         - Provide clear consequences for actions
+         - Include interactive elements and decision points
+         - Leave room for player creativity
+
+      4. Technical Elements:
+         - Respect game mechanics and rules
+         - Scale challenges appropriately to difficulty level
+         - Include relevant skill checks when appropriate
+         - Balance combat, roleplay, and exploration
+
+      Current Task: ${task.description}
+      Expected Output: ${task.expectedOutput}
       Additional Context: ${JSON.stringify(task.context || {})}
 
-      Important Guidelines:
-      - Maintain the specified tone and difficulty level
-      - Stay consistent with the campaign's genre and setting
-      - Adapt your language and descriptions to match the campaign's style
+      Remember to:
+      - Stay true to the campaign's tone and setting
+      - Provide clear paths for player interaction
+      - Include sensory details and atmosphere
+      - Maintain narrative consistency with previous events
+      - Scale complexity to match the campaign's difficulty level
     `;
 
-    console.log('Executing DM task with prompt:', prompt);
+    console.log('Executing DM task with enhanced prompt:', prompt);
 
     // Call Gemini API
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });

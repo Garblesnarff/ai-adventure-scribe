@@ -6,6 +6,8 @@ import { ChatInput } from './ChatInput';
 import { VoiceHandler } from './VoiceHandler';
 import { MemoryPanel } from './MemoryPanel';
 import { MessageHandler } from './message/MessageHandler';
+import { MemoryProvider } from '@/contexts/MemoryContext';
+import { MessageProvider } from '@/contexts/MessageContext';
 
 /**
  * GameContent Component
@@ -23,22 +25,26 @@ const GameContent: React.FC = () => {
       <Card className="flex-1 bg-white/90 backdrop-blur-sm shadow-xl p-6">
         <h1 className="text-4xl text-center mb-6 text-primary">D&D Adventure</h1>
         <div className="flex flex-col">
-          <MessageList />
-          <div className="mt-4">
-            <VoiceHandler />
-            <MessageHandler
-              sessionId={sessionId}
-              campaignId={campaignId}
-              characterId={characterId}
-            >
-              {({ handleSendMessage, isProcessing }) => (
-                <ChatInput 
-                  onSendMessage={handleSendMessage}
-                  isDisabled={isProcessing}
-                />
-              )}
-            </MessageHandler>
-          </div>
+          <MessageProvider sessionId={sessionId}>
+            <MemoryProvider sessionId={sessionId}>
+              <MessageList />
+              <div className="mt-4">
+                <VoiceHandler />
+                <MessageHandler
+                  sessionId={sessionId}
+                  campaignId={campaignId}
+                  characterId={characterId}
+                >
+                  {({ handleSendMessage, isProcessing }) => (
+                    <ChatInput 
+                      onSendMessage={handleSendMessage}
+                      isDisabled={isProcessing}
+                    />
+                  )}
+                </MessageHandler>
+              </div>
+            </MemoryProvider>
+          </MessageProvider>
         </div>
       </Card>
       <MemoryPanel />

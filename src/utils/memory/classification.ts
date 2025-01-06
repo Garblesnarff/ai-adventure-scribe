@@ -70,9 +70,7 @@ export const processContent = (content: string): MemorySegment[] => {
   
   return segments.map(segment => {
     const type = classifySegment(segment);
-    const importance = calculateImportance(segment);
-    
-    console.log(`[Memory Classification] Segment: "${segment}"\nType: ${type}, Importance: ${importance}`);
+    const importance = calculateImportance(segment, 0, type);
     
     return {
       content: segment.trim(),

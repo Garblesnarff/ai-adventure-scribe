@@ -1,8 +1,4 @@
 /**
- * Utility functions for splitting content into coherent segments
- */
-
-/**
  * Options for content segmentation
  */
 interface SegmentationOptions {
@@ -19,6 +15,8 @@ const DEFAULT_OPTIONS: SegmentationOptions = {
 
 /**
  * Splits content into coherent segments based on natural language boundaries
+ * @param content - The text content to split
+ * @param options - Optional configuration for segmentation
  */
 export const splitIntoSegments = (
   content: string,

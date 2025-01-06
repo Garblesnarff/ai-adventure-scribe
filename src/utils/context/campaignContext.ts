@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Campaign } from '@/types/campaign';
+import { Campaign, ThematicElements } from '@/types/campaign';
 
 /**
  * Interface for formatted campaign context
@@ -16,12 +16,7 @@ interface FormattedCampaignContext {
     location?: string;
     atmosphere?: string;
   };
-  thematicElements: {
-    mainThemes: string[];
-    recurringMotifs: string[];
-    keyLocations: string[];
-    importantNPCs: string[];
-  };
+  thematicElements: ThematicElements;
 }
 
 /**
@@ -44,6 +39,15 @@ export const buildCampaignContext = async (
     if (error) throw error;
     if (!campaign) return null;
 
+    // Ensure thematic_elements has the correct structure
+    const thematicElements: ThematicElements = {
+      mainThemes: [],
+      recurringMotifs: [],
+      keyLocations: [],
+      importantNPCs: [],
+      ...(campaign.thematic_elements as ThematicElements || {})
+    };
+
     return {
       basicInfo: {
         name: campaign.name,
@@ -56,12 +60,7 @@ export const buildCampaignContext = async (
         location: campaign.location,
         atmosphere: campaign.atmosphere,
       },
-      thematicElements: campaign.thematic_elements || {
-        mainThemes: [],
-        recurringMotifs: [],
-        keyLocations: [],
-        importantNPCs: [],
-      },
+      thematicElements,
     };
   } catch (error) {
     console.error('[Context] Error building campaign context:', error);

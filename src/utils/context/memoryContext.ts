@@ -1,15 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Memory } from '@/types/memory';
-
-/**
- * Interface for formatted memory context
- */
-interface FormattedMemoryContext {
-  recentEvents: Memory[];
-  importantLocations: Memory[];
-  keyCharacters: Memory[];
-  plotPoints: Memory[];
-}
+import { Memory, MemoryContext } from '@/types/memory';
 
 /**
  * Fetches and formats memory context
@@ -18,7 +8,7 @@ interface FormattedMemoryContext {
  */
 export const buildMemoryContext = async (
   sessionId: string
-): Promise<FormattedMemoryContext> => {
+): Promise<MemoryContext> => {
   try {
     console.log('[Context] Fetching memory data:', sessionId);
     
@@ -31,7 +21,7 @@ export const buildMemoryContext = async (
     if (error) throw error;
 
     // Initialize context structure
-    const context: FormattedMemoryContext = {
+    const context: MemoryContext = {
       recentEvents: [],
       importantLocations: [],
       keyCharacters: [],
@@ -40,7 +30,7 @@ export const buildMemoryContext = async (
 
     // Sort memories into categories
     memories?.forEach((memory) => {
-      switch (memory.category) {
+      switch (memory.type) {
         case 'event':
           context.recentEvents.push(memory);
           break;

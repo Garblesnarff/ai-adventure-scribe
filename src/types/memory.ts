@@ -26,3 +26,6 @@ export interface MemoryFilter {
   importance?: number;
   timeframe?: 'recent' | 'all';
 }
+
+// Re-export the Memory type
+export type { Memory };

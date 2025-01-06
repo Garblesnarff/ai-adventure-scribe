@@ -1,11 +1,9 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
 import { useToast } from '@/hooks/use-toast';
 import { ChatMessage } from '@/types/game';
 import { useMessageContext } from '@/contexts/MessageContext';
-import { useMemoryContext } from '@/contexts/MemoryContext';
 import { useSessionValidator } from './handlers/SessionValidator';
-import { MessageProcessor } from './handlers/MessageProcessor';
+import { useMessageProcessing } from '@/hooks/useMessageProcessing';
 
 interface MessageHandlerProps {
   sessionId: string | null;
@@ -34,6 +32,7 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
     campaignId, 
     characterId 
   });
+  const { processMessage } = useMessageProcessing(sessionId || '', messages);
 
   /**
    * Handles the message sending flow with validation and error handling
@@ -72,28 +71,8 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
 
       // Process message and get AI response
       if (!sessionId) throw new Error('No active session found');
-
-      const aiResponse = await new Promise<ChatMessage>((resolve, reject) => {
-        // Create a container element to render the MessageProcessor
-        const container = document.createElement('div');
-        const root = createRoot(container);
-        
-        // Render MessageProcessor into the container
-        root.render(
-          <MessageProcessor
-            sessionId={sessionId}
-            messages={[...messages, playerMessage]}
-            onProcessingComplete={() => {
-              console.log('[MessageHandler] Message processing completed');
-            }}
-            onError={(error) => {
-              console.error('[MessageHandler] Processing error:', error);
-              reject(error);
-            }}
-          />
-        );
-      });
-
+      
+      const aiResponse = await processMessage(playerMessage);
       await sendMessage(aiResponse);
 
     } catch (error: any) {

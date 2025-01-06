@@ -25,10 +25,14 @@ export const useMemoryCreation = (sessionId: string | null) => {
         body: { text },
       });
 
-      // Clone response data before using it
-      const responseData = response.error ? null : { ...response.data };
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
 
-      if (!response.error && responseData?.embedding) {
+      // Clone response data before using it
+      const responseData = response.data ? { ...response.data } : null;
+
+      if (responseData?.embedding) {
         return responseData.embedding;
       }
       
@@ -104,8 +108,8 @@ export const useMemoryCreation = (sessionId: string | null) => {
     onError: (error: any) => {
       console.error('[Memory] Error in memory creation mutation:', error);
       toast({
-        title: "Memory Creation Error",
-        description: error.message || "Failed to create memory",
+        title: "Memory System Warning",
+        description: "Some memories couldn't be saved, but the game will continue",
         variant: "destructive",
       });
     },
@@ -151,7 +155,7 @@ export const useMemoryCreation = (sessionId: string | null) => {
       toast({
         title: "Memory System Warning",
         description: "Some memories couldn't be saved, but the game will continue",
-        variant: "warning",
+        variant: "destructive",
       });
     }
   };

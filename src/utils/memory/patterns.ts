@@ -10,9 +10,6 @@ interface ClassificationPattern {
   importance: number;
 }
 
-/**
- * Enhanced patterns for location classification
- */
 const locationPatterns: ClassificationPattern = {
   type: 'location',
   patterns: [
@@ -110,11 +107,38 @@ const itemPatterns: ClassificationPattern = {
   importance: 5
 };
 
+/**
+ * Enhanced patterns for plot classification
+ */
+const plotPatterns: ClassificationPattern = {
+  type: 'plot',
+  patterns: [
+    // Story elements
+    'plot', 'story', 'narrative', 'arc', 'chapter',
+    // Plot developments
+    'twist', 'reveal', 'secret', 'mystery', 'development',
+    // Story progression
+    'climax', 'resolution', 'conclusion', 'outcome',
+    // Plot points
+    'quest', 'mission', 'objective', 'goal', 'destiny',
+  ],
+  contextPatterns: [
+    // Matches plot developments
+    /(?:major|important|crucial|significant) (?:revelation|discovery|development)/i,
+    // Matches story progression
+    /(?:story|plot|narrative) (?:advances|progresses|unfolds)/i,
+    // Matches plot twists
+    /(?:unexpected|surprising|dramatic) (?:turn|twist|change)/i,
+  ],
+  importance: 9
+};
+
 export const CLASSIFICATION_PATTERNS: Record<MemoryType, ClassificationPattern> = {
   location: locationPatterns,
   character: characterPatterns,
   event: eventPatterns,
   item: itemPatterns,
+  plot: plotPatterns,
   general: {
     type: 'general',
     patterns: [],

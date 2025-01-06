@@ -62,7 +62,11 @@ export const classifySegment = (content: string): MemoryType => {
  * Processes content into classified memory segments
  */
 export const processContent = (content: string): MemorySegment[] => {
-  const segments = splitIntoSegments(content);
+  // Default values for missing parameters
+  const defaultSegmentLength = 100;
+  const defaultOverlap = 20;
+  
+  const segments = splitIntoSegments(content, defaultSegmentLength, defaultOverlap);
   
   return segments.map(segment => {
     const type = classifySegment(segment);

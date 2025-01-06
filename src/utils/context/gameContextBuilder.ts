@@ -101,10 +101,10 @@ export const buildGameContext = async (
           atmosphere: campaignContext.setting.atmosphere || 'neutral',
         },
         themes: {
-          mainThemes: campaignContext.themes.mainThemes || [],
-          recurringMotifs: campaignContext.themes.recurringMotifs || [],
-          keyLocations: campaignContext.themes.keyLocations || [],
-          importantNPCs: campaignContext.themes.importantNPCs || [],
+          mainThemes: campaignContext.thematicElements.mainThemes || [],
+          recurringMotifs: campaignContext.thematicElements.recurringMotifs || [],
+          keyLocations: campaignContext.thematicElements.keyLocations || [],
+          importantNPCs: campaignContext.thematicElements.importantNPCs || [],
         },
       },
       character: characterContext ? {
@@ -118,7 +118,7 @@ export const buildGameContext = async (
           health: {
             current: characterContext.stats.currentHp,
             max: characterContext.stats.maxHp,
-            temporary: characterContext.stats.temporaryHp || 0,
+            temporary: 0, // Default to 0 if not provided
           },
           armorClass: characterContext.stats.armorClass,
           abilities: {
@@ -138,9 +138,9 @@ export const buildGameContext = async (
       } : undefined,
       memories: {
         recent: memoryContext?.recentEvents.slice(0, 5) || [],
-        locations: memoryContext?.importantLocations || [],
-        characters: memoryContext?.keyCharacters || [],
-        plot: memoryContext?.plotPoints || [],
+        locations: memoryContext?.importantLocations,
+        characters: memoryContext?.keyCharacters,
+        plot: memoryContext?.plotPoints,
       },
     };
   } catch (error) {

@@ -1,26 +1,6 @@
 import { Memory, MemoryType } from '@/components/game/memory/types';
 
 /**
- * Interface for categorized memory context
- */
-export interface MemoryContext {
-  recentEvents: Memory[];
-  importantLocations: Memory[];
-  keyCharacters: Memory[];
-  plotPoints: Memory[];
-  currentLocation?: {
-    name: string;
-    description?: string;
-    type?: string;
-  };
-  activeNPCs?: Array<{
-    name: string;
-    type?: string;
-    status: string;
-  }>;
-}
-
-/**
  * Interface for memory with relevance scoring
  */
 export interface ScoredMemory {
@@ -35,6 +15,26 @@ export interface MemoryFilter {
   category?: string;
   importance?: number;
   timeframe?: 'recent' | 'all';
+}
+
+/**
+ * Interface for categorized memory context
+ */
+export interface MemoryContext {
+  recent: Memory[];
+  locations: Memory[];
+  characters: Memory[];
+  plot: Memory[];
+  currentLocation?: {
+    name: string;
+    description?: string;
+    type?: string;
+  };
+  activeNPCs?: Array<{
+    name: string;
+    type?: string;
+    status: string;
+  }>;
 }
 
 // Re-export the Memory and MemoryType types

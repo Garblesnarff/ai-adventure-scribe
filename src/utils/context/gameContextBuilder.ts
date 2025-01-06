@@ -1,12 +1,57 @@
 import { Campaign } from '@/types/campaign';
 import { Character } from '@/types/character';
-import { Memory } from '@/types/memory';
+import { Memory, MemoryContext } from '@/types/memory';
 import { GameContext } from '@/types/game';
 import { buildCampaignContext } from './campaignContext';
 import { buildCharacterContext } from './characterContext';
 import { buildMemoryContext } from './memoryContext';
-import { validateGameContext } from './contextValidation';
-import { createDefaultContext } from './contextDefaults';
+
+/**
+ * Validates the game context structure
+ */
+export const validateGameContext = (context: GameContext): boolean => {
+  try {
+    // Basic validation of required fields
+    if (!context.campaign?.basic?.name) return false;
+    if (!context.campaign?.setting) return false;
+    if (!context.campaign?.thematicElements) return false;
+    if (!context.memories) return false;
+
+    return true;
+  } catch (error) {
+    console.error('[Context] Validation error:', error);
+    return false;
+  }
+};
+
+/**
+ * Creates a default context with fallback values
+ */
+export const createDefaultContext = (): GameContext => ({
+  campaign: {
+    basic: {
+      name: 'Unnamed Campaign',
+      status: 'active',
+    },
+    setting: {
+      era: 'unspecified',
+      location: 'unknown',
+      atmosphere: 'neutral',
+    },
+    thematicElements: {
+      mainThemes: [],
+      recurringMotifs: [],
+      keyLocations: [],
+      importantNPCs: [],
+    },
+  },
+  memories: {
+    recent: [],
+    locations: [],
+    characters: [],
+    plot: [],
+  },
+});
 
 /**
  * Builds a complete game context by combining campaign, character, and memory data
@@ -83,7 +128,14 @@ export const buildGameContext = async (
         : undefined,
 
       memories: memoryContext.status === 'fulfilled' && memoryContext.value
-        ? memoryContext.value
+        ? {
+            recent: memoryContext.value.recent || [],
+            locations: memoryContext.value.locations || [],
+            characters: memoryContext.value.characters || [],
+            plot: memoryContext.value.plot || [],
+            currentLocation: memoryContext.value.currentLocation,
+            activeNPCs: memoryContext.value.activeNPCs,
+          }
         : createDefaultContext().memories,
     };
 
@@ -99,6 +151,3 @@ export const buildGameContext = async (
     return createDefaultContext();
   }
 };
-
-export { validateGameContext } from './contextValidation';
-export { createDefaultContext } from './contextDefaults';

@@ -1,33 +1,26 @@
 import React from 'react';
-import { useGameSession } from '@/hooks/useGameSession';
 import { MessageProvider } from '@/contexts/MessageContext';
 import { MemoryProvider } from '@/contexts/MemoryContext';
 import GameContent from './game/GameContent';
-import { Alert, AlertDescription } from './ui/alert';
+
+interface GameInterfaceProps {
+  sessionId: string | null;
+}
 
 /**
  * GameInterface Component
- * Main component for handling game interactions and message flow
- * Manages the chat interface and message persistence
+ * Provides context providers and renders the main game content
  */
-export const GameInterface: React.FC = () => {
-  const { sessionId, sessionState, error } = useGameSession();
-
-  if (error) {
-    return (
-      <Alert variant="destructive" className="m-4">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
+export const GameInterface: React.FC<GameInterfaceProps> = ({ sessionId }) => {
+  if (!sessionId) {
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-[url('/parchment-bg.png')] bg-cover p-4">
-      <MessageProvider sessionId={sessionId}>
-        <MemoryProvider sessionId={sessionId}>
-          <GameContent />
-        </MemoryProvider>
-      </MessageProvider>
-    </div>
+    <MessageProvider sessionId={sessionId}>
+      <MemoryProvider sessionId={sessionId}>
+        <GameContent />
+      </MemoryProvider>
+    </MessageProvider>
   );
 };

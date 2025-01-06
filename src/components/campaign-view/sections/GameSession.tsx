@@ -30,7 +30,6 @@ export const GameSession: React.FC<GameSessionProps> = ({ campaignId }) => {
   const createGameSession = async () => {
     try {
       console.log('Creating new game session...');
-      // Create new game session
       const { data: session, error } = await supabase
         .from('game_sessions')
         .insert({
@@ -75,21 +74,20 @@ export const GameSession: React.FC<GameSessionProps> = ({ campaignId }) => {
         await createGameSession();
       } else if (sessionId) {
         console.log('Validating existing session...');
-        // Verify session exists and is valid
         const { data: session, error } = await supabase
           .from('game_sessions')
           .select('*')
           .eq('id', sessionId)
-          .single();
+          .eq('status', 'active')
+          .maybeSingle();
 
-        if (error || !session) {
-          throw new Error('Session not found');
-        }
+        if (error) throw error;
 
-        if (session.status !== 'active') {
-          console.log('Session expired, creating new one');
+        if (!session) {
+          console.log('Session not found or inactive, creating new one');
           await createGameSession();
         } else {
+          console.log('Valid active session found:', session.id);
           setSessionStatus('active');
         }
       }
@@ -174,5 +172,14 @@ export const GameSession: React.FC<GameSessionProps> = ({ campaignId }) => {
     );
   }
 
-  return <GameInterface />;
+  if (sessionStatus !== 'active') {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Initializing session...</span>
+      </div>
+    );
+  }
+
+  return <GameInterface sessionId={sessionId} />;
 };

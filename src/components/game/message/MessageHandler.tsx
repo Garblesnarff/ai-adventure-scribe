@@ -97,11 +97,11 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
         // Continue even if memory extraction fails
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in message flow:', error);
       toast({
         title: "Error",
-        description: "Failed to process message. Please try again.",
+        description: error.message || "Failed to process message. Please try again.",
         variant: "destructive",
       });
     }

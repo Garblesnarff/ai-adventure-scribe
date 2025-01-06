@@ -27,7 +27,6 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
   children,
 }) => {
   const { messages, sendMessage, queueStatus } = useMessageContext();
-  const { extractMemories } = useMemoryContext();
   const { toast } = useToast();
   const { validateSession } = useSessionValidator({ 
     sessionId, 
@@ -73,20 +72,23 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
       // Process message and get AI response
       if (!sessionId) throw new Error('No active session found');
 
-      const aiResponse = await MessageProcessor({
-        sessionId,
-        messages: [...messages, playerMessage],
-        onProcessingComplete: () => {
-          console.log('[MessageHandler] Message processing completed');
-        },
-        onError: (error) => {
-          console.error('[MessageHandler] Processing error:', error);
-          toast({
-            title: "Error",
-            description: error.message || "Failed to process message",
-            variant: "destructive",
-          });
-        },
+      const aiResponse = await new Promise<ChatMessage>((resolve, reject) => {
+        const processor = (
+          <MessageProcessor
+            sessionId={sessionId}
+            messages={[...messages, playerMessage]}
+            onProcessingComplete={() => {
+              console.log('[MessageHandler] Message processing completed');
+            }}
+            onError={(error) => {
+              console.error('[MessageHandler] Processing error:', error);
+              reject(error);
+            }}
+          />
+        );
+        
+        // Render the processor component to trigger hooks
+        React.createElement(processor);
       });
 
       await sendMessage(aiResponse);

@@ -3,13 +3,13 @@ import { Json } from '@/integrations/supabase/types';
 /**
  * Available memory types
  */
-export type MemoryType = 'location' | 'character' | 'event' | 'item' | 'general';
+export type MemoryType = 'location' | 'character' | 'event' | 'item' | 'general' | 'plot';
 
 /**
  * Type guard to check if a string is a valid MemoryType
  */
 export function isValidMemoryType(type: string): type is MemoryType {
-  return ['location', 'character', 'event', 'item', 'general'].includes(type);
+  return ['location', 'character', 'event', 'item', 'general', 'plot'].includes(type);
 }
 
 /**

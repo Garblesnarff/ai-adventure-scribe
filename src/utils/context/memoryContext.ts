@@ -1,25 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Memory, MemoryType } from '@/types/memory';
+import { Memory, MemoryType, isValidMemoryType } from '@/components/game/memory/types';
+import { MemoryContext } from '@/types/memory';
 
 /**
- * Interface for formatted memory context
- */
-export interface MemoryContextData {
-  recentEvents: Memory[];
-  importantLocations: Memory[];
-  keyCharacters: Memory[];
-  plotPoints: Memory[];
-  generalMemories: Memory[];
-}
-
-/**
- * Fetches and formats memory context
+ * Builds memory context for a given session
  * @param sessionId - UUID of the game session
  * @returns Formatted memory context or null if not found
  */
 export const buildMemoryContext = async (
   sessionId: string
-): Promise<MemoryContextData | null> => {
+): Promise<MemoryContext | null> => {
   try {
     console.log('[Memory] Fetching memories for session:', sessionId);
     
@@ -31,16 +21,15 @@ export const buildMemoryContext = async (
 
     if (error) throw error;
     
-    const context: MemoryContextData = {
+    const context: MemoryContext = {
       recentEvents: [],
       importantLocations: [],
       keyCharacters: [],
       plotPoints: [],
-      generalMemories: [],
     };
 
     memories?.forEach(memory => {
-      if (!memory.type) return;
+      if (!memory.type || !isValidMemoryType(memory.type)) return;
 
       const typedMemory = {
         ...memory,
@@ -60,8 +49,6 @@ export const buildMemoryContext = async (
         case 'plot':
           context.plotPoints.push(typedMemory);
           break;
-        default:
-          context.generalMemories.push(typedMemory);
       }
     });
 

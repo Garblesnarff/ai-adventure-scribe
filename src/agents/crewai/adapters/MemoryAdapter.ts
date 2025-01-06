@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Memory, MemoryType } from '../types/memory';
+import { Memory, MemoryType, isValidMemoryType } from '@/components/game/memory/types';
 import { Json } from '@/integrations/supabase/types';
 
 /**
@@ -25,7 +25,7 @@ export class MemoryAdapter {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data?.map(this.validateAndConvertMemory) || [];
+    return data?.map(this.validateAndConvertMemory.bind(this)) || [];
   }
 
   /**
@@ -40,15 +40,29 @@ export class MemoryAdapter {
       .limit(limit);
 
     if (error) throw error;
-    return data?.map(this.validateAndConvertMemory) || [];
+    return data?.map(this.validateAndConvertMemory.bind(this)) || [];
   }
 
   /**
    * Stores a new memory
    */
   async storeMemory(memory: Partial<Memory>): Promise<void> {
-    const memoryData = this.prepareMemoryForStorage(memory);
-    
+    if (!memory.content) {
+      throw new Error('Memory content is required');
+    }
+
+    const memoryData = {
+      content: memory.content,
+      type: this.validateMemoryType(memory.type),
+      session_id: this.sessionId,
+      importance: memory.importance || 0,
+      embedding: this.formatEmbedding(memory.embedding),
+      metadata: memory.metadata || {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      category: 'general'
+    };
+
     const { error } = await supabase
       .from('memories')
       .insert([memoryData]);
@@ -64,36 +78,25 @@ export class MemoryAdapter {
   }
 
   /**
-   * Prepares memory data for storage in Supabase
-   */
-  private prepareMemoryForStorage(memory: Partial<Memory>): Record<string, any> {
-    const type = this.validateMemoryType(memory.type);
-
-    return {
-      content: memory.content,
-      type,
-      session_id: this.sessionId,
-      importance: memory.importance || 0,
-      embedding: this.formatEmbedding(memory.embedding),
-      metadata: memory.metadata || {},
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-  }
-
-  /**
    * Validates and formats the embedding data
    */
-  private formatEmbedding(embedding: string | number[] | undefined): string {
+  private formatEmbedding(embedding?: number[] | string | null): string {
     if (!embedding) return '';
-    return Array.isArray(embedding) ? JSON.stringify(embedding) : embedding;
+    if (Array.isArray(embedding)) {
+      return JSON.stringify(embedding);
+    }
+    return embedding;
   }
 
   /**
    * Validates memory type
    */
-  private validateMemoryType(type: MemoryType | undefined): MemoryType {
-    return type && isValidMemoryType(type) ? type : 'general';
+  private validateMemoryType(type?: MemoryType): MemoryType {
+    if (type && isValidMemoryType(type)) {
+      return type;
+    }
+    console.warn(`Invalid memory type: ${type}, defaulting to 'general'`);
+    return 'general';
   }
 
   /**
@@ -113,23 +116,27 @@ export class MemoryAdapter {
    * Validates and converts a database record to a Memory object
    */
   private validateAndConvertMemory(record: any): Memory {
+    const validatedType = this.validateMemoryType(record.type as MemoryType);
+    
+    let parsedEmbedding: number[] | null = null;
+    if (record.embedding) {
+      try {
+        parsedEmbedding = JSON.parse(record.embedding);
+      } catch {
+        console.warn('Failed to parse embedding, using null');
+      }
+    }
+
     return {
       id: record.id || '',
       content: record.content || '',
-      type: this.validateMemoryType(record.type as MemoryType),
+      type: validatedType,
       session_id: record.session_id || this.sessionId,
       importance: record.importance || 0,
-      embedding: record.embedding || '',
+      embedding: parsedEmbedding,
       metadata: record.metadata || {},
       created_at: record.created_at || new Date().toISOString(),
       updated_at: record.updated_at || new Date().toISOString(),
     };
   }
-}
-
-/**
- * Type guard for memory types
- */
-function isValidMemoryType(type: string): type is MemoryType {
-  return ['general', 'location', 'character', 'plot', 'item'].includes(type);
 }

@@ -12,15 +12,32 @@ const CLEANUP_INTERVAL = 1000 * 60 * 5; // Check every 5 minutes
 export const useGameSession = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionState, setSessionState] = useState<'active' | 'expired' | 'ending'>('active');
-  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   /**
-   * Checks if a session has expired
+   * Creates a new game session
    */
-  const isSessionExpired = (session: GameSession) => {
-    const startTime = new Date(session.start_time).getTime();
-    return Date.now() - startTime > SESSION_EXPIRY_TIME;
+  const createGameSession = async () => {
+    const { data, error } = await supabase
+      .from('game_sessions')
+      .insert([{ 
+        session_number: 1,
+        status: 'active'
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating game session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create game session",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    return data.id;
   };
 
   /**
@@ -44,6 +61,14 @@ export const useGameSession = () => {
   };
 
   /**
+   * Checks if a session has expired
+   */
+  const isSessionExpired = (session: GameSession) => {
+    const startTime = new Date(session.start_time).getTime();
+    return Date.now() - startTime > SESSION_EXPIRY_TIME;
+  };
+
+  /**
    * Cleans up expired session with summary
    */
   const cleanupSession = async (sessionId: string) => {
@@ -55,13 +80,17 @@ export const useGameSession = () => {
       .update({ 
         end_time: new Date().toISOString(),
         summary,
-        status: 'completed'
+        status: 'completed' as const
       })
       .eq('id', sessionId);
 
     if (error) {
       console.error('Error cleaning up session:', error);
-      setError('Failed to cleanup session properly');
+      toast({
+        title: "Error",
+        description: "Failed to cleanup session properly",
+        variant: "destructive",
+      });
     }
     
     setSessionState('expired');
@@ -90,6 +119,13 @@ export const useGameSession = () => {
           setSessionId(null);
         }
       }
+
+      // Create new session if needed
+      if (!sessionId) {
+        const newSessionId = await createGameSession();
+        setSessionId(newSessionId);
+        setSessionState('active');
+      }
     };
 
     initSession();
@@ -109,14 +145,10 @@ export const useGameSession = () => {
       }
     }, CLEANUP_INTERVAL);
 
-    // Cleanup on unmount
     return () => {
       clearInterval(cleanup);
-      if (sessionId) {
-        cleanupSession(sessionId);
-      }
     };
   }, [sessionId]);
 
-  return { sessionId, setSessionId, sessionState, error };
+  return { sessionId, setSessionId, sessionState };
 };

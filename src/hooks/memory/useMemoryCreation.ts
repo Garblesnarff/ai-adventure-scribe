@@ -1,5 +1,5 @@
 /**
- * Hook for handling memory creation operations with improved validation and response handling
+ * Hook for handling memory creation operations
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,17 +8,7 @@ import { processContent } from '@/utils/memoryClassification';
 import { Memory } from '@/components/game/memory/types';
 
 /**
- * Validates and normalizes importance value to be between 1-10
- */
-const validateImportance = (value: number | undefined): number => {
-  if (typeof value !== 'number' || isNaN(value)) {
-    return 5; // Default importance
-  }
-  return Math.min(Math.max(Math.round(value), 1), 10);
-};
-
-/**
- * Custom hook for creating memories with improved error handling
+ * Custom hook for creating memories with improved classification
  */
 export const useMemoryCreation = (sessionId: string | null) => {
   const { toast } = useToast();
@@ -31,15 +21,17 @@ export const useMemoryCreation = (sessionId: string | null) => {
     try {
       console.log('[Memory] Starting embedding generation for text:', text);
       
-      const response = await supabase.functions.invoke('generate-embedding', {
+      const { data, error } = await supabase.functions.invoke('generate-embedding', {
         body: { text },
       });
 
-      if (!response.data || response.error) {
-        throw new Error(response.error?.message || 'Failed to generate embedding');
+      if (error) throw error;
+      
+      if (!data?.embedding) {
+        throw new Error('Invalid embedding format received from API');
       }
 
-      return response.data.embedding;
+      return data.embedding;
     } catch (error) {
       console.error('[Memory] Error generating embedding:', error);
       throw error;
@@ -47,61 +39,48 @@ export const useMemoryCreation = (sessionId: string | null) => {
   };
 
   /**
-   * Create a new memory entry with embedding and validated importance
+   * Create a new memory entry with embedding
    */
   const createMemory = useMutation({
     mutationFn: async (memory: Omit<Memory, 'id' | 'created_at' | 'updated_at'>) => {
       if (!sessionId) throw new Error('No active session');
 
-      try {
-        // Validate importance before proceeding
-        const validatedImportance = validateImportance(memory.importance);
-        console.log('[Memory] Validated importance:', validatedImportance);
-
-        // Generate embedding first
-        const embedding = await generateEmbedding(memory.content);
-        
-        // Prepare validated memory data
-        const memoryData = {
+      console.log('[Memory] Starting memory creation process:', memory);
+      
+      const embedding = await generateEmbedding(memory.content);
+      
+      const { data, error } = await supabase
+        .from('memories')
+        .insert([{ 
           ...memory,
           session_id: sessionId,
-          importance: validatedImportance,
           embedding,
           metadata: memory.metadata || {},
-        };
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
 
-        const { data, error } = await supabase
-          .from('memories')
-          .insert([memoryData])
-          .select()
-          .single();
+      if (error) throw error;
 
-        if (error) {
-          console.error('[Memory] Error in memory creation:', error);
-          throw error;
-        }
-
-        return data;
-      } catch (error: any) {
-        console.error('[Memory] Error in memory creation:', error);
-        throw error;
-      }
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['memories', sessionId] });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       console.error('[Memory] Error in memory creation mutation:', error);
       toast({
-        title: "Memory System Warning",
-        description: "Some memories couldn't be saved, but the game will continue",
+        title: "Error",
+        description: "Failed to create memory: " + error.message,
         variant: "destructive",
       });
     },
   });
 
   /**
-   * Extract and store memories from content with improved error handling
+   * Extract and store memories from content with improved classification
    */
   const extractMemories = async (content: string) => {
     try {
@@ -110,33 +89,24 @@ export const useMemoryCreation = (sessionId: string | null) => {
       console.log('[Memory] Processing content for memory extraction:', content);
       
       const memorySegments = processContent(content);
+      
       console.log('[Memory] Classified segments:', memorySegments);
 
-      // Process each memory segment sequentially to avoid response stream issues
+      // Create memories for each classified segment
       for (const segment of memorySegments) {
-        try {
-          await createMemory.mutateAsync({
-            session_id: sessionId,
-            type: segment.type,
-            content: segment.content,
-            importance: validateImportance(segment.importance),
-            metadata: {},
-          });
-        } catch (segmentError) {
-          console.error(`[Memory] Failed to create memory:`, segmentError);
-          // Continue with next segment even if one fails
-        }
+        await createMemory.mutateAsync({
+          session_id: sessionId,
+          type: segment.type,
+          content: segment.content,
+          importance: segment.importance,
+          metadata: {},
+        });
       }
 
-      console.log('[Memory] Memory extraction completed');
-    } catch (error: any) {
+      console.log('[Memory] Memory extraction completed successfully');
+    } catch (error) {
       console.error('[Memory] Error extracting memories:', error);
-      // Don't throw the error, just log it and show toast
-      toast({
-        title: "Memory System Warning",
-        description: "Some memories couldn't be saved, but the game will continue",
-        variant: "destructive",
-      });
+      throw error;
     }
   };
 

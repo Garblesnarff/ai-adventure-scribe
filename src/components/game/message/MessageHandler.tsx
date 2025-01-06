@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { ChatMessage } from '@/types/game';
+import React from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { ChatMessage } from '@/types/game';
 import { useMessageContext } from '@/contexts/MessageContext';
+import { useMemoryContext } from '@/contexts/MemoryContext';
+import { useAIResponse } from '@/hooks/useAIResponse';
+import { useSessionValidator } from '../session/SessionValidator';
 
 interface MessageHandlerProps {
   sessionId: string | null;
-  campaignId: string | undefined;
+  campaignId: string | null;
   characterId: string | null;
   children: (props: {
     handleSendMessage: (message: string) => Promise<void>;
@@ -16,83 +18,77 @@ interface MessageHandlerProps {
 
 /**
  * MessageHandler Component
- * Handles the processing and management of chat messages
+ * Manages message processing and AI responses
  */
 export const MessageHandler: React.FC<MessageHandlerProps> = ({
   sessionId,
   campaignId,
   characterId,
-  children
+  children,
 }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const { messages, sendMessage, queueStatus } = useMessageContext();
+  const { extractMemories } = useMemoryContext();
+  const { getAIResponse } = useAIResponse();
   const { toast } = useToast();
-  const { sendMessage } = useMessageContext();
+  const validateSession = useSessionValidator({ sessionId, campaignId, characterId });
 
-  /**
-   * Handles sending a new message
-   * @param messageContent Content of the message to send
-   */
-  const handleSendMessage = async (messageContent: string) => {
-    if (!sessionId || !campaignId || !characterId) {
-      toast({
-        title: "Error",
-        description: "Missing required session information",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsProcessing(true);
+  const handleSendMessage = async (playerInput: string) => {
+    if (queueStatus === 'processing') return;
 
     try {
-      // Create the player message
+      // Validate session before proceeding
+      const isValid = await validateSession();
+      if (!isValid) return;
+
+      // Add player message
       const playerMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        text: messageContent,
+        text: playerInput,
         sender: 'player',
-        timestamp: new Date().toISOString(),
-      };
-
-      // Send player message to context
-      await sendMessage(playerMessage);
-
-      console.log('Sending message to chat function:', {
-        message: playerMessage,
-        sessionId,
-        campaignId,
-        characterId
-      });
-
-      // Process the message through the AI system using Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke('chat-ai', {
-        body: {
-          message: playerMessage,
-          sessionId,
-          campaignId,
-          characterId,
+        context: {
+          emotion: 'neutral',
+          intent: 'query',
         },
-      });
-
-      if (error) throw error;
-
-      console.log('Chat function response:', data);
-
-      // Send DM response to context
-      if (data) {
-        await sendMessage(data);
+      };
+      await sendMessage(playerMessage);
+      
+      // Extract memories from player input
+      await extractMemories(playerInput);
+      
+      // Add system acknowledgment
+      const systemMessage: ChatMessage = {
+        text: "Processing your request...",
+        sender: 'system',
+        context: {
+          intent: 'acknowledgment',
+        },
+      };
+      await sendMessage(systemMessage);
+      
+      // Get AI response
+      if (!sessionId) {
+        throw new Error('No active session found');
+      }
+      
+      const aiResponse = await getAIResponse([...messages, playerMessage], sessionId);
+      await sendMessage(aiResponse);
+      
+      // Extract memories from AI response
+      if (aiResponse.text) {
+        await extractMemories(aiResponse.text);
       }
 
     } catch (error) {
-      console.error('[MessageHandler] Error:', error);
+      console.error('Error in message flow:', error);
       toast({
         title: "Error",
-        description: "Failed to process message",
-        variant: "destructive"
+        description: "Failed to process message. Please try again.",
+        variant: "destructive",
       });
-    } finally {
-      setIsProcessing(false);
     }
   };
 
-  return <>{children({ handleSendMessage, isProcessing })}</>;
+  return children({
+    handleSendMessage,
+    isProcessing: queueStatus === 'processing',
+  });
 };

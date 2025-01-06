@@ -1,5 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { fetchRelevantMemories, updateMemoryImportance } from './memory-utils.ts';
+import { ChatMessage } from './types.ts';
+import { 
+  fetchRelevantMemories, 
+  calculateMemoryRelevance, 
+  updateMemoryImportance,
+  formatMemoryContext 
+} from './memory-utils.ts';
+import { generateAIResponse } from './ai-handler.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,67 +22,53 @@ serve(async (req) => {
   try {
     console.log('Processing chat request...');
     
-    const { message, sessionId, campaignId, characterId } = await req.json();
+    const { messages, sessionId } = await req.json();
     
-    if (!message || !sessionId || !campaignId || !characterId) {
-      console.error('Missing required parameters:', { message, sessionId, campaignId, characterId });
-      throw new Error('Missing required parameters');
+    if (!messages || !Array.isArray(messages)) {
+      console.error('Invalid messages format:', messages);
+      throw new Error('Messages array is required');
+    }
+
+    if (!sessionId) {
+      console.error('Missing sessionId');
+      throw new Error('Session ID is required');
     }
     
-    console.log('Request data:', { sessionId, messageContent: message.text });
-
-    // Fetch relevant memories for context
-    const memories = await fetchRelevantMemories(sessionId, message.context);
-    console.log(`Retrieved ${memories.length} relevant memories`);
-
-    // Call DM Agent through edge function with memories
-    const agentResponse = await fetch(
-      `${Deno.env.get('SUPABASE_URL')}/functions/v1/dm-agent-execute`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-        },
-        body: JSON.stringify({
-          task: {
-            id: crypto.randomUUID(),
-            description: `Process player message: ${message.text}`,
-            expectedOutput: 'Engaging D&D response with context',
-            context: {
-              messageHistory: [message],
-              memories,
-              campaignId,
-              characterId,
-              sessionId
-            }
-          }
-        })
-      }
-    );
-
-    if (!agentResponse.ok) {
-      throw new Error(`DM Agent responded with status: ${agentResponse.status}`);
-    }
-
-    const agentData = await agentResponse.json();
+    console.log('Request data:', { sessionId, messageCount: messages.length });
     
-    if (!agentData || !agentData.response) {
-      throw new Error('Invalid response from DM Agent');
-    }
+    // Get latest message context
+    const latestMessage = messages[messages.length - 1];
+    const context = latestMessage?.context || {};
+    
+    console.log('Fetching relevant memories...');
+    
+    // Fetch and score relevant memories
+    const memories = await fetchRelevantMemories(sessionId, context);
+    const scoredMemories = memories
+      .map(memory => ({
+        memory,
+        relevanceScore: calculateMemoryRelevance(memory, context)
+      }))
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, 3); // Keep top 3 most relevant memories
+    
+    console.log(`Found ${scoredMemories.length} relevant memories`);
+    
+    // Format memory context
+    const memoryContext = formatMemoryContext(scoredMemories);
+    
+    console.log('Generating AI response...');
+    
+    // Generate AI response
+    const text = await generateAIResponse(messages, memoryContext);
+    console.log('Generated AI response:', text);
 
-    console.log('DM Agent response:', agentData);
+    // Update memory importance based on AI response
+    await updateMemoryImportance(memories, text);
 
-    // Update memory importance based on agent response
-    if (memories.length > 0) {
-      await updateMemoryImportance(memories, agentData.response);
-    }
-
-    const aiResponse = {
-      id: crypto.randomUUID(),
-      text: agentData.response,
+    const response = {
+      text,
       sender: 'dm',
-      timestamp: new Date().toISOString(),
       context: {
         emotion: 'neutral',
         intent: 'response',
@@ -83,7 +76,7 @@ serve(async (req) => {
     };
 
     return new Response(
-      JSON.stringify(aiResponse),
+      JSON.stringify(response),
       { 
         headers: { 
           ...corsHeaders,
@@ -94,6 +87,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in chat-ai function:', error);
     
+    // Return a more detailed error response
     return new Response(
       JSON.stringify({ 
         error: error.message,

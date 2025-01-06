@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Memory, MemoryContext } from '@/types/memory';
+import { isValidMemoryType } from '@/components/game/memory/types';
 
 /**
  * Interface for memory filtering options
@@ -61,9 +62,12 @@ export const buildMemoryContext = async (
 
     // Process and categorize memories
     memories?.forEach(memory => {
+      // Validate memory type
+      const validatedType = isValidMemoryType(memory.type) ? memory.type : 'general';
+      
       const memoryObj: Memory = {
         id: memory.id,
-        type: memory.type,
+        type: validatedType,
         content: memory.content,
         importance: calculateImportance(memory),
         created_at: memory.created_at || new Date().toISOString(),
@@ -73,8 +77,8 @@ export const buildMemoryContext = async (
         embedding: memory.embedding,
       };
 
-      // Categorize memory based on type
-      switch (memory.type) {
+      // Categorize memory based on validated type
+      switch (validatedType) {
         case 'event':
           context.recentEvents.push(memoryObj);
           break;

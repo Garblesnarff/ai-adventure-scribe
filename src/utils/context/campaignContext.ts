@@ -67,19 +67,22 @@ export const buildCampaignContext = async (
     if (campaignError) throw campaignError;
     if (!campaign) return null;
 
-    // Ensure thematic elements are properly typed
+    // Parse thematic elements with type safety
+    const rawThematicElements = campaign.thematic_elements as Record<string, unknown>;
+    
+    // Ensure thematic elements are properly typed with validation
     const thematicElements: ThematicElements = {
-      mainThemes: Array.isArray(campaign.thematic_elements?.mainThemes) 
-        ? campaign.thematic_elements.mainThemes 
+      mainThemes: Array.isArray(rawThematicElements?.mainThemes) 
+        ? rawThematicElements.mainThemes as string[]
         : [],
-      recurringMotifs: Array.isArray(campaign.thematic_elements?.recurringMotifs)
-        ? campaign.thematic_elements.recurringMotifs
+      recurringMotifs: Array.isArray(rawThematicElements?.recurringMotifs)
+        ? rawThematicElements.recurringMotifs as string[]
         : [],
-      keyLocations: Array.isArray(campaign.thematic_elements?.keyLocations)
-        ? campaign.thematic_elements.keyLocations
+      keyLocations: Array.isArray(rawThematicElements?.keyLocations)
+        ? rawThematicElements.keyLocations as string[]
         : [],
-      importantNPCs: Array.isArray(campaign.thematic_elements?.importantNPCs)
-        ? campaign.thematic_elements.importantNPCs
+      importantNPCs: Array.isArray(rawThematicElements?.importantNPCs)
+        ? rawThematicElements.importantNPCs as string[]
         : []
     };
 

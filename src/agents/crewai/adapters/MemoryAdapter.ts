@@ -80,28 +80,28 @@ export class MemoryAdapter implements AgentMemory {
       // Validate memory type
       const type = memory.type && isValidMemoryType(memory.type) ? memory.type : 'general';
 
+      // Prepare the memory data for Supabase
+      const memoryData = {
+        content: memory.content,
+        type,
+        session_id: this.sessionId,
+        importance: memory.importance || 0,
+        embedding: Array.isArray(memory.embedding) ? JSON.stringify(memory.embedding) : memory.embedding,
+        metadata: memory.metadata || {},
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
       const { error } = await supabase
         .from('memories')
-        .insert([{
-          content: memory.content,
-          type,
-          session_id: this.sessionId,
-          importance: memory.importance || 0,
-          embedding: memory.embedding,
-          metadata: memory.metadata || {},
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }]);
+        .insert([memoryData]);
 
       if (error) throw error;
 
       // Update local cache
       const newMemory = this.validateAndConvertMemory({
-        ...memory,
-        type,
-        session_id: this.sessionId,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        ...memoryData,
+        id: '', // Will be replaced by actual ID from database
       });
 
       if (this.shortTerm.length >= 10) {

@@ -41,11 +41,10 @@ export const buildCampaignContext = async (
 
     // Ensure thematic_elements has the correct structure
     const thematicElements: ThematicElements = {
-      mainThemes: [],
-      recurringMotifs: [],
-      keyLocations: [],
-      importantNPCs: [],
-      ...(campaign.thematic_elements as ThematicElements || {})
+      mainThemes: Array.isArray(campaign.thematic_elements?.mainThemes) ? campaign.thematic_elements.mainThemes : [],
+      recurringMotifs: Array.isArray(campaign.thematic_elements?.recurringMotifs) ? campaign.thematic_elements.recurringMotifs : [],
+      keyLocations: Array.isArray(campaign.thematic_elements?.keyLocations) ? campaign.thematic_elements.keyLocations : [],
+      importantNPCs: Array.isArray(campaign.thematic_elements?.importantNPCs) ? campaign.thematic_elements.importantNPCs : [],
     };
 
     return {

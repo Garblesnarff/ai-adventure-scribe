@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Memory, MemoryContext } from '@/types/memory';
+import { Memory, MemoryContext, MemoryType, isValidMemoryType } from '@/components/game/memory/types';
 
 /**
  * Fetches and formats memory context
@@ -29,8 +29,20 @@ export const buildMemoryContext = async (
     };
 
     // Sort memories into categories
-    memories?.forEach((memory) => {
-      switch (memory.type) {
+    memories?.forEach((memoryData) => {
+      // Validate memory type
+      const type = isValidMemoryType(memoryData.type) ? memoryData.type : 'general';
+      
+      // Convert database record to Memory type
+      const memory: Memory = {
+        ...memoryData,
+        type,
+        importance: memoryData.importance || 1,
+        metadata: memoryData.metadata || null,
+      };
+
+      // Sort into appropriate category
+      switch (type) {
         case 'event':
           context.recentEvents.push(memory);
           break;
@@ -39,9 +51,6 @@ export const buildMemoryContext = async (
           break;
         case 'character':
           context.keyCharacters.push(memory);
-          break;
-        case 'plot':
-          context.plotPoints.push(memory);
           break;
         default:
           // For uncategorized memories, add to most relevant category based on content

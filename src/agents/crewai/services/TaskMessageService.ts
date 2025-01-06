@@ -1,16 +1,29 @@
 import { supabase } from '@/integrations/supabase/client';
 import { BaseMessageService } from './BaseMessageService';
 import { TaskMessagePayload } from '../types/messages';
-import { MessageType } from '../types/communication';
+import { MessageType, MessagePriority } from '../types/communication';
 
 export class TaskMessageService extends BaseMessageService {
+  private convertPriorityToNumber(priority: MessagePriority): number {
+    switch (priority) {
+      case MessagePriority.HIGH:
+        return 3;
+      case MessagePriority.MEDIUM:
+        return 2;
+      case MessagePriority.LOW:
+        return 1;
+      default:
+        return 1;
+    }
+  }
+
   public async handleTaskMessage(payload: TaskMessagePayload): Promise<void> {
     try {
       console.log('[TaskMessageService] Processing task message:', payload);
 
       const taskData = {
         task_type: 'agent_task',
-        priority: payload.priority,
+        priority: this.convertPriorityToNumber(payload.priority),
         data: JSON.stringify({
           task: {
             id: payload.task.id,

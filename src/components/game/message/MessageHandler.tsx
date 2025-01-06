@@ -18,7 +18,7 @@ interface MessageHandlerProps {
 
 /**
  * MessageHandler Component
- * Manages message processing and AI responses
+ * Manages message processing and AI responses with improved error handling
  */
 export const MessageHandler: React.FC<MessageHandlerProps> = ({
   sessionId,
@@ -33,12 +33,22 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
   const validateSession = useSessionValidator({ sessionId, campaignId, characterId });
 
   const handleSendMessage = async (playerInput: string) => {
-    if (queueStatus === 'processing') return;
+    if (queueStatus === 'processing') {
+      console.log('[MessageHandler] Message already processing, skipping');
+      return;
+    }
 
     try {
       // Validate session before proceeding
       const isValid = await validateSession();
-      if (!isValid) return;
+      if (!isValid) {
+        toast({
+          title: "Session Error",
+          description: "Invalid game session. Please try refreshing the page.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Add player message
       const playerMessage: ChatMessage = {
@@ -51,8 +61,13 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
       };
       await sendMessage(playerMessage);
       
-      // Extract memories from player input
-      await extractMemories(playerInput);
+      try {
+        // Extract memories from player input
+        await extractMemories(playerInput);
+      } catch (memoryError) {
+        console.error('[MessageHandler] Memory extraction error:', memoryError);
+        // Continue with message flow even if memory extraction fails
+      }
       
       // Add system acknowledgment
       const systemMessage: ChatMessage = {
@@ -72,9 +87,14 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
       const aiResponse = await getAIResponse([...messages, playerMessage], sessionId);
       await sendMessage(aiResponse);
       
-      // Extract memories from AI response
-      if (aiResponse.text) {
-        await extractMemories(aiResponse.text);
+      try {
+        // Extract memories from AI response
+        if (aiResponse.text) {
+          await extractMemories(aiResponse.text);
+        }
+      } catch (memoryError) {
+        console.error('[MessageHandler] Memory extraction error for AI response:', memoryError);
+        // Continue even if memory extraction fails
       }
 
     } catch (error) {

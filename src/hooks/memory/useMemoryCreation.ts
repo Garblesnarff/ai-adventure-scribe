@@ -25,14 +25,14 @@ export const useMemoryCreation = (sessionId: string | null) => {
         body: { text },
       });
 
-      if (response.error) throw response.error;
-      
-      const { data } = response;
-      if (!data?.embedding) {
-        throw new Error('Invalid embedding format received from API');
+      if (!response.error) {
+        const { data } = response;
+        if (data?.embedding) {
+          return data.embedding;
+        }
       }
-
-      return data.embedding;
+      
+      throw new Error('Invalid embedding format received from API');
     } catch (error) {
       console.error('[Memory] Error generating embedding:', error);
       throw error;
@@ -69,31 +69,34 @@ export const useMemoryCreation = (sessionId: string | null) => {
 
       console.log('[Memory] Starting memory creation process:', memory);
       
-      const embedding = await generateEmbedding(memory.content);
-      const validatedImportance = validateImportance(memory.importance);
-      
-      console.log('[Memory] Inserting memory with validated importance:', validatedImportance);
-      
-      const { data, error } = await supabase
-        .from('memories')
-        .insert([{ 
-          ...memory,
-          session_id: sessionId,
-          embedding,
-          importance: validatedImportance,
-          metadata: memory.metadata || {},
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
-        .select()
-        .single();
+      try {
+        const embedding = await generateEmbedding(memory.content);
+        const validatedImportance = validateImportance(memory.importance);
+        
+        console.log('[Memory] Inserting memory with validated importance:', validatedImportance);
+        
+        const { data, error } = await supabase
+          .from('memories')
+          .insert([{ 
+            ...memory,
+            session_id: sessionId,
+            embedding,
+            importance: validatedImportance,
+            metadata: memory.metadata || {},
+          }])
+          .select()
+          .single();
 
-      if (error) {
+        if (error) {
+          console.error('[Memory] Error in memory creation:', error);
+          throw error;
+        }
+
+        return data;
+      } catch (error) {
         console.error('[Memory] Error in memory creation:', error);
         throw error;
       }
-
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['memories', sessionId] });

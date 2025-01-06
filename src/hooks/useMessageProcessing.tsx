@@ -1,6 +1,4 @@
 import { ChatMessage } from '@/types/game';
-import { createRoot } from 'react-dom/client';
-import { MessageProcessor } from '@/components/game/message/handlers/MessageProcessor';
 
 /**
  * Custom hook for processing messages through the AI system
@@ -15,33 +13,28 @@ export const useMessageProcessing = (sessionId: string, messages: ChatMessage[])
    * @returns Promise resolving to AI response
    */
   const processMessage = async (playerMessage: ChatMessage): Promise<ChatMessage> => {
-    return new Promise<ChatMessage>((resolve, reject) => {
-      try {
-        // Create container for MessageProcessor
-        const container = document.createElement('div');
-        const root = createRoot(container);
-        
-        // Render MessageProcessor
-        root.render(
-          <MessageProcessor
-            sessionId={sessionId}
-            messages={[...messages, playerMessage]}
-            onProcessingComplete={() => {
-              console.log('[MessageProcessor] Processing completed');
-              root.unmount(); // Cleanup
-            }}
-            onError={(error) => {
-              console.error('[MessageProcessor] Error:', error);
-              root.unmount(); // Cleanup
-              reject(error);
-            }}
-          />
-        );
-      } catch (error) {
-        console.error('[MessageProcessing] Setup error:', error);
-        reject(error);
+    try {
+      const response = await fetch('/api/process-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId,
+          messages: [...messages, playerMessage],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process message');
       }
-    });
+
+      const data = await response.json();
+      return data.message;
+    } catch (error) {
+      console.error('[MessageProcessing] Error:', error);
+      throw error;
+    }
   };
 
   return { processMessage };

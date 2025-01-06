@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3";
-import { ChatMessage, AgentContext, TaskExecutionResponse } from './types.ts';
+import { formatMemoryContext } from '../chat-ai/memory-utils.ts';
 
 const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || '');
 
@@ -10,47 +10,26 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { task, agentContext } = await req.json();
-    const campaignDetails = agentContext.campaignDetails;
+    const { task } = await req.json();
+    const { messageHistory, memories, campaignId } = task.context;
 
-    // Format campaign-specific instructions
-    const campaignContext = campaignDetails ? `
-      Campaign Context:
-      Name: ${campaignDetails.name}
-      Genre: ${campaignDetails.genre || 'Standard Fantasy'}
-      Tone: ${campaignDetails.tone || 'Balanced'}
-      Difficulty: ${campaignDetails.difficulty_level || 'Medium'}
-      Description: ${campaignDetails.description || 'A classic D&D adventure'}
-      Campaign Length: ${campaignDetails.campaign_length || 'Standard'}
-      Setting Details: ${JSON.stringify(campaignDetails.setting_details || {})}
-    ` : '';
+    // Format memory context
+    const memoryContext = formatMemoryContext(memories);
 
     // Format the complete prompt for the DM agent
-    const prompt = `
-      You are a Dungeon Master with the following context:
-      Role: ${agentContext.role}
-      Goal: ${agentContext.goal}
-      Backstory: ${agentContext.backstory}
-
-      ${campaignContext}
-
-      Task Description: ${task.description}
-      Expected Output: ${task.expectedOutput}
-
-      Please execute this task and provide a response that matches the expected output.
-      Additional Context: ${JSON.stringify(task.context || {})}
-
-      Important Guidelines:
-      - Maintain the specified tone and difficulty level
-      - Stay consistent with the campaign's genre and setting
-      - Adapt your language and descriptions to match the campaign's style
-    `;
+    const prompt = `You are a Dungeon Master in a D&D game. Your role is to create an engaging, immersive experience.
+    
+    Player's latest message: "${messageHistory[0].text}"
+    
+    ${memoryContext}
+    
+    Respond in character as the DM, incorporating relevant memories and maintaining narrative consistency.
+    Keep responses concise but descriptive. Focus on advancing the story and creating an engaging atmosphere.`;
 
     console.log('Executing DM task with prompt:', prompt);
 

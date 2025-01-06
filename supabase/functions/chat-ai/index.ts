@@ -1,7 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.1.3";
-
-const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') || '');
+import { fetchRelevantMemories, updateMemoryImportance } from './memory-utils.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,24 +24,48 @@ serve(async (req) => {
     
     console.log('Request data:', { sessionId, messageContent: message.text });
 
-    // Initialize Gemini model
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    // Fetch relevant memories for context
+    const memories = await fetchRelevantMemories(sessionId, message.context);
+    console.log(`Retrieved ${memories.length} relevant memories`);
 
-    // Create chat context
-    const prompt = `You are a Dungeon Master in a D&D game. Respond to the player's message in an engaging and immersive way.
-    Keep responses concise but descriptive. Focus on advancing the story and creating an engaging atmosphere.
-    
-    Player's message: "${message.text}"`;
+    // Call DM Agent through edge function with memories
+    const { data: agentResponse, error: agentError } = await fetch(
+      `${Deno.env.get('SUPABASE_URL')}/functions/v1/dm-agent-execute`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        },
+        body: JSON.stringify({
+          task: {
+            id: crypto.randomUUID(),
+            description: `Process player message: ${message.text}`,
+            expectedOutput: 'Engaging D&D response with context',
+            context: {
+              messageHistory: [message],
+              memories,
+              campaignId,
+              characterId,
+              sessionId
+            }
+          }
+        })
+      }
+    ).then(res => res.json());
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const dmResponse = response.text();
-    
-    console.log('Generated DM response:', dmResponse);
+    if (agentError) throw agentError;
+
+    console.log('DM Agent response:', agentResponse);
+
+    // Update memory importance based on agent response
+    if (memories.length > 0) {
+      await updateMemoryImportance(memories, agentResponse.response);
+    }
 
     const aiResponse = {
       id: crypto.randomUUID(),
-      text: dmResponse,
+      text: agentResponse.response,
       sender: 'dm',
       timestamp: new Date().toISOString(),
       context: {

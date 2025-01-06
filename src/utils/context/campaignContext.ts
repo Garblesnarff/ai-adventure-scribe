@@ -13,9 +13,9 @@ interface FormattedCampaignContext {
     status?: string;
   };
   setting: {
-    era?: string;
-    location?: string;
-    atmosphere?: string;
+    era: string;
+    location: string;
+    atmosphere: string;
     world?: {
       name?: string;
       climate_type?: string;
@@ -43,7 +43,7 @@ export const buildCampaignContext = async (
   try {
     console.log('[Context] Fetching campaign data:', campaignId);
     
-    // Fetch campaign with related world data
+    // Fetch campaign with related world and quest data
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
       .select(`
@@ -53,6 +53,12 @@ export const buildCampaignContext = async (
           climate_type,
           magic_level,
           technology_level
+        ),
+        quests (
+          title,
+          description,
+          difficulty,
+          status
         )
       `)
       .eq('id', campaignId)
@@ -61,26 +67,27 @@ export const buildCampaignContext = async (
     if (campaignError) throw campaignError;
     if (!campaign) return null;
 
-    // Fetch active quests for the campaign
-    const { data: quests, error: questsError } = await supabase
-      .from('quests')
-      .select('title, description, difficulty, status')
-      .eq('campaign_id', campaignId)
-      .eq('status', 'active');
-
-    if (questsError) throw questsError;
-
-    // Type assertion and validation for thematic_elements
-    const rawThematicElements = campaign.thematic_elements as Record<string, unknown>;
+    // Ensure thematic elements are properly typed
     const thematicElements: ThematicElements = {
-      mainThemes: Array.isArray(rawThematicElements?.mainThemes) ? rawThematicElements.mainThemes as string[] : [],
-      recurringMotifs: Array.isArray(rawThematicElements?.recurringMotifs) ? rawThematicElements.recurringMotifs as string[] : [],
-      keyLocations: Array.isArray(rawThematicElements?.keyLocations) ? rawThematicElements.keyLocations as string[] : [],
-      importantNPCs: Array.isArray(rawThematicElements?.importantNPCs) ? rawThematicElements.importantNPCs as string[] : [],
+      mainThemes: Array.isArray(campaign.thematic_elements?.mainThemes) 
+        ? campaign.thematic_elements.mainThemes 
+        : [],
+      recurringMotifs: Array.isArray(campaign.thematic_elements?.recurringMotifs)
+        ? campaign.thematic_elements.recurringMotifs
+        : [],
+      keyLocations: Array.isArray(campaign.thematic_elements?.keyLocations)
+        ? campaign.thematic_elements.keyLocations
+        : [],
+      importantNPCs: Array.isArray(campaign.thematic_elements?.importantNPCs)
+        ? campaign.thematic_elements.importantNPCs
+        : []
     };
 
     // Get the first associated world (assuming one world per campaign)
     const world = campaign.worlds?.[0];
+
+    // Filter active quests
+    const activeQuests = campaign.quests?.filter(q => q.status === 'active') || [];
 
     return {
       basicInfo: {
@@ -91,9 +98,9 @@ export const buildCampaignContext = async (
         status: campaign.status,
       },
       setting: {
-        era: campaign.era,
-        location: campaign.location,
-        atmosphere: campaign.atmosphere,
+        era: campaign.era || 'unknown',
+        location: campaign.location || 'unspecified',
+        atmosphere: campaign.atmosphere || 'neutral',
         world: world ? {
           name: world.name,
           climate_type: world.climate_type,
@@ -102,7 +109,12 @@ export const buildCampaignContext = async (
         } : undefined,
       },
       thematicElements,
-      activeQuests: quests,
+      activeQuests: activeQuests.map(quest => ({
+        title: quest.title,
+        description: quest.description,
+        difficulty: quest.difficulty,
+        status: quest.status
+      }))
     };
   } catch (error) {
     console.error('[Context] Error building campaign context:', error);

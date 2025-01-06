@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Memory, MemoryContext, MemoryType } from '@/types/memory';
+import { Memory, MemoryContext } from '@/types/memory';
 
 /**
  * Interface for memory filtering options
@@ -23,16 +23,17 @@ export const buildMemoryContext = async (
   try {
     console.log('[Context] Fetching memories for session:', sessionId);
 
+    // Build query with filters
     let query = supabase
       .from('memories')
       .select('*')
       .eq('session_id', sessionId)
-      .order('importance', { ascending: false });
+      .order('created_at', { ascending: false });
 
     // Apply time-based filtering
     if (options.timeframe === 'recent') {
       const recentTime = new Date();
-      recentTime.setHours(recentTime.getHours() - 1); // Last hour
+      recentTime.setHours(recentTime.getHours() - 1);
       query = query.gte('created_at', recentTime.toISOString());
     }
 
@@ -41,7 +42,7 @@ export const buildMemoryContext = async (
       query = query.gte('importance', options.importance);
     }
 
-    // Apply limit if specified
+    // Apply limit
     if (options.limit) {
       query = query.limit(options.limit);
     }
@@ -58,20 +59,21 @@ export const buildMemoryContext = async (
       plotPoints: [],
     };
 
-    // Sort and categorize memories
+    // Process and categorize memories
     memories?.forEach(memory => {
       const memoryObj: Memory = {
         id: memory.id,
-        type: memory.type as MemoryType,
+        type: memory.type,
         content: memory.content,
-        importance: memory.importance || 0,
+        importance: calculateImportance(memory),
         created_at: memory.created_at || new Date().toISOString(),
-        updated_at: memory.updated_at || new Date().toISOString(), // Add the missing updated_at field
+        updated_at: memory.updated_at || new Date().toISOString(),
         session_id: memory.session_id,
         metadata: memory.metadata || {},
         embedding: memory.embedding,
       };
 
+      // Categorize memory based on type
       switch (memory.type) {
         case 'event':
           context.recentEvents.push(memoryObj);
@@ -98,4 +100,30 @@ export const buildMemoryContext = async (
     console.error('[Context] Error building memory context:', error);
     return null;
   }
+};
+
+/**
+ * Calculates memory importance based on various factors
+ * @param memory - Memory object to calculate importance for
+ * @returns Calculated importance score
+ */
+const calculateImportance = (memory: any): number => {
+  let importance = memory.importance || 0;
+  
+  // Factor in metadata significance if available
+  if (typeof memory.metadata === 'object' && memory.metadata !== null) {
+    const metadata = memory.metadata as Record<string, any>;
+    if (typeof metadata.significance === 'number') {
+      importance += metadata.significance;
+    }
+  }
+
+  // Factor in recency
+  const ageInHours = (Date.now() - new Date(memory.created_at).getTime()) / (1000 * 60 * 60);
+  if (ageInHours < 1) importance += 3;
+  else if (ageInHours < 24) importance += 2;
+  else if (ageInHours < 72) importance += 1;
+
+  // Cap importance at 10
+  return Math.min(10, importance);
 };

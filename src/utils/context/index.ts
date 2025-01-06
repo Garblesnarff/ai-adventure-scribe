@@ -1,8 +1,7 @@
 import { buildCampaignContext } from './campaignContext';
 import { buildCharacterContext } from './characterContext';
 import { buildMemoryContext } from './memoryContext';
-import { buildEnhancedGameContext } from './contextEnhancement';
-import { Campaign, CampaignSetting } from '@/types/campaign';
+import { Campaign } from '@/types/campaign';
 
 export { buildCampaignContext } from './campaignContext';
 export { buildCharacterContext } from './characterContext';
@@ -26,44 +25,33 @@ export const buildGameContext = async (
     const [campaignContext, characterContext, memoryContext] = await Promise.all([
       buildCampaignContext(campaignId),
       buildCharacterContext(characterId),
-      buildMemoryContext(sessionId),
+      buildMemoryContext(sessionId, { timeframe: 'recent', limit: 5 }),
     ]);
 
-    // Validate that all contexts were built successfully
     if (!campaignContext || !characterContext || !memoryContext) {
       console.error('[Context] One or more contexts failed to build');
       return null;
     }
 
-    // Convert FormattedCampaignContext to Campaign type with validated setting
-    const campaign: Campaign = {
-      id: campaignId,
-      name: campaignContext.basicInfo.name,
-      description: campaignContext.basicInfo.description,
-      genre: campaignContext.basicInfo.genre,
-      setting: {
-        era: campaignContext.setting.era || 'unknown',
-        location: campaignContext.setting.location || 'unspecified',
-        atmosphere: campaignContext.setting.atmosphere || 'neutral'
+    return {
+      campaign: {
+        basic: campaignContext.basicInfo,
+        setting: campaignContext.setting,
+        themes: campaignContext.thematicElements,
       },
-      thematic_elements: {
-        mainThemes: [],
-        recurringMotifs: [],
-        keyLocations: [],
-        importantNPCs: []
+      character: {
+        basic: characterContext.basicInfo,
+        stats: characterContext.stats,
+        equipment: characterContext.equipment,
       },
-      status: campaignContext.basicInfo.status
+      memories: {
+        recent: memoryContext.recentEvents.slice(0, 5),
+        locations: memoryContext.importantLocations,
+        characters: memoryContext.keyCharacters,
+        plot: memoryContext.plotPoints,
+      },
+      activeQuests: characterContext.activeQuests,
     };
-
-    // Build enhanced context with all available data
-    const enhancedContext = buildEnhancedGameContext(
-      campaign,
-      characterContext,
-      memoryContext.recentEvents || []
-    );
-
-    console.log('[Context] Successfully built enhanced game context');
-    return enhancedContext;
   } catch (error) {
     console.error('[Context] Error building game context:', error);
     return null;

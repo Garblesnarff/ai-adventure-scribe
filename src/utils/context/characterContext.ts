@@ -30,7 +30,7 @@ interface FormattedCharacterContext {
     equipped: boolean;
     quantity: number;
   }>;
-  questProgress: Array<{
+  activeQuests: Array<{
     questTitle: string;
     status: string;
     currentObjective?: string;
@@ -48,12 +48,17 @@ export const buildCharacterContext = async (
   try {
     console.log('[Context] Fetching character data:', characterId);
 
-    // Fetch character with related stats
+    // Fetch character with related stats and equipment
     const { data: character, error: characterError } = await supabase
       .from('characters')
       .select(`
         *,
-        character_stats (*)
+        character_stats (*),
+        character_equipment (*),
+        quest_progress (
+          *,
+          quests (title)
+        )
       `)
       .eq('id', characterId)
       .maybeSingle();
@@ -61,26 +66,9 @@ export const buildCharacterContext = async (
     if (characterError) throw characterError;
     if (!character) return null;
 
-    // Fetch character equipment
-    const { data: equipment, error: equipmentError } = await supabase
-      .from('character_equipment')
-      .select('*')
-      .eq('character_id', characterId);
-
-    if (equipmentError) throw equipmentError;
-
-    // Fetch quest progress
-    const { data: questProgress, error: questError } = await supabase
-      .from('quest_progress')
-      .select(`
-        *,
-        quests (title)
-      `)
-      .eq('character_id', characterId);
-
-    if (questError) throw questError;
-
     const stats = character.character_stats?.[0];
+    const equipment = character.character_equipment || [];
+    const questProgress = character.quest_progress || [];
 
     return {
       basicInfo: {
@@ -112,17 +100,17 @@ export const buildCharacterContext = async (
         currentHp: 10,
         armorClass: 10,
       },
-      equipment: equipment?.map(item => ({
+      equipment: equipment.map(item => ({
         name: item.item_name,
         type: item.item_type,
         equipped: item.equipped || false,
         quantity: item.quantity || 1,
-      })) || [],
-      questProgress: questProgress?.map(progress => ({
+      })),
+      activeQuests: questProgress.map(progress => ({
         questTitle: progress.quests?.title || 'Unknown Quest',
         status: progress.status || 'in_progress',
         currentObjective: progress.current_objective,
-      })) || [],
+      })),
     };
   } catch (error) {
     console.error('[Context] Error building character context:', error);

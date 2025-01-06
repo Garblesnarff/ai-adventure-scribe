@@ -41,11 +41,22 @@ export const useMemoryCreation = (sessionId: string | null) => {
 
   /**
    * Ensure importance value is within valid range (1-10)
+   * If value is invalid, defaults to 5
    */
   const validateImportance = (importance: number | undefined): number => {
-    if (typeof importance !== 'number') return 5; // Default importance
-    const validatedValue = Math.min(Math.max(Math.round(importance), 1), 10); // Clamp between 1-10
-    console.log('[Memory] Validated importance:', importance, '→', validatedValue);
+    // If importance is undefined or not a number, return default value
+    if (typeof importance !== 'number' || isNaN(importance)) {
+      console.log('[Memory] Invalid importance value, using default:', importance, '→ 5');
+      return 5;
+    }
+    
+    // Clamp value between 1-10 and ensure it's an integer
+    const validatedValue = Math.min(Math.max(Math.round(importance), 1), 10);
+    
+    if (validatedValue !== importance) {
+      console.log('[Memory] Adjusted importance value:', importance, '→', validatedValue);
+    }
+    
     return validatedValue;
   };
 

@@ -1,6 +1,7 @@
 import { buildCampaignContext } from './campaignContext';
 import { buildCharacterContext } from './characterContext';
 import { buildMemoryContext } from './memoryContext';
+import { buildEnhancedGameContext } from './contextEnhancement';
 
 export { buildCampaignContext } from './campaignContext';
 export { buildCharacterContext } from './characterContext';
@@ -33,11 +34,15 @@ export const buildGameContext = async (
       return null;
     }
 
-    return {
-      campaign: campaignContext,
-      character: characterContext,
-      memories: memoryContext,
-    };
+    // Build enhanced context with all available data
+    const enhancedContext = buildEnhancedGameContext(
+      campaignContext,
+      characterContext,
+      memoryContext.memories
+    );
+
+    console.log('[Context] Successfully built enhanced game context');
+    return enhancedContext;
   } catch (error) {
     console.error('[Context] Error building game context:', error);
     return null;

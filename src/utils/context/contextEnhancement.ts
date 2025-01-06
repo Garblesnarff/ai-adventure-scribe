@@ -90,7 +90,9 @@ export const enhanceCampaignContext = (campaign: Campaign) => {
 export const enhanceMemoryContext = (memories: Memory[]) => {
   const enhancedMemories = memories.map(memory => ({
     ...memory,
-    importance: Math.min(10, (memory.importance || 0) + (memory.metadata?.significance || 0))
+    importance: Math.min(10, (memory.importance || 0) + 
+      (typeof memory.metadata === 'object' && memory.metadata !== null ? 
+        (memory.metadata as Record<string, number>).significance || 0 : 0))
   }));
 
   const sortedMemories = sortMemoriesByRelevance(enhancedMemories);

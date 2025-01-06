@@ -2,6 +2,7 @@ import { buildCampaignContext } from './campaignContext';
 import { buildCharacterContext } from './characterContext';
 import { buildMemoryContext } from './memoryContext';
 import { buildEnhancedGameContext } from './contextEnhancement';
+import { Campaign } from '@/types/campaign';
 
 export { buildCampaignContext } from './campaignContext';
 export { buildCharacterContext } from './characterContext';
@@ -34,11 +35,27 @@ export const buildGameContext = async (
       return null;
     }
 
+    // Convert FormattedCampaignContext to Campaign type
+    const campaign: Campaign = {
+      id: campaignId,
+      name: campaignContext.basicInfo.name,
+      description: campaignContext.basicInfo.description,
+      genre: campaignContext.basicInfo.genre,
+      setting: campaignContext.setting,
+      thematic_elements: {
+        mainThemes: [],
+        recurringMotifs: [],
+        keyLocations: [],
+        importantNPCs: []
+      },
+      status: campaignContext.basicInfo.status
+    };
+
     // Build enhanced context with all available data
     const enhancedContext = buildEnhancedGameContext(
-      campaignContext,
+      campaign,
       characterContext,
-      memoryContext.memories
+      memoryContext.recentEvents || []
     );
 
     console.log('[Context] Successfully built enhanced game context');

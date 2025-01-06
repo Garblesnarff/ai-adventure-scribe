@@ -45,10 +45,10 @@ export const buildGameContext = async (
         equipment: characterContext.equipment,
       },
       memories: {
-        recent: memoryContext.recentEvents.slice(0, 5),
-        locations: memoryContext.importantLocations,
-        characters: memoryContext.keyCharacters,
-        plot: memoryContext.plotPoints,
+        recent: memoryContext.recent.slice(0, 5),
+        locations: memoryContext.locations,
+        characters: memoryContext.characters,
+        plot: memoryContext.plot,
       },
       activeQuests: characterContext.activeQuests,
     };

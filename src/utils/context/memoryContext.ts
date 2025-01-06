@@ -35,10 +35,10 @@ export const buildMemoryContext = async (
 
     // Initialize context categories
     const context: MemoryContext = {
-      recentEvents: [],
-      importantLocations: [],
-      keyCharacters: [],
-      plotPoints: [],
+      recent: [],
+      locations: [],
+      characters: [],
+      plot: [],
       currentLocation: locationResult.data?.[0] ? {
         name: locationResult.data[0].name,
         description: locationResult.data[0].description,
@@ -70,16 +70,16 @@ export const buildMemoryContext = async (
       // Categorize memory based on validated type
       switch (validatedType) {
         case 'event':
-          context.recentEvents.push(memoryObj);
+          context.recent.push(memoryObj);
           break;
         case 'location':
-          context.importantLocations.push(memoryObj);
+          context.locations.push(memoryObj);
           break;
         case 'character':
-          context.keyCharacters.push(memoryObj);
+          context.characters.push(memoryObj);
           break;
         case 'plot':
-          context.plotPoints.push(memoryObj);
+          context.plot.push(memoryObj);
           break;
       }
     });

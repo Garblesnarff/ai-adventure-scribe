@@ -3,8 +3,8 @@ import { useToast } from '@/hooks/use-toast';
 import { ChatMessage } from '@/types/game';
 import { useMessageContext } from '@/contexts/MessageContext';
 import { useMemoryContext } from '@/contexts/MemoryContext';
-import { useAIResponse } from '@/hooks/useAIResponse';
-import { useSessionValidator } from '../session/SessionValidator';
+import { useSessionValidator } from './handlers/SessionValidator';
+import { MessageProcessor } from './handlers/MessageProcessor';
 
 interface MessageHandlerProps {
   sessionId: string | null;
@@ -28,10 +28,16 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
 }) => {
   const { messages, sendMessage, queueStatus } = useMessageContext();
   const { extractMemories } = useMemoryContext();
-  const { getAIResponse } = useAIResponse();
   const { toast } = useToast();
-  const validateSession = useSessionValidator({ sessionId, campaignId, characterId });
+  const { validateSession } = useSessionValidator({ 
+    sessionId, 
+    campaignId, 
+    characterId 
+  });
 
+  /**
+   * Handles the message sending flow with validation and error handling
+   */
   const handleSendMessage = async (playerInput: string) => {
     if (queueStatus === 'processing') {
       console.log('[MessageHandler] Message already processing, skipping');
@@ -41,14 +47,7 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
     try {
       // Validate session before proceeding
       const isValid = await validateSession();
-      if (!isValid) {
-        toast({
-          title: "Session Error",
-          description: "Invalid game session. Please try refreshing the page.",
-          variant: "destructive",
-        });
-        return;
-      }
+      if (!isValid) return;
 
       // Add player message
       const playerMessage: ChatMessage = {
@@ -60,15 +59,7 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
         },
       };
       await sendMessage(playerMessage);
-      
-      try {
-        // Extract memories from player input
-        await extractMemories(playerInput);
-      } catch (memoryError) {
-        console.error('[MessageHandler] Memory extraction error:', memoryError);
-        // Continue with message flow even if memory extraction fails
-      }
-      
+
       // Add system acknowledgment
       const systemMessage: ChatMessage = {
         text: "Processing your request...",
@@ -78,27 +69,30 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
         },
       };
       await sendMessage(systemMessage);
-      
-      // Get AI response
-      if (!sessionId) {
-        throw new Error('No active session found');
-      }
-      
-      const aiResponse = await getAIResponse([...messages, playerMessage], sessionId);
+
+      // Process message and get AI response
+      if (!sessionId) throw new Error('No active session found');
+
+      const aiResponse = await MessageProcessor({
+        sessionId,
+        messages: [...messages, playerMessage],
+        onProcessingComplete: () => {
+          console.log('[MessageHandler] Message processing completed');
+        },
+        onError: (error) => {
+          console.error('[MessageHandler] Processing error:', error);
+          toast({
+            title: "Error",
+            description: error.message || "Failed to process message",
+            variant: "destructive",
+          });
+        },
+      });
+
       await sendMessage(aiResponse);
-      
-      try {
-        // Extract memories from AI response
-        if (aiResponse.text) {
-          await extractMemories(aiResponse.text);
-        }
-      } catch (memoryError) {
-        console.error('[MessageHandler] Memory extraction error for AI response:', memoryError);
-        // Continue even if memory extraction fails
-      }
 
     } catch (error: any) {
-      console.error('Error in message flow:', error);
+      console.error('[MessageHandler] Error in message flow:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to process message. Please try again.",

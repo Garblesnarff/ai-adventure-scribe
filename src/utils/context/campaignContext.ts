@@ -39,13 +39,8 @@ export const buildCampaignContext = async (
     if (error) throw error;
     if (!campaign) return null;
 
-    // Ensure thematic_elements has the correct structure
-    const thematicElements: ThematicElements = {
-      mainThemes: Array.isArray(campaign.thematic_elements?.mainThemes) ? campaign.thematic_elements.mainThemes : [],
-      recurringMotifs: Array.isArray(campaign.thematic_elements?.recurringMotifs) ? campaign.thematic_elements.recurringMotifs : [],
-      keyLocations: Array.isArray(campaign.thematic_elements?.keyLocations) ? campaign.thematic_elements.keyLocations : [],
-      importantNPCs: Array.isArray(campaign.thematic_elements?.importantNPCs) ? campaign.thematic_elements.importantNPCs : [],
-    };
+    // Type assertion for thematic_elements
+    const thematicElements = campaign.thematic_elements as ThematicElements;
 
     return {
       basicInfo: {
@@ -59,7 +54,12 @@ export const buildCampaignContext = async (
         location: campaign.location,
         atmosphere: campaign.atmosphere,
       },
-      thematicElements,
+      thematicElements: {
+        mainThemes: Array.isArray(thematicElements?.mainThemes) ? thematicElements.mainThemes : [],
+        recurringMotifs: Array.isArray(thematicElements?.recurringMotifs) ? thematicElements.recurringMotifs : [],
+        keyLocations: Array.isArray(thematicElements?.keyLocations) ? thematicElements.keyLocations : [],
+        importantNPCs: Array.isArray(thematicElements?.importantNPCs) ? thematicElements.importantNPCs : [],
+      },
     };
   } catch (error) {
     console.error('[Context] Error building campaign context:', error);

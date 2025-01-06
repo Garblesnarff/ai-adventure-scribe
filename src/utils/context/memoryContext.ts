@@ -1,16 +1,27 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Memory, MemoryContext, MemoryType, isValidMemoryType } from '@/components/game/memory/types';
+import { Memory, MemoryType } from '@/types/memory';
+
+/**
+ * Interface for formatted memory context
+ */
+export interface MemoryContextData {
+  recentEvents: Memory[];
+  importantLocations: Memory[];
+  keyCharacters: Memory[];
+  plotPoints: Memory[];
+  generalMemories: Memory[];
+}
 
 /**
  * Fetches and formats memory context
  * @param sessionId - UUID of the game session
- * @returns Formatted memory context
+ * @returns Formatted memory context or null if not found
  */
 export const buildMemoryContext = async (
   sessionId: string
-): Promise<MemoryContext> => {
+): Promise<MemoryContextData | null> => {
   try {
-    console.log('[Context] Fetching memory data:', sessionId);
+    console.log('[Memory] Fetching memories for session:', sessionId);
     
     const { data: memories, error } = await supabase
       .from('memories')
@@ -19,59 +30,42 @@ export const buildMemoryContext = async (
       .order('importance', { ascending: false });
 
     if (error) throw error;
-
-    // Initialize context structure
-    const context: MemoryContext = {
+    
+    const context: MemoryContextData = {
       recentEvents: [],
       importantLocations: [],
       keyCharacters: [],
       plotPoints: [],
+      generalMemories: [],
     };
 
-    // Sort memories into categories
-    memories?.forEach((memoryData) => {
-      // Validate memory type
-      const type = isValidMemoryType(memoryData.type) ? memoryData.type : 'general';
-      
-      // Convert database record to Memory type
-      const memory: Memory = {
-        ...memoryData,
-        type,
-        importance: memoryData.importance || 1,
-        metadata: memoryData.metadata || null,
+    memories?.forEach(memory => {
+      const typedMemory = {
+        ...memory,
+        type: memory.type as MemoryType
       };
 
-      // Sort into appropriate category
-      switch (type) {
+      switch (typedMemory.type) {
         case 'event':
-          context.recentEvents.push(memory);
+          context.recentEvents.push(typedMemory);
           break;
         case 'location':
-          context.importantLocations.push(memory);
+          context.importantLocations.push(typedMemory);
           break;
         case 'character':
-          context.keyCharacters.push(memory);
+          context.keyCharacters.push(typedMemory);
+          break;
+        case 'plot':
+          context.plotPoints.push(typedMemory);
           break;
         default:
-          // For uncategorized memories, add to most relevant category based on content
-          if (memory.content.toLowerCase().includes('location')) {
-            context.importantLocations.push(memory);
-          } else if (memory.content.toLowerCase().includes('character')) {
-            context.keyCharacters.push(memory);
-          } else {
-            context.recentEvents.push(memory);
-          }
+          context.generalMemories.push(typedMemory);
       }
     });
 
     return context;
   } catch (error) {
-    console.error('[Context] Error building memory context:', error);
-    return {
-      recentEvents: [],
-      importantLocations: [],
-      keyCharacters: [],
-      plotPoints: [],
-    };
+    console.error('[Memory] Error building memory context:', error);
+    return null;
   }
 };

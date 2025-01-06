@@ -27,26 +27,30 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
   private tools: AgentTool[];
 
   constructor(sessionId: string) {
+    this.initializeBaseProperties();
+    this.initializeAdapters(sessionId);
+    this.tools = this.initializeTools();
+    this.crewAIConfig = this.initializeCrewAIConfig();
+  }
+
+  /**
+   * Initialize base agent properties
+   */
+  private initializeBaseProperties(): void {
     this.id = 'crew_dm_agent_1';
     this.role = 'Dungeon Master';
     this.goal = 'Guide players through an engaging D&D campaign with advanced AI capabilities';
     this.backstory = 'An experienced DM enhanced with CrewAI capabilities for dynamic storytelling';
     this.verbose = true;
     this.allowDelegation = true;
-    
-    // Initialize adapters
+  }
+
+  /**
+   * Initialize adapters with session context
+   */
+  private initializeAdapters(sessionId: string): void {
     this.memoryAdapter = new MemoryAdapter(sessionId);
     this.messageHandler = new MessageHandler();
-    
-    // Initialize tools
-    this.tools = this.initializeTools();
-    
-    // Set up CrewAI configuration
-    this.crewAIConfig = {
-      tools: this.tools,
-      memory: this.initializeMemory(),
-      communicate: this.communicate.bind(this)
-    };
   }
 
   /**
@@ -54,29 +58,54 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
    */
   private initializeTools(): AgentTool[] {
     return [
-      {
-        name: 'fetch_campaign_context',
-        description: 'Retrieves relevant campaign context and history',
-        execute: async (params: any) => {
-          const { data, error } = await supabase
-            .from('campaigns')
-            .select('*')
-            .eq('id', params.campaignId)
-            .single();
-          
-          if (error) throw error;
-          return data;
-        }
-      },
-      {
-        name: 'query_memories',
-        description: 'Searches through session memories for relevant information',
-        execute: async (params: any) => {
-          const memories = await this.memoryAdapter.getRecentMemories(params.limit || 5);
-          return memories;
-        }
-      }
+      this.createCampaignContextTool(),
+      this.createMemoryQueryTool()
     ];
+  }
+
+  /**
+   * Create campaign context fetching tool
+   */
+  private createCampaignContextTool(): AgentTool {
+    return {
+      name: 'fetch_campaign_context',
+      description: 'Retrieves relevant campaign context and history',
+      execute: async (params: any) => {
+        const { data, error } = await supabase
+          .from('campaigns')
+          .select('*')
+          .eq('id', params.campaignId)
+          .single();
+        
+        if (error) throw error;
+        return data;
+      }
+    };
+  }
+
+  /**
+   * Create memory query tool
+   */
+  private createMemoryQueryTool(): AgentTool {
+    return {
+      name: 'query_memories',
+      description: 'Searches through session memories for relevant information',
+      execute: async (params: any) => {
+        const memories = await this.memoryAdapter.getRecentMemories(params.limit || 5);
+        return memories;
+      }
+    };
+  }
+
+  /**
+   * Initialize CrewAI configuration
+   */
+  private initializeCrewAIConfig() {
+    return {
+      tools: this.tools,
+      memory: this.initializeMemory(),
+      communicate: this.communicate.bind(this)
+    };
   }
 
   /**
@@ -93,7 +122,6 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
         await this.memoryAdapter.storeMemory(memory);
       },
       forget: async (memoryId: string) => {
-        // Implement memory removal if needed
         console.log('Memory forget not implemented yet:', memoryId);
       }
     };
@@ -102,7 +130,7 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
   /**
    * Handle agent communication
    */
-  async communicate(message: AgentMessage): Promise<void> {
+  private async communicate(message: AgentMessage): Promise<void> {
     try {
       await this.messageHandler.sendMessage(message);
     } catch (error) {
@@ -115,38 +143,24 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
    * Execute a task using CrewAI capabilities
    */
   async executeTask(task: any): Promise<any> {
+    return this.handleTaskExecution(task);
+  }
+
+  /**
+   * Handle task execution with memory integration
+   */
+  private async handleTaskExecution(task: any): Promise<any> {
     console.log('CrewAI DM Agent executing task:', task);
     
     try {
-      // Get relevant memories
       const memories = await this.memoryAdapter.getRecentMemories();
+      const result = await this.executeAIFunction(task, memories);
+      await this.storeTaskResult(result);
       
-      // Call the AI function through Edge Function
-      const { data, error } = await supabase.functions.invoke('dm-agent-execute', {
-        body: {
-          task,
-          memories,
-          agentContext: {
-            role: this.role,
-            goal: this.goal,
-            backstory: this.backstory
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      // Store task result as memory
-      await this.memoryAdapter.storeMemory({
-        content: JSON.stringify(data),
-        type: 'general',
-        importance: 3
-      });
-
       return {
         success: true,
         message: 'Task executed successfully',
-        data
+        data: result
       };
     } catch (error) {
       console.error('Error executing CrewAI DM agent task:', error);
@@ -155,5 +169,36 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
         message: error instanceof Error ? error.message : 'Failed to execute task'
       };
     }
+  }
+
+  /**
+   * Execute AI function through Edge Function
+   */
+  private async executeAIFunction(task: any, memories: any[]): Promise<any> {
+    const { data, error } = await supabase.functions.invoke('dm-agent-execute', {
+      body: {
+        task,
+        memories,
+        agentContext: {
+          role: this.role,
+          goal: this.goal,
+          backstory: this.backstory
+        }
+      }
+    });
+
+    if (error) throw error;
+    return data;
+  }
+
+  /**
+   * Store task result in memory
+   */
+  private async storeTaskResult(result: any): Promise<void> {
+    await this.memoryAdapter.storeMemory({
+      content: JSON.stringify(result),
+      type: 'general',
+      importance: 3
+    });
   }
 }

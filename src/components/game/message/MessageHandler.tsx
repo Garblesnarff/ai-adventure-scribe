@@ -1,4 +1,5 @@
 import React from 'react';
+import { createRoot } from 'react-dom/client';
 import { useToast } from '@/hooks/use-toast';
 import { ChatMessage } from '@/types/game';
 import { useMessageContext } from '@/contexts/MessageContext';
@@ -75,9 +76,10 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
       const aiResponse = await new Promise<ChatMessage>((resolve, reject) => {
         // Create a container element to render the MessageProcessor
         const container = document.createElement('div');
+        const root = createRoot(container);
         
         // Render MessageProcessor into the container
-        React.render(
+        root.render(
           <MessageProcessor
             sessionId={sessionId}
             messages={[...messages, playerMessage]}
@@ -88,8 +90,7 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
               console.error('[MessageHandler] Processing error:', error);
               reject(error);
             }}
-          />,
-          container
+          />
         );
       });
 

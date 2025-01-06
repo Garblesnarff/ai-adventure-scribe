@@ -21,12 +21,13 @@ export const useMemoryCreation = (sessionId: string | null) => {
     try {
       console.log('[Memory] Starting embedding generation for text:', text);
       
-      const { data, error } = await supabase.functions.invoke('generate-embedding', {
+      const response = await supabase.functions.invoke('generate-embedding', {
         body: { text },
       });
 
-      if (error) throw error;
+      if (response.error) throw response.error;
       
+      const { data } = response;
       if (!data?.embedding) {
         throw new Error('Invalid embedding format received from API');
       }
@@ -43,7 +44,9 @@ export const useMemoryCreation = (sessionId: string | null) => {
    */
   const validateImportance = (importance: number | undefined): number => {
     if (typeof importance !== 'number') return 5; // Default importance
-    return Math.min(Math.max(Math.round(importance), 1), 10); // Clamp between 1-10
+    const validatedValue = Math.min(Math.max(Math.round(importance), 1), 10); // Clamp between 1-10
+    console.log('[Memory] Validated importance:', importance, '→', validatedValue);
+    return validatedValue;
   };
 
   /**
@@ -57,6 +60,8 @@ export const useMemoryCreation = (sessionId: string | null) => {
       
       const embedding = await generateEmbedding(memory.content);
       const validatedImportance = validateImportance(memory.importance);
+      
+      console.log('[Memory] Inserting memory with validated importance:', validatedImportance);
       
       const { data, error } = await supabase
         .from('memories')

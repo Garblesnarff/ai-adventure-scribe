@@ -107,11 +107,11 @@ export class QueryRouterService {
         .from('agent_communications')
         .insert({
           message_type: 'QUERY',
-          content: {
+          content: JSON.stringify({
             type,
             params,
             response
-          }
+          })
         });
 
       if (error) throw error;

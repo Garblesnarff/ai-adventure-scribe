@@ -3,6 +3,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { VolumeButton } from './audio/VolumeButton';
 import { VolumeSlider } from './audio/VolumeSlider';
 import { SpeakingIndicator } from './audio/SpeakingIndicator';
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface AudioControlsProps {
   isSpeaking: boolean;
@@ -10,11 +12,13 @@ interface AudioControlsProps {
   onVolumeChange: (value: number) => void;
   onToggleMute: () => void;
   isMuted: boolean;
+  isVoiceEnabled: boolean;
+  onToggleVoice: () => void;
 }
 
 /**
  * AudioControls Component
- * Provides UI controls for audio playback including volume and mute functionality
+ * Provides UI controls for audio playback including volume, mute functionality, and voice toggle
  */
 export const AudioControls: React.FC<AudioControlsProps> = ({
   isSpeaking,
@@ -22,6 +26,8 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
   onVolumeChange,
   onToggleMute,
   isMuted,
+  isVoiceEnabled,
+  onToggleVoice,
 }) => {
   // Add debug logs
   React.useEffect(() => {
@@ -29,7 +35,8 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
     console.log('Initial state:', {
       isSpeaking,
       volume,
-      isMuted
+      isMuted,
+      isVoiceEnabled
     });
   }, []);
 
@@ -37,23 +44,37 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
     console.log('Audio state changed:', {
       isSpeaking,
       volume,
-      isMuted
+      isMuted,
+      isVoiceEnabled
     });
-  }, [isSpeaking, volume, isMuted]);
+  }, [isSpeaking, volume, isMuted, isVoiceEnabled]);
 
   return (
     <TooltipProvider>
-      <div className="flex items-center gap-2 p-4 mb-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-200">
-        <VolumeButton
-          isMuted={isMuted}
-          isSpeaking={isSpeaking}
-          onToggleMute={onToggleMute}
-        />
-        <VolumeSlider
-          volume={volume}
-          onVolumeChange={onVolumeChange}
-        />
-        <SpeakingIndicator isSpeaking={isSpeaking} />
+      <div className="flex items-center gap-4 p-4 mb-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-xl border-2 border-primary/20 hover:border-primary/40 transition-all duration-200">
+        <div className="flex items-center gap-2">
+          <VolumeButton
+            isMuted={isMuted}
+            isSpeaking={isSpeaking}
+            onToggleMute={onToggleMute}
+          />
+          <VolumeSlider
+            volume={volume}
+            onVolumeChange={onVolumeChange}
+          />
+          <SpeakingIndicator isSpeaking={isSpeaking} />
+        </div>
+        
+        <div className="flex items-center gap-2 ml-4 border-l pl-4 border-primary/20">
+          <Switch
+            id="voice-mode"
+            checked={isVoiceEnabled}
+            onCheckedChange={onToggleVoice}
+          />
+          <Label htmlFor="voice-mode" className="text-sm font-medium">
+            Voice Mode
+          </Label>
+        </div>
       </div>
     </TooltipProvider>
   );

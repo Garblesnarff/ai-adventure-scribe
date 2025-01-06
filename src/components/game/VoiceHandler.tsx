@@ -12,7 +12,7 @@ interface VoiceSettings {
 /**
  * VoiceHandler Component
  * Monitors messages and converts DM text to speech using ElevenLabs API directly
- * Includes audio control functionality
+ * Includes audio control functionality with voice toggle
  */
 export const VoiceHandler: React.FC = () => {
   const { messages } = useMessageContext();
@@ -25,6 +25,9 @@ export const VoiceHandler: React.FC = () => {
   });
   const [isMuted, setIsMuted] = React.useState(() => {
     return localStorage.getItem('voice-muted') === 'true';
+  });
+  const [isVoiceEnabled, setIsVoiceEnabled] = React.useState(() => {
+    return localStorage.getItem('voice-enabled') !== 'false'; // Default to true
   });
   const [isSpeaking, setIsSpeaking] = React.useState(false);
 
@@ -85,12 +88,34 @@ export const VoiceHandler: React.FC = () => {
   };
 
   /**
+   * Handle voice toggle and persist to localStorage
+   */
+  const handleToggleVoice = () => {
+    const newVoiceState = !isVoiceEnabled;
+    setIsVoiceEnabled(newVoiceState);
+    localStorage.setItem('voice-enabled', newVoiceState.toString());
+    
+    // Show toast to confirm the change
+    toast({
+      title: newVoiceState ? "Voice Mode Enabled" : "Voice Mode Disabled",
+      description: newVoiceState 
+        ? "Text-to-speech is now active" 
+        : "Text-to-speech is now disabled",
+    });
+  };
+
+  /**
    * Converts text to speech using ElevenLabs API and plays the audio
    */
   const playAudio = async (text: string) => {
     try {
       if (!apiKey) {
         throw new Error('ElevenLabs API key not available');
+      }
+
+      if (!isVoiceEnabled) {
+        console.log('Voice mode is disabled, skipping text-to-speech');
+        return;
       }
 
       console.log('Converting text to speech:', text);
@@ -156,7 +181,7 @@ export const VoiceHandler: React.FC = () => {
     }
   };
 
-  // Listen for new DM messages and speak them
+  // Listen for new DM messages and speak them if voice is enabled
   React.useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     if (lastMessage && lastMessage.sender === 'dm' && lastMessage.text) {
@@ -173,6 +198,8 @@ export const VoiceHandler: React.FC = () => {
       onVolumeChange={handleVolumeChange}
       onToggleMute={handleToggleMute}
       isMuted={isMuted}
+      isVoiceEnabled={isVoiceEnabled}
+      onToggleVoice={handleToggleVoice}
     />
   );
 };

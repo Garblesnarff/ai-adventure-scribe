@@ -8,6 +8,16 @@ export interface MemoryContext {
   importantLocations: Memory[];
   keyCharacters: Memory[];
   plotPoints: Memory[];
+  currentLocation?: {
+    name: string;
+    description?: string;
+    type?: string;
+  };
+  activeNPCs?: Array<{
+    name: string;
+    type?: string;
+    status: string;
+  }>;
 }
 
 /**

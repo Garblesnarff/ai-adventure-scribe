@@ -1,4 +1,36 @@
 import { GameContext } from '@/types/game';
+import { Campaign } from '@/types/campaign';
+import { Memory } from '@/types/memory';
+
+/**
+ * Validates campaign setting data
+ */
+export const validateCampaignSetting = (setting: any) => {
+  return {
+    era: setting?.era || 'unspecified',
+    location: setting?.location || 'unknown',
+    atmosphere: setting?.atmosphere || 'neutral'
+  };
+};
+
+/**
+ * Validates thematic elements data
+ */
+export const validateThematicElements = (elements: any) => {
+  return {
+    mainThemes: Array.isArray(elements?.mainThemes) ? elements.mainThemes : [],
+    recurringMotifs: Array.isArray(elements?.recurringMotifs) ? elements.recurringMotifs : [],
+    keyLocations: Array.isArray(elements?.keyLocations) ? elements.keyLocations : [],
+    importantNPCs: Array.isArray(elements?.importantNPCs) ? elements.importantNPCs : []
+  };
+};
+
+/**
+ * Sorts memories by relevance score
+ */
+export const sortMemoriesByRelevance = (memories: Memory[]): Memory[] => {
+  return [...memories].sort((a, b) => (b.importance || 0) - (a.importance || 0));
+};
 
 /**
  * Validates that a context object has all required fields

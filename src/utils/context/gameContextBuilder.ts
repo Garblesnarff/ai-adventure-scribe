@@ -154,13 +154,13 @@ export const buildGameContext = async (
               ? {
                   name: memoryContext.value.currentLocation.name,
                   description: memoryContext.value.currentLocation.description,
-                  type: memoryContext.value.currentLocation.location_type,
+                  type: memoryContext.value.currentLocation.type,
                 }
               : undefined,
             activeNPCs: memoryContext.value.activeNPCs?.map(npc => ({
               name: npc.name,
-              type: npc.class || npc.race,
-              status: npc.personality || 'neutral',
+              type: npc.type || '',
+              status: npc.status || 'neutral',
             })),
           }
         : createDefaultContext().memories,
@@ -178,3 +178,7 @@ export const buildGameContext = async (
     return createDefaultContext();
   }
 };
+
+export { validateGameContext } from './contextValidation';
+export { createDefaultContext } from './contextDefaults';
+export { buildGameContext };

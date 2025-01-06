@@ -37,20 +37,64 @@ export interface GameSession {
 }
 
 /**
- * Interface for campaign data
- * Matches the structure from the Supabase campaigns table
+ * Interface for complete game context
  */
-export interface Campaign {
-  id: string;
-  user_id?: string;
-  name: string;
-  description?: string;
-  genre?: string;
-  difficulty_level?: string;
-  status?: string;
-  campaign_length?: string;
-  tone?: string;
-  setting_details?: Record<string, unknown>;
-  created_at?: string;
-  updated_at?: string;
+export interface GameContext {
+  campaign: {
+    basic: {
+      name: string;
+      description?: string;
+      genre?: string;
+      status: string;
+    };
+    setting: {
+      era: string;
+      location: string;
+      atmosphere: string;
+    };
+    thematicElements: {
+      mainThemes: string[];
+      recurringMotifs: string[];
+      keyLocations: string[];
+      importantNPCs: string[];
+    };
+  };
+  character?: {
+    basic: {
+      name: string;
+      race: string;
+      class: string;
+      level: number;
+    };
+    stats: {
+      health: {
+        current: number;
+        max: number;
+        temporary: number;
+      };
+      armorClass: number;
+      abilities: Record<string, number>;
+    };
+    equipment: Array<{
+      name: string;
+      type: string;
+      equipped: boolean;
+    }>;
+  };
+  memories: {
+    recent: Memory[];
+    locations: Memory[];
+    characters: Memory[];
+    plot: Memory[];
+    currentLocation?: {
+      name: string;
+      description?: string;
+      type?: string;
+    };
+    activeNPCs?: Array<{
+      name: string;
+      type?: string;
+      status: string;
+    }>;
+  };
 }

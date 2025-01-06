@@ -1,39 +1,53 @@
-/**
- * Interface for chat messages in the system
- */
-export interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
-
-/**
- * Interface for campaign details
- */
-export interface CampaignDetails {
-  id: string;
+export interface CampaignContext {
   name: string;
+  genre: string;
+  difficulty_level: string;
+  tone: string;
+  setting_details?: {
+    era?: string;
+    location?: string;
+    atmosphere?: string;
+    key_locations?: string[];
+    npcs?: string[];
+    objectives?: string[];
+    thematic_elements?: string[];
+    motifs?: string[];
+  };
   description?: string;
-  genre?: string;
-  difficulty_level?: string;
-  campaign_length?: string;
-  tone?: string;
-  setting_details?: Record<string, any>;
 }
 
-/**
- * Interface for agent context information
- */
+export interface CharacterContext {
+  name: string;
+  race: string;
+  class: string;
+  level: number;
+  background: string;
+  description?: string;
+  alignment: string;
+  hitPoints: {
+    current: number;
+    max: number;
+    temporary: number;
+  };
+  abilityScores: {
+    [key: string]: {
+      score: number;
+      modifier: number;
+    };
+  };
+  armorClass: number;
+  initiative: number;
+  speed: number;
+  equipment: Array<{
+    name: string;
+    type: string;
+    equipped: boolean;
+    quantity: number;
+  }>;
+}
+
 export interface AgentContext {
-  role: string;
-  goal: string;
-  backstory: string;
-  campaignDetails?: CampaignDetails;
-}
-
-/**
- * Interface for task execution response
- */
-export interface TaskExecutionResponse {
-  response: string;
-  error?: string;
+  campaignContext: CampaignContext;
+  characterContext: CharacterContext;
+  memories: any[];
 }

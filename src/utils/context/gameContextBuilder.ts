@@ -1,74 +1,12 @@
 import { Campaign } from '@/types/campaign';
 import { Character } from '@/types/character';
 import { Memory } from '@/types/memory';
+import { GameContext } from '@/types/game';
 import { buildCampaignContext } from './campaignContext';
 import { buildCharacterContext } from './characterContext';
 import { buildMemoryContext } from './memoryContext';
 import { validateGameContext } from './contextValidation';
 import { createDefaultContext } from './contextDefaults';
-
-/**
- * Interface for complete game context
- */
-interface GameContext {
-  campaign: {
-    basic: {
-      name: string;
-      description?: string;
-      genre?: string;
-      status: string;
-    };
-    setting: {
-      era: string;
-      location: string;
-      atmosphere: string;
-    };
-    thematicElements: {
-      mainThemes: string[];
-      recurringMotifs: string[];
-      keyLocations: string[];
-      importantNPCs: string[];
-    };
-  };
-  character?: {
-    basic: {
-      name: string;
-      race: string;
-      class: string;
-      level: number;
-    };
-    stats: {
-      health: {
-        current: number;
-        max: number;
-        temporary: number;
-      };
-      armorClass: number;
-      abilities: Record<string, number>;
-    };
-    equipment: Array<{
-      name: string;
-      type: string;
-      equipped: boolean;
-    }>;
-  };
-  memories: {
-    recent: Memory[];
-    locations: Memory[];
-    characters: Memory[];
-    plot: Memory[];
-    currentLocation?: {
-      name: string;
-      description?: string;
-      type?: string;
-    };
-    activeNPCs?: Array<{
-      name: string;
-      type?: string;
-      status: string;
-    }>;
-  };
-}
 
 /**
  * Builds a complete game context by combining campaign, character, and memory data
@@ -124,7 +62,7 @@ export const buildGameContext = async (
               health: {
                 current: characterContext.value.stats.currentHp,
                 max: characterContext.value.stats.maxHp,
-                temporary: characterContext.value.stats.temporaryHp || 0,
+                temporary: 0
               },
               armorClass: characterContext.value.stats.armorClass,
               abilities: {
@@ -145,24 +83,7 @@ export const buildGameContext = async (
         : undefined,
 
       memories: memoryContext.status === 'fulfilled' && memoryContext.value
-        ? {
-            recent: memoryContext.value.recentEvents.slice(0, 5),
-            locations: memoryContext.value.importantLocations,
-            characters: memoryContext.value.keyCharacters,
-            plot: memoryContext.value.plotPoints,
-            currentLocation: memoryContext.value.currentLocation
-              ? {
-                  name: memoryContext.value.currentLocation.name,
-                  description: memoryContext.value.currentLocation.description,
-                  type: memoryContext.value.currentLocation.type,
-                }
-              : undefined,
-            activeNPCs: memoryContext.value.activeNPCs?.map(npc => ({
-              name: npc.name,
-              type: npc.type || '',
-              status: npc.status || 'neutral',
-            })),
-          }
+        ? memoryContext.value
         : createDefaultContext().memories,
     };
 
@@ -181,4 +102,3 @@ export const buildGameContext = async (
 
 export { validateGameContext } from './contextValidation';
 export { createDefaultContext } from './contextDefaults';
-export { buildGameContext };

@@ -1,3 +1,6 @@
+import { Memory } from './memory';
+import { Campaign } from './campaign';
+
 export type SpeakerType = 'player' | 'dm' | 'system';
 
 export type SessionStatus = 'active' | 'expired' | 'ending';
@@ -98,3 +101,5 @@ export interface GameContext {
     }>;
   };
 }
+
+export type { Campaign };

@@ -15,9 +15,6 @@ interface MemoryFilterOptions {
 
 /**
  * Fetches and formats memory context with enhanced filtering and sorting
- * @param sessionId - UUID of the game session
- * @param options - Optional filtering parameters
- * @returns Formatted memory context or null if error
  */
 export const buildMemoryContext = async (
   sessionId: string,
@@ -26,7 +23,6 @@ export const buildMemoryContext = async (
   try {
     console.log('[Context] Fetching memories for session:', sessionId);
 
-    // Fetch memories and related location/NPC data in parallel
     const [memoriesResult, locationResult, npcResult] = await Promise.all([
       fetchMemories(sessionId, options),
       fetchLocationDetails(sessionId),
@@ -43,8 +39,16 @@ export const buildMemoryContext = async (
       importantLocations: [],
       keyCharacters: [],
       plotPoints: [],
-      currentLocation: locationResult.data?.[0] || null,
-      activeNPCs: npcResult.data || []
+      currentLocation: locationResult.data?.[0] ? {
+        name: locationResult.data[0].name,
+        description: locationResult.data[0].description,
+        type: locationResult.data[0].location_type
+      } : undefined,
+      activeNPCs: npcResult.data?.map(npc => ({
+        name: npc.name,
+        type: npc.class || npc.race,
+        status: 'active'
+      })) || []
     };
 
     // Process and categorize memories
@@ -80,20 +84,6 @@ export const buildMemoryContext = async (
       }
     });
 
-    // Sort each category by importance and recency
-    Object.values(context).forEach(category => {
-      if (Array.isArray(category)) {
-        category.sort((a, b) => {
-          // Primary sort by importance
-          const importanceDiff = (b.importance || 0) - (a.importance || 0);
-          if (importanceDiff !== 0) return importanceDiff;
-          
-          // Secondary sort by recency
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        });
-      }
-    });
-
     return context;
   } catch (error) {
     console.error('[Context] Error building memory context:', error);
@@ -101,9 +91,6 @@ export const buildMemoryContext = async (
   }
 };
 
-/**
- * Fetches memories for a session with filtering
- */
 const fetchMemories = async (sessionId: string, options: MemoryFilterOptions) => {
   let query = supabase
     .from('memories')

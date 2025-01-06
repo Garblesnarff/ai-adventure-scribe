@@ -2,7 +2,7 @@ import { buildCampaignContext } from './campaignContext';
 import { buildCharacterContext } from './characterContext';
 import { buildMemoryContext } from './memoryContext';
 import { buildEnhancedGameContext } from './contextEnhancement';
-import { Campaign } from '@/types/campaign';
+import { Campaign, CampaignSetting } from '@/types/campaign';
 
 export { buildCampaignContext } from './campaignContext';
 export { buildCharacterContext } from './characterContext';
@@ -35,13 +35,17 @@ export const buildGameContext = async (
       return null;
     }
 
-    // Convert FormattedCampaignContext to Campaign type
+    // Convert FormattedCampaignContext to Campaign type with validated setting
     const campaign: Campaign = {
       id: campaignId,
       name: campaignContext.basicInfo.name,
       description: campaignContext.basicInfo.description,
       genre: campaignContext.basicInfo.genre,
-      setting: campaignContext.setting,
+      setting: {
+        era: campaignContext.setting.era || 'unknown',
+        location: campaignContext.setting.location || 'unspecified',
+        atmosphere: campaignContext.setting.atmosphere || 'neutral'
+      },
       thematic_elements: {
         mainThemes: [],
         recurringMotifs: [],

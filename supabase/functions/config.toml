@@ -1,4 +1,1 @@
 project_id = "cnalyhtalikwsopogula"
-
-[functions.text-to-speech]
-verify_jwt = false

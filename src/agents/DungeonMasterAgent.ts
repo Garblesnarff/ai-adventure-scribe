@@ -1,5 +1,6 @@
 import { Agent, AgentResult, AgentTask } from './types';
 import { supabase } from '@/integrations/supabase/client';
+import { callEdgeFunction } from '@/utils/edgeFunctionHandler';
 
 /**
  * DungeonMasterAgent class handles the main game orchestration
@@ -56,20 +57,17 @@ export class DungeonMasterAgent implements Agent {
       const campaignDetails = task.context?.campaignId ? 
         await this.fetchCampaignDetails(task.context.campaignId) : null;
 
-      // Call the AI function through our Edge Function
-      const { data, error } = await supabase.functions.invoke('dm-agent-execute', {
-        body: {
-          task,
-          agentContext: {
-            role: this.role,
-            goal: this.goal,
-            backstory: this.backstory,
-            campaignDetails // Include campaign details in context
-          }
+      const data = await callEdgeFunction('dm-agent-execute', {
+        task,
+        agentContext: {
+          role: this.role,
+          goal: this.goal,
+          backstory: this.backstory,
+          campaignDetails
         }
       });
 
-      if (error) throw error;
+      if (!data) throw new Error('Failed to execute task');
 
       return {
         success: true,

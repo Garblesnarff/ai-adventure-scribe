@@ -1,11 +1,9 @@
 import { Agent, AgentResult, AgentTask } from './types';
 import { supabase } from '@/integrations/supabase/client';
 import { callEdgeFunction } from '@/utils/edgeFunctionHandler';
+import { AgentMessagingService } from './messaging/AgentMessagingService';
+import { MessageType, MessagePriority } from './crewai/types/communication';
 
-/**
- * DungeonMasterAgent class handles the main game orchestration
- * and decision-making processes
- */
 export class DungeonMasterAgent implements Agent {
   id: string;
   role: string;
@@ -13,6 +11,7 @@ export class DungeonMasterAgent implements Agent {
   backstory: string;
   verbose: boolean;
   allowDelegation: boolean;
+  private messagingService: AgentMessagingService;
 
   constructor() {
     this.id = 'dm_agent_1';
@@ -21,13 +20,9 @@ export class DungeonMasterAgent implements Agent {
     this.backstory = 'An experienced DM with vast knowledge of D&D rules and creative storytelling abilities';
     this.verbose = true;
     this.allowDelegation = true;
+    this.messagingService = AgentMessagingService.getInstance();
   }
 
-  /**
-   * Fetches campaign details from Supabase
-   * @param campaignId - The ID of the campaign
-   * @returns Campaign details or null if not found
-   */
   private async fetchCampaignDetails(campaignId: string) {
     try {
       const { data, error } = await supabase
@@ -44,18 +39,24 @@ export class DungeonMasterAgent implements Agent {
     }
   }
 
-  /**
-   * Executes a given task using the agent's capabilities
-   * @param task - The task to be executed
-   * @returns Promise<AgentResult>
-   */
   async executeTask(task: AgentTask): Promise<AgentResult> {
     try {
       console.log(`DM Agent executing task: ${task.description}`);
 
-      // Fetch campaign details if campaignId is provided in context
       const campaignDetails = task.context?.campaignId ? 
         await this.fetchCampaignDetails(task.context.campaignId) : null;
+
+      // Notify other agents about task execution
+      await this.messagingService.sendMessage(
+        this.id,
+        'rules_interpreter_1',
+        MessageType.TASK,
+        {
+          taskDescription: task.description,
+          campaignContext: campaignDetails
+        },
+        MessagePriority.HIGH
+      );
 
       const data = await callEdgeFunction('dm-agent-execute', {
         task,
@@ -68,6 +69,18 @@ export class DungeonMasterAgent implements Agent {
       });
 
       if (!data) throw new Error('Failed to execute task');
+
+      // Notify about task completion
+      await this.messagingService.sendMessage(
+        this.id,
+        'narrator_1',
+        MessageType.RESULT,
+        {
+          taskId: task.id,
+          result: data
+        },
+        MessagePriority.MEDIUM
+      );
 
       return {
         success: true,

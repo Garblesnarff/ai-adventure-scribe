@@ -31,11 +31,8 @@ export class AgentMessagingService {
 
   private async initializeService(): Promise<void> {
     try {
-      // Initialize online/offline detection
       window.addEventListener('online', this.handleOnline.bind(this));
       window.addEventListener('offline', this.handleOffline.bind(this));
-
-      // Load persisted messages and queue state
       await this.loadPersistedState();
       this.startQueueProcessor();
     } catch (error) {
@@ -45,20 +42,18 @@ export class AgentMessagingService {
 
   private async loadPersistedState(): Promise<void> {
     try {
-      // Load queue state
       const queueState = await this.persistenceService.getQueueState();
       if (queueState) {
         console.log('[AgentMessagingService] Restored queue state:', queueState);
       }
 
-      // Load unsent messages
       const unsentMessages = await this.persistenceService.getUnsentMessages();
       for (const message of unsentMessages) {
         const queuedMessage: QueuedMessage = {
           id: message.id,
           type: message.type as MessageType,
           content: message.content,
-          priority: message.priority as MessagePriority,
+          priority: message.priority as MessagePriority, // Convert string back to enum
           sender: message.metadata?.sender,
           receiver: message.metadata?.receiver,
           timestamp: new Date(message.timestamp),

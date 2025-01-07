@@ -2,7 +2,7 @@ export interface StoredMessage {
   id: string;
   content: any;
   type: string;
-  priority: number;
+  priority: string;  // Changed from number to string to match MessagePriority enum
   timestamp: string;
   status: 'pending' | 'sent' | 'failed' | 'acknowledged';
   retryCount: number;

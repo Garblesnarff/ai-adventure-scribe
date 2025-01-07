@@ -22,7 +22,7 @@ export class MessagePersistenceService {
       id: message.id,
       content: message.content,
       type: message.type,
-      priority: message.priority,
+      priority: message.priority.toString(), // Convert enum to string
       timestamp: new Date().toISOString(),
       status: 'pending',
       retryCount: 0,

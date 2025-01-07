@@ -1,4 +1,18 @@
-import { MessageType, MessagePriority } from '../crewai/types/communication';
+import { Json } from '@/integrations/supabase/types';
+
+export enum MessageType {
+  TASK = 'TASK',
+  RESULT = 'RESULT',
+  QUERY = 'QUERY',
+  RESPONSE = 'RESPONSE',
+  STATE_UPDATE = 'STATE_UPDATE'
+}
+
+export enum MessagePriority {
+  HIGH = 'HIGH',
+  MEDIUM = 'MEDIUM',
+  LOW = 'LOW'
+}
 
 export interface MessageDeliveryStatus {
   delivered: boolean;
@@ -17,7 +31,7 @@ export interface MessageAcknowledgment {
 export interface QueuedMessage {
   id: string;
   type: MessageType;
-  content: any;
+  content: Json;
   priority: MessagePriority;
   sender: string;
   receiver: string;

@@ -74,15 +74,10 @@ export class MessageAcknowledgmentService {
       if (!data) return null;
 
       return {
-        id: data.id,
         messageId: data.message_id,
-        status: data.status as MessageAcknowledgment['status'],
-        attempts: data.attempts,
-        lastAttempt: data.last_attempt ? new Date(data.last_attempt) : undefined,
-        acknowledgedAt: data.acknowledged_at ? new Date(data.acknowledged_at) : undefined,
-        timeoutAt: data.timeout_at ? new Date(data.timeout_at) : undefined,
-        error: data.error,
-        metadata: data.metadata
+        receiverId: data.receiver_id || '',
+        timestamp: new Date(data.created_at || Date.now()),
+        status: data.status as MessageAcknowledgment['status']
       };
     } catch (error) {
       console.error('[MessageAcknowledgmentService] Check status error:', error);

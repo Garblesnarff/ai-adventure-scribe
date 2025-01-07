@@ -3,18 +3,22 @@ import { QueuedMessage, MessageType, MessagePriority } from './types';
 import { MessageQueueService } from './services/MessageQueueService';
 import { MessageDeliveryService } from './services/MessageDeliveryService';
 import { MessageAcknowledgmentService } from './services/MessageAcknowledgmentService';
+import { MessagePersistenceService } from './services/storage/MessagePersistenceService';
 
 export class AgentMessagingService {
   private static instance: AgentMessagingService;
   private queueService: MessageQueueService;
   private deliveryService: MessageDeliveryService;
   private acknowledgmentService: MessageAcknowledgmentService;
+  private persistenceService: MessagePersistenceService;
   private processingInterval: NodeJS.Timeout | null = null;
+  private isOnline: boolean = navigator.onLine;
 
   private constructor() {
     this.queueService = MessageQueueService.getInstance();
     this.deliveryService = MessageDeliveryService.getInstance();
     this.acknowledgmentService = MessageAcknowledgmentService.getInstance();
+    this.persistenceService = MessagePersistenceService.getInstance();
     this.initializeService();
   }
 
@@ -27,44 +31,66 @@ export class AgentMessagingService {
 
   private async initializeService(): Promise<void> {
     try {
-      await this.loadPersistedMessages();
+      // Initialize online/offline detection
+      window.addEventListener('online', this.handleOnline.bind(this));
+      window.addEventListener('offline', this.handleOffline.bind(this));
+
+      // Load persisted messages and queue state
+      await this.loadPersistedState();
       this.startQueueProcessor();
     } catch (error) {
       console.error('[AgentMessagingService] Initialization error:', error);
     }
   }
 
-  private async loadPersistedMessages(): Promise<void> {
+  private async loadPersistedState(): Promise<void> {
     try {
-      const { data, error } = await supabase
-        .from('agent_communications')
-        .select('*')
-        .is('read_at', null)
-        .order('created_at', { ascending: true });
+      // Load queue state
+      const queueState = await this.persistenceService.getQueueState();
+      if (queueState) {
+        console.log('[AgentMessagingService] Restored queue state:', queueState);
+      }
 
-      if (error) throw error;
-
-      data.forEach(msg => {
+      // Load unsent messages
+      const unsentMessages = await this.persistenceService.getUnsentMessages();
+      for (const message of unsentMessages) {
         const queuedMessage: QueuedMessage = {
-          id: msg.id,
-          type: msg.message_type as MessageType,
-          content: msg.content,
-          priority: MessagePriority.MEDIUM,
-          sender: msg.sender_id,
-          receiver: msg.receiver_id,
-          timestamp: new Date(msg.created_at),
+          id: message.id,
+          type: message.type as MessageType,
+          content: message.content,
+          priority: message.priority as MessagePriority,
+          sender: message.metadata?.sender,
+          receiver: message.metadata?.receiver,
+          timestamp: new Date(message.timestamp),
           deliveryStatus: {
             delivered: false,
             timestamp: new Date(),
-            attempts: 0
+            attempts: message.retryCount
           },
-          retryCount: 0,
+          retryCount: message.retryCount,
           maxRetries: this.queueService.getConfig().maxRetries
         };
         this.queueService.enqueue(queuedMessage);
-      });
+      }
+
+      console.log('[AgentMessagingService] Loaded persisted messages:', unsentMessages.length);
     } catch (error) {
-      console.error('[AgentMessagingService] Error loading persisted messages:', error);
+      console.error('[AgentMessagingService] Error loading persisted state:', error);
+    }
+  }
+
+  private handleOnline(): void {
+    console.log('[AgentMessagingService] Connection restored');
+    this.isOnline = true;
+    this.startQueueProcessor();
+  }
+
+  private handleOffline(): void {
+    console.log('[AgentMessagingService] Connection lost');
+    this.isOnline = false;
+    if (this.processingInterval) {
+      clearInterval(this.processingInterval);
+      this.processingInterval = null;
     }
   }
 
@@ -74,7 +100,9 @@ export class AgentMessagingService {
     }
 
     this.processingInterval = setInterval(async () => {
-      await this.processMessageQueue();
+      if (this.isOnline) {
+        await this.processMessageQueue();
+      }
     }, 1000);
   }
 
@@ -82,19 +110,34 @@ export class AgentMessagingService {
     const message = this.queueService.peek();
     if (!message) return;
 
-    const delivered = await this.deliveryService.deliverMessage(message);
-    
-    if (delivered) {
-      this.queueService.dequeue();
-      await this.deliveryService.confirmDelivery(message.id);
-    } else if (message.retryCount >= message.maxRetries) {
-      await this.deliveryService.handleFailedDelivery(message);
-      this.queueService.dequeue();
-    } else {
-      message.retryCount++;
-      // Move to end of queue for retry
-      this.queueService.dequeue();
-      this.queueService.enqueue(message);
+    try {
+      const delivered = await this.deliveryService.deliverMessage(message);
+      
+      if (delivered) {
+        this.queueService.dequeue();
+        await this.persistenceService.updateMessageStatus(message.id, 'sent');
+        await this.deliveryService.confirmDelivery(message.id);
+      } else if (message.retryCount >= message.maxRetries) {
+        await this.deliveryService.handleFailedDelivery(message);
+        this.queueService.dequeue();
+        await this.persistenceService.updateMessageStatus(message.id, 'failed');
+      } else {
+        message.retryCount++;
+        // Move to end of queue for retry
+        this.queueService.dequeue();
+        this.queueService.enqueue(message);
+        await this.persistenceService.updateMessageStatus(message.id, 'pending');
+      }
+
+      // Update queue state
+      await this.persistenceService.saveQueueState({
+        lastSyncTimestamp: new Date().toISOString(),
+        pendingMessages: this.queueService.getQueueIds(),
+        processingMessage: this.queueService.peek()?.id,
+        isOnline: this.isOnline
+      });
+    } catch (error) {
+      console.error('[AgentMessagingService] Error processing message:', error);
     }
   }
 
@@ -123,6 +166,9 @@ export class AgentMessagingService {
         maxRetries: this.queueService.getConfig().maxRetries
       };
 
+      // Persist message before adding to queue
+      await this.persistenceService.persistMessage(message);
+      
       return this.queueService.enqueue(message);
     } catch (error) {
       console.error('[AgentMessagingService] Send message error:', error);
@@ -133,10 +179,12 @@ export class AgentMessagingService {
   public getQueueStatus(): {
     queueLength: number;
     processingMessage?: QueuedMessage;
+    isOnline: boolean;
   } {
     return {
       queueLength: this.queueService.getQueueLength(),
-      processingMessage: this.queueService.peek()
+      processingMessage: this.queueService.peek(),
+      isOnline: this.isOnline
     };
   }
 }

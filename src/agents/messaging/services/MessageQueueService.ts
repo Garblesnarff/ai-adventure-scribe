@@ -41,6 +41,10 @@ export class MessageQueueService {
     return this.messageQueue.length;
   }
 
+  public getQueueIds(): string[] {
+    return this.messageQueue.map(msg => msg.id);
+  }
+
   public clear(): void {
     this.messageQueue = [];
   }

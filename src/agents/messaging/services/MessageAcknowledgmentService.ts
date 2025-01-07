@@ -65,7 +65,7 @@ export class MessageAcknowledgmentService {
     try {
       const { data, error } = await supabase
         .from('message_acknowledgments')
-        .select('*')
+        .select('*, agent_communications!inner(receiver_id)')
         .eq('message_id', messageId)
         .single();
 
@@ -75,7 +75,7 @@ export class MessageAcknowledgmentService {
 
       return {
         messageId: data.message_id,
-        receiverId: data.receiver_id || '',
+        receiverId: data.agent_communications?.receiver_id || '',
         timestamp: new Date(data.created_at || Date.now()),
         status: data.status as MessageAcknowledgment['status']
       };

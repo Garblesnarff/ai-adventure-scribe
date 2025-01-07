@@ -663,6 +663,56 @@ export type Database = {
           },
         ]
       }
+      message_acknowledgments: {
+        Row: {
+          acknowledged_at: string | null
+          attempts: number | null
+          created_at: string | null
+          error: string | null
+          id: string
+          last_attempt: string | null
+          message_id: string | null
+          metadata: Json | null
+          status: string
+          timeout_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          attempts?: number | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          last_attempt?: string | null
+          message_id?: string | null
+          metadata?: Json | null
+          status?: string
+          timeout_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          attempts?: number | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          last_attempt?: string | null
+          message_id?: string | null
+          metadata?: Json | null
+          status?: string
+          timeout_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_acknowledgments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "agent_communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       npcs: {
         Row: {
           class: string | null

@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { QueuedMessage, MessageDeliveryStatus } from '../types';
+import { QueuedMessage } from '../types';
 import { MessageAcknowledgmentService } from './MessageAcknowledgmentService';
 
 export class MessageDeliveryService {
@@ -58,16 +58,20 @@ export class MessageDeliveryService {
 
   public async handleFailedDelivery(message: QueuedMessage): Promise<void> {
     try {
+      const failureContent = {
+        originalMessageId: message.id,
+        originalType: message.type,
+        error: 'Maximum retry attempts exceeded',
+        timestamp: new Date().toISOString()
+      };
+
       await supabase
         .from('agent_communications')
         .insert({
           sender_id: message.sender,
           receiver_id: message.receiver,
           message_type: 'FAILED_DELIVERY',
-          content: {
-            originalMessage: message,
-            error: 'Maximum retry attempts exceeded'
-          },
+          content: failureContent,
           created_at: new Date().toISOString()
         });
 

@@ -19,7 +19,7 @@ export class MessageAcknowledgmentService {
         .from('message_acknowledgments')
         .insert({
           message_id: messageId,
-          timeout_at: new Date(Date.now() + 5 * 60 * 1000), // 5 minute timeout
+          timeout_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minute timeout
         });
 
       if (error) throw error;
@@ -35,9 +35,9 @@ export class MessageAcknowledgmentService {
     error?: string
   ): Promise<void> {
     try {
-      const updates: any = {
+      const updates: Record<string, any> = {
         status,
-        attempts: supabase.sql`attempts + 1`,
+        attempts: 1, // We'll increment this using a counter
         last_attempt: new Date().toISOString(),
       };
 
@@ -70,7 +70,20 @@ export class MessageAcknowledgmentService {
         .single();
 
       if (error) throw error;
-      return data;
+
+      if (!data) return null;
+
+      return {
+        id: data.id,
+        messageId: data.message_id,
+        status: data.status as MessageAcknowledgment['status'],
+        attempts: data.attempts,
+        lastAttempt: data.last_attempt ? new Date(data.last_attempt) : undefined,
+        acknowledgedAt: data.acknowledged_at ? new Date(data.acknowledged_at) : undefined,
+        timeoutAt: data.timeout_at ? new Date(data.timeout_at) : undefined,
+        error: data.error,
+        metadata: data.metadata
+      };
     } catch (error) {
       console.error('[MessageAcknowledgmentService] Check status error:', error);
       return null;

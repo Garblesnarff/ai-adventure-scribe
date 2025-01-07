@@ -1,19 +1,19 @@
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 export async function callEdgeFunction<T = any>(
   functionName: string,
   payload?: any
 ): Promise<T | null> {
   try {
-    console.log(`Calling edge function: ${functionName}`, payload);
+    console.log(`[EdgeFunction] Calling ${functionName}:`, payload);
     
     const { data, error } = await supabase.functions.invoke(functionName, {
       body: payload
     });
 
     if (error) {
-      console.error(`Edge function ${functionName} error:`, error);
+      console.error(`[EdgeFunction] ${functionName} error:`, error);
       toast({
         title: "Error",
         description: "Failed to process request. Please try again.",
@@ -22,9 +22,10 @@ export async function callEdgeFunction<T = any>(
       throw error;
     }
 
+    console.log(`[EdgeFunction] ${functionName} response:`, data);
     return data;
   } catch (error) {
-    console.error(`Failed to call edge function ${functionName}:`, error);
+    console.error(`[EdgeFunction] Failed to call ${functionName}:`, error);
     toast({
       title: "Error",
       description: "Failed to connect to server. Please try again.",

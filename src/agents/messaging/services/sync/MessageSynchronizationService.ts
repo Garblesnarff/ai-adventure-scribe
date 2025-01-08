@@ -85,7 +85,6 @@ export class MessageSynchronizationService {
 
   public async synchronizeMessage(message: QueuedMessage): Promise<boolean> {
     try {
-      // Increment vector clock for current agent
       const agentId = message.sender;
       this.vectorClock[agentId] = (this.vectorClock[agentId] || 0) + 1;
 
@@ -263,7 +262,7 @@ export class MessageSynchronizationService {
         throw error;
       }
 
-      return data;
+      return data as MessageSequence;
     } catch (error) {
       console.error('[MessageSynchronizationService] Error getting message sequence:', error);
       return null;
@@ -282,7 +281,7 @@ export class MessageSynchronizationService {
         throw error;
       }
 
-      return data;
+      return data as SyncStatus;
     } catch (error) {
       console.error('[MessageSynchronizationService] Error getting sync status:', error);
       return null;

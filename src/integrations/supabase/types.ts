@@ -713,6 +713,41 @@ export type Database = {
           },
         ]
       }
+      message_sequences: {
+        Row: {
+          created_at: string | null
+          id: string
+          message_id: string
+          sequence_number: number
+          updated_at: string | null
+          vector_clock: Json
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message_id: string
+          sequence_number: number
+          updated_at?: string | null
+          vector_clock?: Json
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message_id?: string
+          sequence_number?: number
+          updated_at?: string | null
+          vector_clock?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_sequences_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "agent_communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       npcs: {
         Row: {
           class: string | null
@@ -915,6 +950,44 @@ export type Database = {
           validation_data?: Json
         }
         Relationships: []
+      }
+      sync_status: {
+        Row: {
+          agent_id: string
+          created_at: string | null
+          id: string
+          last_sync_timestamp: string
+          sync_state: Json
+          updated_at: string | null
+          vector_clock: Json
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string | null
+          id?: string
+          last_sync_timestamp?: string
+          sync_state?: Json
+          updated_at?: string | null
+          vector_clock?: Json
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string | null
+          id?: string
+          last_sync_timestamp?: string
+          sync_state?: Json
+          updated_at?: string | null
+          vector_clock?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_status_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "agent_states"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_queue: {
         Row: {

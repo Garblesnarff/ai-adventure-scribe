@@ -1,4 +1,5 @@
 import { MessageType, MessagePriority } from '../../types';
+import { QueuedMessage } from '../MessageQueueService';
 
 export interface VectorClock {
   [agentId: string]: number;

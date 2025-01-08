@@ -5,6 +5,7 @@ import { MessagePersistenceService } from './services/storage/MessagePersistence
 import { MessageRecoveryService } from './services/recovery/MessageRecoveryService';
 import { OfflineStateService } from './services/offline/OfflineStateService';
 import { ConnectionStateService } from './services/connection/ConnectionStateService';
+import { MessageSynchronizationService } from './services/sync/MessageSynchronizationService';
 import { useToast } from '@/hooks/use-toast';
 
 export class AgentMessagingService {
@@ -15,6 +16,7 @@ export class AgentMessagingService {
   private recoveryService: MessageRecoveryService;
   private offlineService: OfflineStateService;
   private connectionService: ConnectionStateService;
+  private synchronizationService: MessageSynchronizationService;
   private processingInterval: NodeJS.Timeout | null = null;
 
   private constructor() {
@@ -24,6 +26,7 @@ export class AgentMessagingService {
     this.recoveryService = MessageRecoveryService.getInstance();
     this.offlineService = OfflineStateService.getInstance();
     this.connectionService = ConnectionStateService.getInstance();
+    this.synchronizationService = MessageSynchronizationService.getInstance();
     this.initializeService();
   }
 
@@ -81,6 +84,9 @@ export class AgentMessagingService {
 
     try {
       const success = await this.processingService.processMessage(message);
+      if (success) {
+        await this.synchronizationService.synchronizeMessage(message);
+      }
       this.queueService.dequeue();
       await this.queueService.completeProcessing(success);
     } catch (error) {
@@ -106,7 +112,13 @@ export class AgentMessagingService {
       );
 
       await this.persistenceService.persistMessage(message);
-      return this.queueService.enqueue(message);
+      const enqueued = await this.queueService.enqueue(message);
+      
+      if (enqueued && this.offlineService.isOnline()) {
+        await this.synchronizationService.synchronizeMessage(message);
+      }
+      
+      return enqueued;
     } catch (error) {
       console.error('[AgentMessagingService] Send message error:', error);
       return false;

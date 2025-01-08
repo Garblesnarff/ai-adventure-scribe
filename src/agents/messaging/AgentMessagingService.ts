@@ -4,6 +4,7 @@ import { MessageQueueService } from './services/MessageQueueService';
 import { MessageDeliveryService } from './services/MessageDeliveryService';
 import { MessageAcknowledgmentService } from './services/MessageAcknowledgmentService';
 import { MessagePersistenceService } from './services/storage/MessagePersistenceService';
+import { MessageRecoveryService } from './services/recovery/MessageRecoveryService';
 
 export class AgentMessagingService {
   private static instance: AgentMessagingService;
@@ -11,6 +12,7 @@ export class AgentMessagingService {
   private deliveryService: MessageDeliveryService;
   private acknowledgmentService: MessageAcknowledgmentService;
   private persistenceService: MessagePersistenceService;
+  private recoveryService: MessageRecoveryService;
   private processingInterval: NodeJS.Timeout | null = null;
   private isOnline: boolean = navigator.onLine;
 
@@ -19,6 +21,7 @@ export class AgentMessagingService {
     this.deliveryService = MessageDeliveryService.getInstance();
     this.acknowledgmentService = MessageAcknowledgmentService.getInstance();
     this.persistenceService = MessagePersistenceService.getInstance();
+    this.recoveryService = MessageRecoveryService.getInstance();
     this.initializeService();
   }
 
@@ -33,8 +36,14 @@ export class AgentMessagingService {
     try {
       window.addEventListener('online', this.handleOnline.bind(this));
       window.addEventListener('offline', this.handleOffline.bind(this));
-      await this.loadPersistedState();
-      this.startQueueProcessor();
+      
+      // Recover any pending messages
+      await this.recoveryService.recoverMessages();
+      
+      // Start queue processing if online
+      if (this.isOnline) {
+        this.startQueueProcessor();
+      }
     } catch (error) {
       console.error('[AgentMessagingService] Initialization error:', error);
     }
@@ -102,6 +111,14 @@ export class AgentMessagingService {
   }
 
   private async processMessageQueue(): Promise<void> {
+    // Validate queue integrity before processing
+    const isValid = await this.recoveryService.validateQueueIntegrity();
+    if (!isValid) {
+      console.warn('[AgentMessagingService] Queue integrity check failed, initiating recovery...');
+      await this.recoveryService.recoverMessages();
+      return;
+    }
+
     const message = this.queueService.peek();
     if (!message) return;
 
@@ -118,7 +135,6 @@ export class AgentMessagingService {
         await this.persistenceService.updateMessageStatus(message.id, 'failed');
       } else {
         message.retryCount++;
-        // Move to end of queue for retry
         this.queueService.dequeue();
         this.queueService.enqueue(message);
         await this.persistenceService.updateMessageStatus(message.id, 'pending');

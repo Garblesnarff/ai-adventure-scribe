@@ -35,3 +35,15 @@ export interface StorageConfig {
   offlineStoreName: string;
   version: number;
 }
+
+/**
+ * Interface for offline state management
+ */
+export interface OfflineState {
+  isOnline: boolean;
+  lastOnlineTimestamp: string;
+  lastOfflineTimestamp: string;
+  pendingSync: boolean;
+  queueSize: number;
+  reconnectionAttempts: number;
+}

@@ -2,16 +2,6 @@ import { AgentTask } from '../../types';
 import { MessagePriority } from './communication';
 
 /**
- * Interface for CrewAI agent tools
- */
-export interface AgentTool {
-  name: string;
-  description: string;
-  execute: (params: any) => Promise<any>;
-  permissions?: string[];
-}
-
-/**
  * Enhanced task interface that works with both systems
  */
 export interface CrewAITask extends AgentTask {

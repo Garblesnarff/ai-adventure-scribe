@@ -4,6 +4,7 @@ import { MessageHandler } from './handlers/MessageHandler';
 import { DMAgentTools } from './tools/DMAgentTools';
 import { DMMemoryManager } from './memory/DMMemoryManager';
 import { DMTaskExecutor } from './tasks/DMTaskExecutor';
+import { CrewAITask } from './types/tasks';
 
 /**
  * CrewAI-enabled Dungeon Master Agent
@@ -78,6 +79,16 @@ export class CrewAIDungeonMasterAgent implements CrewAIAgentBridge {
    * Execute a task using CrewAI capabilities
    */
   async executeTask(task: any): Promise<any> {
-    return this.taskExecutor.executeTask(task);
+    // Convert to CrewAI task format
+    const crewAITask: CrewAITask = {
+      ...task,
+      crewAIContext: {
+        assignedAgent: this.id,
+        priority: task.priority || 'MEDIUM',
+        dependencies: task.dependencies || []
+      }
+    };
+
+    return this.taskExecutor.executeTask(crewAITask);
   }
 }

@@ -17,3 +17,9 @@ export interface ReconnectionConfig {
   factor: number;
   jitter: boolean;
 }
+
+export interface ReconnectionState {
+  attempts: number;
+  lastAttempt: Date | null;
+  nextAttemptDelay: number;
+}

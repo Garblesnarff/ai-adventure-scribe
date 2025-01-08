@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { QueuedMessage, MessageType, MessagePriority } from './types';
+import { QueuedMessage, MessageType, MessagePriority, OfflineState } from './types';
 import { MessageQueueService } from './services/MessageQueueService';
 import { MessageDeliveryService } from './services/MessageDeliveryService';
 import { MessageAcknowledgmentService } from './services/MessageAcknowledgmentService';

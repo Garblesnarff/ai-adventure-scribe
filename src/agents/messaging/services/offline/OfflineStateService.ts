@@ -4,7 +4,8 @@ import { MessagePersistenceService } from '../storage/MessagePersistenceService'
 import { MessageRecoveryService } from '../recovery/MessageRecoveryService';
 import { QueueStateManager } from '../queue/QueueStateManager';
 import { QueuedMessage, MessageType, MessagePriority } from '../../types';
-import { StoredMessage, OfflineState } from '../storage/types';
+import { StoredMessage } from '../storage/types';
+import { OfflineState } from '../../types';
 
 export interface OfflineState {
   isOnline: boolean;

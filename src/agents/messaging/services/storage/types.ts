@@ -1,4 +1,4 @@
-import { QueuedMessage } from '../../types';
+import { Json } from '@/integrations/supabase/types';
 
 export interface StoredMessage {
   id: string;
@@ -27,11 +27,10 @@ export interface QueueState {
   };
 }
 
-export interface OfflineState {
-  isOnline: boolean;
-  lastOnlineTimestamp: string;
-  lastOfflineTimestamp: string;
-  pendingSync: boolean;
-  queueSize: number;
-  reconnectionAttempts: number;
+export interface StorageConfig {
+  dbName: string;
+  messageStoreName: string;
+  queueStoreName: string;
+  offlineStoreName: string;
+  version: number;
 }

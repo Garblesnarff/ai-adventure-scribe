@@ -1,5 +1,6 @@
-import { QueuedMessage, MessageQueueConfig } from '../../types';
+import { QueuedMessage } from '../../types';
 import { IndexedDBService } from '../storage/IndexedDBService';
+import { QueueState } from '../storage/types';
 
 export class QueueStateManager {
   private static instance: QueueStateManager;
@@ -28,13 +29,17 @@ export class QueueStateManager {
 
   public async saveQueueSnapshot(messages: QueuedMessage[]): Promise<void> {
     try {
-      const snapshot = {
-        timestamp: new Date().toISOString(),
+      const snapshot: QueueState = {
+        lastSyncTimestamp: new Date().toISOString(),
         messages: messages,
+        pendingMessages: messages.map(msg => msg.id),
+        processingMessage: undefined,
+        isOnline: navigator.onLine,
         metrics: this.queueMetrics
       };
+      
       await this.storage.saveQueueState(snapshot);
-      console.log('[QueueStateManager] Queue snapshot saved:', snapshot.timestamp);
+      console.log('[QueueStateManager] Queue snapshot saved:', snapshot.lastSyncTimestamp);
     } catch (error) {
       console.error('[QueueStateManager] Failed to save queue snapshot:', error);
       throw error;

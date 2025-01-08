@@ -2,7 +2,7 @@ export interface StoredMessage {
   id: string;
   content: any;
   type: string;
-  priority: string;  // Changed from number to string to match MessagePriority enum
+  priority: string;
   timestamp: string;
   status: 'pending' | 'sent' | 'failed' | 'acknowledged';
   retryCount: number;
@@ -11,9 +11,15 @@ export interface StoredMessage {
 
 export interface QueueState {
   lastSyncTimestamp: string;
+  messages: QueuedMessage[];
   pendingMessages: string[];
   processingMessage?: string;
   isOnline: boolean;
+  metrics: {
+    totalProcessed: number;
+    failedDeliveries: number;
+    avgProcessingTime: number;
+  };
 }
 
 export interface StorageConfig {

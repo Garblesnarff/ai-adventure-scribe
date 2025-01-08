@@ -6,6 +6,8 @@ import { MessageAcknowledgmentService } from './services/MessageAcknowledgmentSe
 import { MessagePersistenceService } from './services/storage/MessagePersistenceService';
 import { MessageRecoveryService } from './services/recovery/MessageRecoveryService';
 import { OfflineStateService } from './services/offline/OfflineStateService';
+import { ConnectionStateService } from './services/connection/ConnectionStateService';
+import { useToast } from '@/hooks/use-toast';
 
 export class AgentMessagingService {
   private static instance: AgentMessagingService;
@@ -15,6 +17,7 @@ export class AgentMessagingService {
   private persistenceService: MessagePersistenceService;
   private recoveryService: MessageRecoveryService;
   private offlineService: OfflineStateService;
+  private connectionService: ConnectionStateService;
   private processingInterval: NodeJS.Timeout | null = null;
 
   private constructor() {
@@ -24,6 +27,7 @@ export class AgentMessagingService {
     this.persistenceService = MessagePersistenceService.getInstance();
     this.recoveryService = MessageRecoveryService.getInstance();
     this.offlineService = OfflineStateService.getInstance();
+    this.connectionService = ConnectionStateService.getInstance();
     this.initializeService();
   }
 
@@ -38,7 +42,17 @@ export class AgentMessagingService {
     try {
       await this.recoveryService.recoverMessages();
       
-      if (this.offlineService.isOnline()) {
+      this.connectionService.onConnectionStateChanged((state) => {
+        if (state.status === 'connected') {
+          this.startQueueProcessor();
+        } else {
+          if (this.processingInterval) {
+            clearInterval(this.processingInterval);
+          }
+        }
+      });
+
+      if (this.connectionService.getState().status === 'connected') {
         this.startQueueProcessor();
       }
     } catch (error) {

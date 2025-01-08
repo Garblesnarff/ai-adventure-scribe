@@ -1,4 +1,4 @@
-import { StoredMessage, QueueState } from './types';
+import { StoredMessage, QueueState, OfflineState } from './types';
 import { DatabaseInitializer } from './core/DatabaseInitializer';
 import { DEFAULT_STORAGE_CONFIG } from './config/StorageConfig';
 

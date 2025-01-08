@@ -1,5 +1,4 @@
 import { QueuedMessage } from '../../types';
-import { OfflineState } from '../offline/OfflineStateService';
 
 export interface StoredMessage {
   id: string;
@@ -9,7 +8,10 @@ export interface StoredMessage {
   timestamp: string;
   status: 'pending' | 'sent' | 'failed' | 'acknowledged';
   retryCount: number;
-  metadata?: Record<string, any>;
+  metadata?: {
+    sender: string;
+    receiver: string;
+  };
 }
 
 export interface QueueState {
@@ -25,10 +27,11 @@ export interface QueueState {
   };
 }
 
-export interface StorageConfig {
-  dbName: string;
-  messageStoreName: string;
-  queueStoreName: string;
-  offlineStoreName: string;
-  version: number;
+export interface OfflineState {
+  isOnline: boolean;
+  lastOnlineTimestamp: string;
+  lastOfflineTimestamp: string;
+  pendingSync: boolean;
+  queueSize: number;
+  reconnectionAttempts: number;
 }

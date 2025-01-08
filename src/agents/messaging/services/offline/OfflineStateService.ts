@@ -3,6 +3,8 @@ import { MessageQueueService } from '../MessageQueueService';
 import { MessagePersistenceService } from '../storage/MessagePersistenceService';
 import { MessageRecoveryService } from '../recovery/MessageRecoveryService';
 import { QueueStateManager } from '../queue/QueueStateManager';
+import { QueuedMessage, MessageType, MessagePriority } from '../../types';
+import { StoredMessage, OfflineState } from '../storage/types';
 
 export interface OfflineState {
   isOnline: boolean;
@@ -51,17 +53,14 @@ export class OfflineStateService {
 
   private async initializeService(): Promise<void> {
     try {
-      // Restore previous state if exists
       const savedState = await this.storage.getOfflineState();
       if (savedState) {
         this.state = { ...this.state, ...savedState };
       }
 
-      // Set up event listeners
       window.addEventListener('online', this.handleOnline.bind(this));
       window.addEventListener('offline', this.handleOffline.bind(this));
 
-      // Initial state save
       await this.saveState();
       
       console.log('[OfflineStateService] Initialized with state:', this.state);
@@ -94,17 +93,16 @@ export class OfflineStateService {
 
   private async synchronize(): Promise<void> {
     try {
-      // Validate queue state
       const isValid = await this.queueService.validateQueue();
       if (!isValid) {
         console.warn('[OfflineStateService] Queue validation failed, initiating recovery...');
         await this.recoveryService.recoverMessages();
       }
 
-      // Process pending messages
       const pendingMessages = await this.persistenceService.getUnsentMessages();
       for (const message of pendingMessages) {
-        await this.queueService.enqueue(message);
+        const queuedMessage = this.convertStoredToQueuedMessage(message);
+        await this.queueService.enqueue(queuedMessage);
       }
 
       this.state.pendingSync = false;
@@ -119,20 +117,23 @@ export class OfflineStateService {
     }
   }
 
-  private startReconnectionAttempts(): void {
-    if (this.reconnectionTimeout) {
-      clearTimeout(this.reconnectionTimeout);
-    }
-
-    const backoffTime = Math.min(1000 * Math.pow(2, this.state.reconnectionAttempts), 30000);
-    
-    this.reconnectionTimeout = setTimeout(async () => {
-      if (!this.state.isOnline) {
-        this.state.reconnectionAttempts++;
-        await this.saveState();
-        this.startReconnectionAttempts();
-      }
-    }, backoffTime);
+  private convertStoredToQueuedMessage(stored: StoredMessage): QueuedMessage {
+    return {
+      id: stored.id,
+      type: stored.type as MessageType,
+      content: stored.content,
+      priority: stored.priority as MessagePriority,
+      sender: stored.metadata?.sender || '',
+      receiver: stored.metadata?.receiver || '',
+      timestamp: new Date(stored.timestamp),
+      deliveryStatus: {
+        delivered: false,
+        timestamp: new Date(),
+        attempts: stored.retryCount
+      },
+      retryCount: stored.retryCount,
+      maxRetries: this.queueService.getConfig().maxRetries
+    };
   }
 
   private async saveState(): Promise<void> {
@@ -157,5 +158,21 @@ export class OfflineStateService {
 
   public getQueueSize(): number {
     return this.queueService.getQueueLength();
+  }
+
+  private startReconnectionAttempts(): void {
+    if (this.reconnectionTimeout) {
+      clearTimeout(this.reconnectionTimeout);
+    }
+
+    const backoffTime = Math.min(1000 * Math.pow(2, this.state.reconnectionAttempts), 30000);
+    
+    this.reconnectionTimeout = setTimeout(async () => {
+      if (!this.state.isOnline) {
+        this.state.reconnectionAttempts++;
+        await this.saveState();
+        this.startReconnectionAttempts();
+      }
+    }, backoffTime);
   }
 }

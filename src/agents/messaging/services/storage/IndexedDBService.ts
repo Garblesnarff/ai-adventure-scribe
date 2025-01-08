@@ -3,12 +3,14 @@ import { StoredMessage, QueueState, StorageConfig } from './types';
 export class IndexedDBService {
   private static instance: IndexedDBService;
   private db: IDBDatabase | null = null;
-  private readonly config: StorageConfig = {
-    dbName: 'agentMessaging',
-    messageStoreName: 'messages',
-    queueStoreName: 'queueState',
-    version: 1,
-  };
+
+private readonly config: StorageConfig = {
+  dbName: 'agentMessaging',
+  messageStoreName: 'messages',
+  queueStoreName: 'queueState',
+  offlineStoreName: 'offlineState',
+  version: 1,
+};
 
   private constructor() {
     this.initDatabase();
@@ -21,38 +23,40 @@ export class IndexedDBService {
     return IndexedDBService.instance;
   }
 
-  private async initDatabase(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.config.dbName, this.config.version);
+private async initDatabase(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(this.config.dbName, this.config.version);
 
-      request.onerror = () => {
-        console.error('[IndexedDB] Failed to open database');
-        reject(request.error);
-      };
+    request.onerror = () => {
+      console.error('[IndexedDB] Failed to open database');
+      reject(request.error);
+    };
 
-      request.onsuccess = () => {
-        this.db = request.result;
-        console.log('[IndexedDB] Database opened successfully');
-        resolve();
-      };
+    request.onsuccess = () => {
+      this.db = request.result;
+      console.log('[IndexedDB] Database opened successfully');
+      resolve();
+    };
 
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
 
-        // Create messages store
-        if (!db.objectStoreNames.contains(this.config.messageStoreName)) {
-          const messageStore = db.createObjectStore(this.config.messageStoreName, { keyPath: 'id' });
-          messageStore.createIndex('status', 'status', { unique: false });
-          messageStore.createIndex('timestamp', 'timestamp', { unique: false });
-        }
+      if (!db.objectStoreNames.contains(this.config.messageStoreName)) {
+        const messageStore = db.createObjectStore(this.config.messageStoreName, { keyPath: 'id' });
+        messageStore.createIndex('status', 'status', { unique: false });
+        messageStore.createIndex('timestamp', 'timestamp', { unique: false });
+      }
 
-        // Create queue state store
-        if (!db.objectStoreNames.contains(this.config.queueStoreName)) {
-          db.createObjectStore(this.config.queueStoreName, { keyPath: 'id' });
-        }
-      };
-    });
-  }
+      if (!db.objectStoreNames.contains(this.config.queueStoreName)) {
+        db.createObjectStore(this.config.queueStoreName, { keyPath: 'id' });
+      }
+
+      if (!db.objectStoreNames.contains(this.config.offlineStoreName)) {
+        db.createObjectStore(this.config.offlineStoreName, { keyPath: 'id' });
+      }
+    };
+  });
+}
 
   public async storeMessage(message: StoredMessage): Promise<void> {
     if (!this.db) {
@@ -145,6 +149,42 @@ export class IndexedDBService {
     });
   }
 
+public async saveOfflineState(state: OfflineState): Promise<void> {
+  if (!this.db) {
+    throw new Error('Database not initialized');
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = this.db!.transaction([this.config.offlineStoreName], 'readwrite');
+    const store = transaction.objectStore(this.config.offlineStoreName);
+    const request = store.put({ id: 'current', ...state });
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      console.log('[IndexedDB] Offline state saved successfully');
+      resolve();
+    };
+  });
+}
+
+public async getOfflineState(): Promise<OfflineState | null> {
+  if (!this.db) {
+    throw new Error('Database not initialized');
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = this.db!.transaction([this.config.offlineStoreName], 'readonly');
+    const store = transaction.objectStore(this.config.offlineStoreName);
+    const request = store.get('current');
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const state = request.result;
+      resolve(state ? state : null);
+    };
+  });
+}
+
   public async clearOldMessages(maxAgeMs: number = 24 * 60 * 60 * 1000): Promise<void> {
     if (!this.db) {
       throw new Error('Database not initialized');
@@ -172,4 +212,3 @@ export class IndexedDBService {
       };
     });
   }
-}

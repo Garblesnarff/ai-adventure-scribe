@@ -5,6 +5,7 @@ import { MessageDeliveryService } from './services/MessageDeliveryService';
 import { MessageAcknowledgmentService } from './services/MessageAcknowledgmentService';
 import { MessagePersistenceService } from './services/storage/MessagePersistenceService';
 import { MessageRecoveryService } from './services/recovery/MessageRecoveryService';
+import { OfflineStateService } from './services/offline/OfflineStateService';
 
 export class AgentMessagingService {
   private static instance: AgentMessagingService;
@@ -13,8 +14,8 @@ export class AgentMessagingService {
   private acknowledgmentService: MessageAcknowledgmentService;
   private persistenceService: MessagePersistenceService;
   private recoveryService: MessageRecoveryService;
+  private offlineService: OfflineStateService;
   private processingInterval: NodeJS.Timeout | null = null;
-  private isOnline: boolean = navigator.onLine;
 
   private constructor() {
     this.queueService = MessageQueueService.getInstance();
@@ -22,6 +23,7 @@ export class AgentMessagingService {
     this.acknowledgmentService = MessageAcknowledgmentService.getInstance();
     this.persistenceService = MessagePersistenceService.getInstance();
     this.recoveryService = MessageRecoveryService.getInstance();
+    this.offlineService = OfflineStateService.getInstance();
     this.initializeService();
   }
 
@@ -34,31 +36,13 @@ export class AgentMessagingService {
 
   private async initializeService(): Promise<void> {
     try {
-      window.addEventListener('online', this.handleOnline.bind(this));
-      window.addEventListener('offline', this.handleOffline.bind(this));
-      
       await this.recoveryService.recoverMessages();
       
-      if (this.isOnline) {
+      if (this.offlineService.isOnline()) {
         this.startQueueProcessor();
       }
     } catch (error) {
       console.error('[AgentMessagingService] Initialization error:', error);
-    }
-  }
-
-  private handleOnline(): void {
-    console.log('[AgentMessagingService] Connection restored');
-    this.isOnline = true;
-    this.startQueueProcessor();
-  }
-
-  private handleOffline(): void {
-    console.log('[AgentMessagingService] Connection lost');
-    this.isOnline = false;
-    if (this.processingInterval) {
-      clearInterval(this.processingInterval);
-      this.processingInterval = null;
     }
   }
 
@@ -68,7 +52,7 @@ export class AgentMessagingService {
     }
 
     this.processingInterval = setInterval(async () => {
-      if (this.isOnline) {
+      if (this.offlineService.isOnline()) {
         await this.processMessageQueue();
       }
     }, 1000);
@@ -149,12 +133,14 @@ export class AgentMessagingService {
     processingMessage?: QueuedMessage;
     isOnline: boolean;
     metrics: any;
+    offlineState?: OfflineState;
   } {
     return {
       queueLength: this.queueService.getQueueLength(),
       processingMessage: this.queueService.peek(),
-      isOnline: this.isOnline,
-      metrics: this.queueService.getMetrics()
+      isOnline: this.offlineService.isOnline(),
+      metrics: this.queueService.getMetrics(),
+      offlineState: this.offlineService.getState()
     };
   }
 }

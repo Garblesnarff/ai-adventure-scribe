@@ -1,4 +1,5 @@
 import { QueuedMessage } from '../../types';
+import { OfflineState } from '../offline/OfflineStateService';
 
 export interface StoredMessage {
   id: string;
@@ -28,5 +29,6 @@ export interface StorageConfig {
   dbName: string;
   messageStoreName: string;
   queueStoreName: string;
+  offlineStoreName: string;
   version: number;
 }

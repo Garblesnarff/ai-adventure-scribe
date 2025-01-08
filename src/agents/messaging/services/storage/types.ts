@@ -1,3 +1,5 @@
+import { QueuedMessage } from '../../types';
+
 export interface StoredMessage {
   id: string;
   content: any;

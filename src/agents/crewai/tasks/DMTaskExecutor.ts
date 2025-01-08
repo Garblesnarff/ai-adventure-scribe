@@ -1,9 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
 import { MemoryAdapter } from '../adapters/MemoryAdapter';
 import { CrewAITask, TaskStatus, TaskResult } from '../types/tasks';
+import { Memory } from '@/components/game/memory/types';
 
+/**
+ * Handles task execution for the Dungeon Master agent with enhanced validation and memory integration
+ */
 export class DMTaskExecutor {
   private memoryAdapter: MemoryAdapter;
+  private readonly MAX_RETRIES = 3;
+  private readonly RETRY_DELAY = 1000; // ms
 
   constructor(memoryAdapter: MemoryAdapter) {
     this.memoryAdapter = memoryAdapter;
@@ -17,47 +23,20 @@ export class DMTaskExecutor {
     const startTime = Date.now();
     
     try {
-      // Validate task and dependencies
       await this.validateTask(task);
-      
-      // Update task status
       await this.updateTaskStatus(task.id, TaskStatus.IN_PROGRESS);
       
-      // Get relevant memories for context
-      const memories = await this.memoryAdapter.getRecentMemories();
+      const context = await this.buildTaskContext(task);
+      const result = await this.executeWithRetries(task, context);
       
-      // Execute AI function with enhanced context
-      const result = await this.executeAIFunction(task, memories);
-      
-      // Store task result
       await this.storeTaskResult(result);
-      
-      // Update final status
       await this.updateTaskStatus(task.id, TaskStatus.COMPLETED);
       
-      return {
-        success: true,
-        data: result,
-        metadata: {
-          executionTime: Date.now() - startTime,
-          agentId: 'dm_agent',
-          resourcesUsed: ['memory', 'ai_model']
-        }
-      };
+      return this.createSuccessResult(result, startTime);
     } catch (error) {
       console.error('Error executing CrewAI DM agent task:', error);
-      
-      // Update status to failed
       await this.updateTaskStatus(task.id, TaskStatus.FAILED);
-      
-      return {
-        success: false,
-        error: error instanceof Error ? error : new Error('Task execution failed'),
-        metadata: {
-          executionTime: Date.now() - startTime,
-          agentId: 'dm_agent'
-        }
-      };
+      return this.createErrorResult(error, startTime);
     }
   }
 
@@ -69,7 +48,6 @@ export class DMTaskExecutor {
       throw new Error('Invalid task: missing required fields');
     }
 
-    // Check dependencies if they exist
     if (task.crewAIContext?.dependencies?.length) {
       const { data: dependentTasks } = await supabase
         .from('task_queue')
@@ -87,6 +65,71 @@ export class DMTaskExecutor {
   }
 
   /**
+   * Build comprehensive task context including memories
+   */
+  private async buildTaskContext(task: CrewAITask): Promise<{
+    memories: Memory[];
+    taskContext: Record<string, any>;
+  }> {
+    const memories = await this.memoryAdapter.getRecentMemories();
+    const taskContext = {
+      priority: task.crewAIContext?.priority || 'MEDIUM',
+      dependencies: task.crewAIContext?.dependencies || [],
+      assignedAgent: task.crewAIContext?.assignedAgent
+    };
+
+    return { memories, taskContext };
+  }
+
+  /**
+   * Execute task with retry mechanism
+   */
+  private async executeWithRetries(
+    task: CrewAITask, 
+    context: { memories: Memory[]; taskContext: Record<string, any> }
+  ): Promise<any> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+      try {
+        return await this.executeAIFunction(task, context);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        if (attempt === this.MAX_RETRIES) break;
+        
+        console.log(`Retry attempt ${attempt} failed, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY * attempt));
+      }
+    }
+    
+    throw lastError || new Error('Task execution failed after retries');
+  }
+
+  /**
+   * Execute AI function through Edge Function with enhanced context
+   */
+  private async executeAIFunction(
+    task: CrewAITask,
+    context: { memories: Memory[]; taskContext: Record<string, any> }
+  ): Promise<any> {
+    const { data, error } = await supabase.functions.invoke('dm-agent-execute', {
+      body: {
+        task,
+        memories: context.memories,
+        agentContext: {
+          role: 'Dungeon Master',
+          goal: 'Guide players through an engaging D&D campaign with advanced AI capabilities',
+          backstory: 'An experienced DM enhanced with CrewAI capabilities for dynamic storytelling',
+          taskContext: context.taskContext
+        }
+      }
+    });
+
+    if (error) throw error;
+    return data;
+  }
+
+  /**
    * Update task status in database
    */
   private async updateTaskStatus(taskId: string, status: TaskStatus): Promise<void> {
@@ -96,30 +139,6 @@ export class DMTaskExecutor {
       .eq('id', taskId);
 
     if (error) throw error;
-  }
-
-  /**
-   * Execute AI function through Edge Function with enhanced context
-   */
-  private async executeAIFunction(task: CrewAITask, memories: any[]): Promise<any> {
-    const { data, error } = await supabase.functions.invoke('dm-agent-execute', {
-      body: {
-        task,
-        memories,
-        agentContext: {
-          role: 'Dungeon Master',
-          goal: 'Guide players through an engaging D&D campaign with advanced AI capabilities',
-          backstory: 'An experienced DM enhanced with CrewAI capabilities for dynamic storytelling',
-          taskContext: {
-            priority: task.crewAIContext?.priority || 'MEDIUM',
-            dependencies: task.crewAIContext?.dependencies || []
-          }
-        }
-      }
-    });
-
-    if (error) throw error;
-    return data;
   }
 
   /**
@@ -147,5 +166,34 @@ export class DMTaskExecutor {
 
     // Cap importance at 10
     return Math.min(10, importance);
+  }
+
+  /**
+   * Create success result object
+   */
+  private createSuccessResult(result: any, startTime: number): TaskResult {
+    return {
+      success: true,
+      data: result,
+      metadata: {
+        executionTime: Date.now() - startTime,
+        agentId: 'dm_agent',
+        resourcesUsed: ['memory', 'ai_model']
+      }
+    };
+  }
+
+  /**
+   * Create error result object
+   */
+  private createErrorResult(error: unknown, startTime: number): TaskResult {
+    return {
+      success: false,
+      error: error instanceof Error ? error : new Error('Task execution failed'),
+      metadata: {
+        executionTime: Date.now() - startTime,
+        agentId: 'dm_agent'
+      }
+    };
   }
 }

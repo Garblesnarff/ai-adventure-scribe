@@ -14,6 +14,15 @@ export interface CrewAITask extends AgentTask {
 }
 
 /**
+ * Interface for agent tools
+ */
+export interface AgentTool {
+  name: string;
+  description: string;
+  execute: (params: any) => Promise<any>;
+}
+
+/**
  * Enum for task status
  */
 export enum TaskStatus {

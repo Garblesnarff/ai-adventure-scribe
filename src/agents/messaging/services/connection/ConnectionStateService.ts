@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { MessageQueueService } from '../MessageQueueService';
 import { MessagePersistenceService } from '../storage/MessagePersistenceService';
 import { OfflineStateService } from '../offline/OfflineStateService';
-import { ConnectionState, ConnectionEvent, ReconnectionConfig } from './types';
+import { ConnectionState, ConnectionEvent, ReconnectionConfig, QueuedMessage } from '../../types';
 import { EventEmitter } from './EventEmitter';
 
 export class ConnectionStateService {
@@ -47,7 +47,6 @@ export class ConnectionStateService {
     window.addEventListener('online', () => this.handleOnline());
     window.addEventListener('offline', () => this.handleOffline());
 
-    // Listen for Supabase connection changes
     supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
         this.handleOnline();
@@ -144,21 +143,28 @@ export class ConnectionStateService {
 
   private async handleReconnection(): Promise<void> {
     try {
-      // Validate queue integrity
       const isValid = await this.queueService.validateQueue();
       if (!isValid) {
         console.warn('[ConnectionStateService] Queue validation failed, initiating recovery...');
         await this.persistenceService.cleanupOldMessages();
       }
 
-      // Reprocess pending messages
       const pendingMessages = await this.persistenceService.getUnsentMessages();
       for (const message of pendingMessages) {
-        await this.queueService.enqueue(message);
+        const queuedMessage: QueuedMessage = {
+          ...message,
+          deliveryStatus: {
+            delivered: false,
+            timestamp: new Date(),
+            attempts: 0
+          },
+          retryCount: 0,
+          maxRetries: this.queueService.getConfig().maxRetries
+        };
+        await this.queueService.enqueue(queuedMessage);
       }
 
-      // Update offline state
-      await this.offlineService.handleOnline();
+      await this.offlineService.setOnline(true);
       
       this.eventEmitter.emit('reconnectionSuccessful', {
         timestamp: new Date(),

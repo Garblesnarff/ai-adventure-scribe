@@ -1,8 +1,6 @@
-import { supabase } from '@/integrations/supabase/client';
 import { QueuedMessage, MessageType, MessagePriority, OfflineState } from './types';
 import { MessageQueueService } from './services/MessageQueueService';
-import { MessageDeliveryService } from './services/MessageDeliveryService';
-import { MessageAcknowledgmentService } from './services/MessageAcknowledgmentService';
+import { MessageProcessingService } from './services/MessageProcessingService';
 import { MessagePersistenceService } from './services/storage/MessagePersistenceService';
 import { MessageRecoveryService } from './services/recovery/MessageRecoveryService';
 import { OfflineStateService } from './services/offline/OfflineStateService';
@@ -12,8 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 export class AgentMessagingService {
   private static instance: AgentMessagingService;
   private queueService: MessageQueueService;
-  private deliveryService: MessageDeliveryService;
-  private acknowledgmentService: MessageAcknowledgmentService;
+  private processingService: MessageProcessingService;
   private persistenceService: MessagePersistenceService;
   private recoveryService: MessageRecoveryService;
   private offlineService: OfflineStateService;
@@ -22,8 +19,7 @@ export class AgentMessagingService {
 
   private constructor() {
     this.queueService = MessageQueueService.getInstance();
-    this.deliveryService = MessageDeliveryService.getInstance();
-    this.acknowledgmentService = MessageAcknowledgmentService.getInstance();
+    this.processingService = MessageProcessingService.getInstance();
     this.persistenceService = MessagePersistenceService.getInstance();
     this.recoveryService = MessageRecoveryService.getInstance();
     this.offlineService = OfflineStateService.getInstance();
@@ -84,25 +80,9 @@ export class AgentMessagingService {
     if (!message) return;
 
     try {
-      const delivered = await this.deliveryService.deliverMessage(message);
-      
-      if (delivered) {
-        this.queueService.dequeue();
-        await this.persistenceService.updateMessageStatus(message.id, 'sent');
-        await this.deliveryService.confirmDelivery(message.id);
-        await this.queueService.completeProcessing(true);
-      } else if (message.retryCount >= message.maxRetries) {
-        await this.deliveryService.handleFailedDelivery(message);
-        this.queueService.dequeue();
-        await this.persistenceService.updateMessageStatus(message.id, 'failed');
-        await this.queueService.completeProcessing(false);
-      } else {
-        message.retryCount++;
-        this.queueService.dequeue();
-        this.queueService.enqueue(message);
-        await this.persistenceService.updateMessageStatus(message.id, 'pending');
-        await this.queueService.completeProcessing(false);
-      }
+      const success = await this.processingService.processMessage(message);
+      this.queueService.dequeue();
+      await this.queueService.completeProcessing(success);
     } catch (error) {
       console.error('[AgentMessagingService] Error processing message:', error);
       await this.queueService.completeProcessing(false);
@@ -117,22 +97,13 @@ export class AgentMessagingService {
     priority: MessagePriority = MessagePriority.MEDIUM
   ): Promise<boolean> {
     try {
-      const message: QueuedMessage = {
-        id: crypto.randomUUID(),
-        type,
-        content,
-        priority,
+      const message = await this.processingService.createMessage(
         sender,
         receiver,
-        timestamp: new Date(),
-        deliveryStatus: {
-          delivered: false,
-          timestamp: new Date(),
-          attempts: 0
-        },
-        retryCount: 0,
-        maxRetries: this.queueService.getConfig().maxRetries
-      };
+        type,
+        content,
+        priority
+      );
 
       await this.persistenceService.persistMessage(message);
       return this.queueService.enqueue(message);

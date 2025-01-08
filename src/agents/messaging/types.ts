@@ -1,41 +1,52 @@
-/**
- * Base interface for all agents in the system
- */
-export interface Agent {
+import { Json } from '@/integrations/supabase/types';
+
+export enum MessageType {
+  TASK = 'TASK',
+  RESULT = 'RESULT',
+  QUERY = 'QUERY',
+  RESPONSE = 'RESPONSE',
+  STATE_UPDATE = 'STATE_UPDATE'
+}
+
+export enum MessagePriority {
+  HIGH = 'HIGH',
+  MEDIUM = 'MEDIUM',
+  LOW = 'LOW'
+}
+
+export interface MessageDeliveryStatus {
+  delivered: boolean;
+  timestamp: Date;
+  attempts: number;
+  error?: string;
+}
+
+export interface MessageAcknowledgment {
+  messageId: string;
+  receiverId: string;
+  timestamp: Date;
+  status: 'received' | 'processed' | 'failed';
+}
+
+export interface QueuedMessage {
   id: string;
-  role: string;
-  goal: string;
-  backstory: string;
-  verbose?: boolean;
-  allowDelegation?: boolean;
+  type: MessageType;
+  content: Json;
+  priority: MessagePriority;
+  sender: string;
+  receiver: string;
+  timestamp: Date;
+  deliveryStatus: MessageDeliveryStatus;
+  acknowledgment?: MessageAcknowledgment;
+  retryCount: number;
+  maxRetries: number;
 }
 
-/**
- * Interface for agent execution results
- */
-export interface AgentResult {
-  success: boolean;
-  message: string;
-  data?: any;
-}
-
-/**
- * Interface for agent tasks
- */
-export interface AgentTask {
-  id: string;
-  description: string;
-  expectedOutput: string;
-  context?: Record<string, any>;
-}
-
-/**
- * Types of agents available in the system
- */
-export enum AgentType {
-  DungeonMaster = 'dungeon_master',
-  Narrator = 'narrator',
-  RulesInterpreter = 'rules_interpreter'
+export interface MessageQueueConfig {
+  maxRetries: number;
+  retryDelay: number;
+  timeoutDuration: number;
+  maxQueueSize: number;
 }
 
 /**

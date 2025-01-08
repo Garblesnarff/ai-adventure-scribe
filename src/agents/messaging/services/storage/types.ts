@@ -1,4 +1,5 @@
 import { Json } from '@/integrations/supabase/types';
+import { QueuedMessage } from '../../types';
 
 export interface StoredMessage {
   id: string;

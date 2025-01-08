@@ -4,17 +4,7 @@ import { MessagePersistenceService } from '../storage/MessagePersistenceService'
 import { MessageRecoveryService } from '../recovery/MessageRecoveryService';
 import { QueueStateManager } from '../queue/QueueStateManager';
 import { QueuedMessage, MessageType, MessagePriority } from '../../types';
-import { StoredMessage } from '../storage/types';
-import { OfflineState } from '../../types';
-
-export interface OfflineState {
-  isOnline: boolean;
-  lastOnlineTimestamp: string;
-  lastOfflineTimestamp: string;
-  pendingSync: boolean;
-  queueSize: number;
-  reconnectionAttempts: number;
-}
+import { StoredMessage, OfflineState } from '../storage/types';
 
 export class OfflineStateService {
   private static instance: OfflineStateService;

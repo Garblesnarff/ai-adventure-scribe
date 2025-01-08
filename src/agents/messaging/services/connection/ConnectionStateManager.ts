@@ -3,6 +3,7 @@ import { EventEmitter } from './EventEmitter';
 import { MessageQueueService } from '../MessageQueueService';
 import { MessagePersistenceService } from '../storage/MessagePersistenceService';
 import { OfflineStateService } from '../offline/OfflineStateService';
+import { MessageType, QueuedMessage, MessagePriority } from '../../types';
 
 export class ConnectionStateManager {
   private state: ConnectionState = {
@@ -60,6 +61,9 @@ export class ConnectionStateManager {
           ...message,
           sender: message.metadata?.sender || '',
           receiver: message.metadata?.receiver || '',
+          type: message.type as MessageType, // Convert string to MessageType enum
+          priority: MessagePriority.MEDIUM, // Set default priority
+          timestamp: new Date(),
           deliveryStatus: {
             delivered: false,
             timestamp: new Date(),
@@ -70,7 +74,7 @@ export class ConnectionStateManager {
         });
       }
 
-      await this.offlineService.setOnline(true);
+      await this.offlineService.updateOnlineStatus(true);
       
       this.eventEmitter.emit('reconnectionSuccessful', {
         timestamp: new Date(),

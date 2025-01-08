@@ -151,6 +151,13 @@ export class OfflineStateService {
     return this.queueService.getQueueLength();
   }
 
+  public async updateOnlineStatus(isOnline: boolean): Promise<void> {
+    this.state.isOnline = isOnline;
+    this.state.lastOnlineTimestamp = isOnline ? new Date().toISOString() : this.state.lastOnlineTimestamp;
+    this.state.lastOfflineTimestamp = !isOnline ? new Date().toISOString() : this.state.lastOfflineTimestamp;
+    await this.saveState();
+  }
+
   private startReconnectionAttempts(): void {
     if (this.reconnectionTimeout) {
       clearTimeout(this.reconnectionTimeout);

@@ -6,6 +6,9 @@ import { SyncStateManager } from './managers/SyncStateManager';
 import { ConflictHandler } from './handlers/ConflictHandler';
 import { ConsistencyValidator } from './validators/ConsistencyValidator';
 import { DatabaseAdapter } from './adapters/DatabaseAdapter';
+import { ErrorHandlingService } from '../../../error/services/ErrorHandlingService';
+import { ErrorCategory, ErrorSeverity } from '../../../error/types';
+import { RecoveryService } from '../../../error/services/RecoveryService';
 
 export class MessageSynchronizationService {
   private static instance: MessageSynchronizationService;
@@ -70,7 +73,10 @@ export class MessageSynchronizationService {
     });
   }
 
-  public async synchronizeMessage(message: QueuedMessage): Promise<boolean> {
+  private async synchronizeMessage(message: QueuedMessage): Promise<boolean> {
+    const errorHandler = ErrorHandlingService.getInstance();
+    const recoveryService = RecoveryService.getInstance();
+
     try {
       const agentId = message.sender;
       this.stateManager.incrementVectorClock(agentId);
@@ -81,11 +87,20 @@ export class MessageSynchronizationService {
         vectorClock: this.stateManager.getVectorClock(),
       };
 
-      await DatabaseAdapter.saveMessageSequence(sequence as MessageSequence);
+      await errorHandler.handleDatabaseOperation(
+        async () => DatabaseAdapter.saveMessageSequence(sequence as MessageSequence),
+        {
+          category: ErrorCategory.DATABASE,
+          context: 'MessageSync.saveSequence',
+          severity: ErrorSeverity.HIGH
+        }
+      );
+
       await this.stateManager.updateSyncState(agentId, this.queueService.getQueueIds());
       return true;
     } catch (error) {
       console.error('[MessageSynchronizationService] Synchronization error:', error);
+      await recoveryService.attemptRecovery('message-sync', error as Error);
       return false;
     }
   }
@@ -95,8 +110,17 @@ export class MessageSynchronizationService {
       return;
     }
 
+    const errorHandler = ErrorHandlingService.getInstance();
+
     try {
-      const sequences = await DatabaseAdapter.getAllMessageSequences();
+      const sequences = await errorHandler.handleDatabaseOperation(
+        async () => DatabaseAdapter.getAllMessageSequences(),
+        {
+          category: ErrorCategory.DATABASE,
+          context: 'MessageSync.getAllSequences',
+          severity: ErrorSeverity.HIGH
+        }
+      );
       
       for (const sequence of sequences) {
         await this.processMessageSequence(sequence);
@@ -105,6 +129,7 @@ export class MessageSynchronizationService {
       console.log('[MessageSynchronizationService] Messages synchronized successfully');
     } catch (error) {
       console.error('[MessageSynchronizationService] Synchronization error:', error);
+      await RecoveryService.getInstance().attemptRecovery('message-sync', error as Error);
     }
   }
 

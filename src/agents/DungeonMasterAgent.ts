@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { callEdgeFunction } from '@/utils/edgeFunctionHandler';
 import { AgentMessagingService } from './messaging/AgentMessagingService';
 import { MessageType, MessagePriority } from './crewai/types/communication';
+import { ErrorHandlingService } from './error/services/ErrorHandlingService';
+import { ErrorCategory, ErrorSeverity } from './error/types';
 
 export class DungeonMasterAgent implements Agent {
   id: string;
@@ -25,11 +27,14 @@ export class DungeonMasterAgent implements Agent {
 
   private async fetchCampaignDetails(campaignId: string) {
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .eq('id', campaignId)
-        .single();
+      const { data, error } = await ErrorHandlingService.getInstance().handleDatabaseOperation(
+        async () => supabase.from('campaigns').select('*').eq('id', campaignId).single(),
+        {
+          category: ErrorCategory.DATABASE,
+          context: 'DungeonMasterAgent.fetchCampaignDetails',
+          severity: ErrorSeverity.HIGH
+        }
+      );
 
       if (error) throw error;
       return data;
@@ -40,46 +45,73 @@ export class DungeonMasterAgent implements Agent {
   }
 
   async executeTask(task: AgentTask): Promise<AgentResult> {
+    const errorHandler = ErrorHandlingService.getInstance();
+
     try {
       console.log(`DM Agent executing task: ${task.description}`);
 
       const campaignDetails = task.context?.campaignId ? 
         await this.fetchCampaignDetails(task.context.campaignId) : null;
 
-      // Notify other agents about task execution
-      await this.messagingService.sendMessage(
-        this.id,
-        'rules_interpreter_1',
-        MessageType.TASK,
+      // Notify other agents about task execution with error handling
+      await errorHandler.handleOperation(
+        async () => this.messagingService.sendMessage(
+          this.id,
+          'rules_interpreter_1',
+          MessageType.TASK,
+          {
+            taskDescription: task.description,
+            campaignContext: campaignDetails
+          },
+          MessagePriority.HIGH
+        ),
         {
-          taskDescription: task.description,
-          campaignContext: campaignDetails
-        },
-        MessagePriority.HIGH
+          category: ErrorCategory.AGENT,
+          context: 'DungeonMasterAgent.executeTask.sendMessage',
+          severity: ErrorSeverity.MEDIUM
+        }
       );
 
-      const data = await callEdgeFunction('dm-agent-execute', {
-        task,
-        agentContext: {
-          role: this.role,
-          goal: this.goal,
-          backstory: this.backstory,
-          campaignDetails
+      const data = await errorHandler.handleOperation(
+        async () => callEdgeFunction('dm-agent-execute', {
+          task,
+          agentContext: {
+            role: this.role,
+            goal: this.goal,
+            backstory: this.backstory,
+            campaignDetails
+          }
+        }),
+        {
+          category: ErrorCategory.NETWORK,
+          context: 'DungeonMasterAgent.executeTask.edgeFunction',
+          severity: ErrorSeverity.HIGH,
+          retryConfig: {
+            maxRetries: 3,
+            initialDelay: 1000
+          }
         }
-      });
+      );
 
       if (!data) throw new Error('Failed to execute task');
 
-      // Notify about task completion
-      await this.messagingService.sendMessage(
-        this.id,
-        'narrator_1',
-        MessageType.RESULT,
+      // Notify about task completion with error handling
+      await errorHandler.handleOperation(
+        async () => this.messagingService.sendMessage(
+          this.id,
+          'narrator_1',
+          MessageType.RESULT,
+          {
+            taskId: task.id,
+            result: data
+          },
+          MessagePriority.MEDIUM
+        ),
         {
-          taskId: task.id,
-          result: data
-        },
-        MessagePriority.MEDIUM
+          category: ErrorCategory.AGENT,
+          context: 'DungeonMasterAgent.executeTask.notifyCompletion',
+          severity: ErrorSeverity.MEDIUM
+        }
       );
 
       return {

@@ -23,9 +23,9 @@ export class ErrorHandlingService {
   private trackingService: ErrorTrackingService;
 
   private constructor() {
-    this.circuitBreaker = new CircuitBreakerService();
+    this.circuitBreaker = CircuitBreakerService.getInstance();
     this.retryService = new RetryService();
-    this.recoveryService = new RecoveryService();
+    this.recoveryService = RecoveryService.getInstance();
     this.trackingService = new ErrorTrackingService();
   }
 

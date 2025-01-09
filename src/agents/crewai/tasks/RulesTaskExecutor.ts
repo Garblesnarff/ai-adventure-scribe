@@ -114,7 +114,7 @@ export class RulesTaskExecutor {
     
     await this.memoryAdapter.storeMemory({
       content: JSON.stringify(result),
-      type: 'rule_interpretation',
+      type: 'general',
       importance
     });
   }

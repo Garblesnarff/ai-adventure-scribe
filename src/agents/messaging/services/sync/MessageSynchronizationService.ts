@@ -1,7 +1,7 @@
 import { MessageQueueService } from '../MessageQueueService';
 import { ConnectionStateService } from '../connection/ConnectionStateService';
 import { OfflineStateService } from '../offline/OfflineStateService';
-import { MessageSequence, MessageSyncOptions, QueuedMessage } from './types';
+import { MessageSequence, MessageSyncOptions, QueuedMessage, SyncStatus } from './types';
 import { SyncStateManager } from './managers/SyncStateManager';
 import { ConflictHandler } from './handlers/ConflictHandler';
 import { ConsistencyValidator } from './validators/ConsistencyValidator';

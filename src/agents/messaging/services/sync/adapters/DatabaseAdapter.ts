@@ -40,11 +40,32 @@ export class DatabaseAdapter {
     return TypeConverter.messageSequenceFromDb(data);
   }
 
+  static async getAllMessageSequences(): Promise<MessageSequence[]> {
+    const { data, error } = await supabase
+      .from('message_sequences')
+      .select('*');
+
+    if (error || !data) return [];
+    return data.map(record => TypeConverter.messageSequenceFromDb(record));
+  }
+
   static async getSyncStatus(agentId: string): Promise<SyncStatus | null> {
     const { data, error } = await supabase
       .from('sync_status')
       .select('*')
       .eq('agent_id', agentId)
+      .single();
+
+    if (error || !data) return null;
+    return TypeConverter.syncStatusFromDb(data);
+  }
+
+  static async getLatestSyncStatus(): Promise<SyncStatus | null> {
+    const { data, error } = await supabase
+      .from('sync_status')
+      .select('*')
+      .order('last_sync_timestamp', { ascending: false })
+      .limit(1)
       .single();
 
     if (error || !data) return null;

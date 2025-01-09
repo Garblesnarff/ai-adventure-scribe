@@ -5,6 +5,16 @@ import { RecoveryService } from './RecoveryService';
 import { ErrorTrackingService } from './ErrorTrackingService';
 import { useToast } from '@/hooks/use-toast';
 
+interface OperationConfig {
+  category: ErrorCategory;
+  context: string;
+  severity: ErrorSeverity;
+  retryConfig?: {
+    maxRetries?: number;
+    initialDelay?: number;
+  };
+}
+
 export class ErrorHandlingService {
   private static instance: ErrorHandlingService;
   private circuitBreaker: CircuitBreakerService;
@@ -24,6 +34,45 @@ export class ErrorHandlingService {
       ErrorHandlingService.instance = new ErrorHandlingService();
     }
     return ErrorHandlingService.instance;
+  }
+
+  public async handleOperation<T>(
+    operation: () => Promise<T>,
+    config: OperationConfig
+  ): Promise<T> {
+    try {
+      if (this.circuitBreaker.isOpen(config.context)) {
+        throw new Error(`Circuit breaker open for ${config.context}`);
+      }
+
+      const result = await this.retryService.handleRetry(
+        operation,
+        config.context,
+        undefined,
+        config.retryConfig
+      );
+
+      this.circuitBreaker.recordSuccess(config.context);
+      return result;
+    } catch (error) {
+      await this.handleError(error as Error, config.category, config.context);
+      throw error;
+    }
+  }
+
+  public async handleDatabaseOperation<T>(
+    operation: () => Promise<T>,
+    config: OperationConfig
+  ): Promise<T> {
+    return this.handleOperation(operation, {
+      ...config,
+      category: ErrorCategory.DATABASE,
+      retryConfig: {
+        maxRetries: 3,
+        initialDelay: 1000,
+        ...config.retryConfig
+      }
+    });
   }
 
   public async handleError(

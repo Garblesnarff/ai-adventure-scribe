@@ -73,7 +73,7 @@ export class MessageSynchronizationService {
     });
   }
 
-  private async synchronizeMessage(message: QueuedMessage): Promise<boolean> {
+  public async synchronizeMessage(message: QueuedMessage): Promise<boolean> {
     const errorHandler = ErrorHandlingService.getInstance();
     const recoveryService = RecoveryService.getInstance();
 

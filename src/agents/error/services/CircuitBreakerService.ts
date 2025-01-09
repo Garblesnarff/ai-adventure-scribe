@@ -5,9 +5,19 @@ interface CircuitBreakerState {
 }
 
 export class CircuitBreakerService {
+  private static instance: CircuitBreakerService;
   private readonly FAILURE_THRESHOLD = 5;
   private readonly RESET_TIMEOUT = 60000; // 1 minute
   private states: Map<string, CircuitBreakerState> = new Map();
+
+  private constructor() {}
+
+  public static getInstance(): CircuitBreakerService {
+    if (!CircuitBreakerService.instance) {
+      CircuitBreakerService.instance = new CircuitBreakerService();
+    }
+    return CircuitBreakerService.instance;
+  }
 
   public isOpen(context: string): boolean {
     const state = this.getState(context);

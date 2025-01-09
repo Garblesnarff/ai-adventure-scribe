@@ -2,7 +2,17 @@ import { ErrorMetadata } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 
 export class RecoveryService {
+  private static instance: RecoveryService;
   private readonly recoveryLog: Map<string, Array<{ timestamp: number; error: Error }>> = new Map();
+
+  private constructor() {}
+
+  public static getInstance(): RecoveryService {
+    if (!RecoveryService.instance) {
+      RecoveryService.instance = new RecoveryService();
+    }
+    return RecoveryService.instance;
+  }
 
   public async attemptRecovery(
     context: string,

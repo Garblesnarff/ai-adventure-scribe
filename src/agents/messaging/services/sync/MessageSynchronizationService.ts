@@ -1,10 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
-import { QueuedMessage } from './types';
 import { MessageQueueService } from '../MessageQueueService';
 import { ConnectionStateService } from '../connection/ConnectionStateService';
 import { OfflineStateService } from '../offline/OfflineStateService';
-import { VectorClock, SyncState, MessageSequence, SyncStatus, MessageSyncOptions, ConflictResolutionStrategy } from './types';
-import { Json } from '@/integrations/supabase/types';
+import { VectorClock, SyncState, MessageSequence, SyncStatus, QueuedMessage, MessageSyncOptions, ConflictResolutionStrategy } from './types';
+import { DatabaseAdapter } from './adapters/DatabaseAdapter';
+import { TypeConverter } from './adapters/TypeConverter';
 
 export class MessageSynchronizationService {
   private static instance: MessageSynchronizationService;
@@ -62,7 +62,7 @@ export class MessageSynchronizationService {
       return;
     }
 
-    this.vectorClock = (syncStatus?.vector_clock as VectorClock) || {};
+    this.vectorClock = TypeConverter.fromJson<VectorClock>(syncStatus?.vector_clock || {});
   }
 
   private startConsistencyChecks(): void {
@@ -95,19 +95,7 @@ export class MessageSynchronizationService {
         vectorClock: { ...this.vectorClock },
       };
 
-      const { error } = await supabase
-        .from('message_sequences')
-        .insert({
-          message_id: sequence.messageId,
-          sequence_number: sequence.sequenceNumber,
-          vector_clock: sequence.vectorClock as Json
-        });
-
-      if (error) {
-        console.error('[MessageSynchronizationService] Error saving sequence:', error);
-        return false;
-      }
-
+      await DatabaseAdapter.saveMessageSequence(sequence as MessageSequence);
       await this.updateSyncStatus(agentId);
       return true;
     } catch (error) {
@@ -124,18 +112,15 @@ export class MessageSynchronizationService {
       conflicts: []
     };
 
-    const { error } = await supabase
-      .from('sync_status')
-      .upsert({
-        agent_id: agentId,
-        last_sync_timestamp: new Date().toISOString(),
-        sync_state: syncState as Json,
-        vector_clock: this.vectorClock as Json
-      });
+    await DatabaseAdapter.updateSyncStatus(agentId, syncState, this.vectorClock);
+  }
 
-    if (error) {
-      console.error('[MessageSynchronizationService] Error updating sync status:', error);
-    }
+  public async getMessageSequence(messageId: string): Promise<MessageSequence | null> {
+    return DatabaseAdapter.getMessageSequence(messageId);
+  }
+
+  public async getSyncStatus(agentId: string): Promise<SyncStatus | null> {
+    return DatabaseAdapter.getSyncStatus(agentId);
   }
 
   private async synchronizeMessages(): Promise<void> {
@@ -154,7 +139,7 @@ export class MessageSynchronizationService {
       }
 
       for (const sequence of sequences) {
-        await this.processMessageSequence(sequence);
+        await this.processMessageSequence(TypeConverter.messageSequenceFromDb(sequence));
       }
 
       console.log('[MessageSynchronizationService] Messages synchronized successfully');
@@ -186,17 +171,13 @@ export class MessageSynchronizationService {
 
   private async handleConflict(sequence: MessageSequence): Promise<void> {
     try {
-      const { data: messages, error } = await supabase
-        .from('agent_communications')
-        .select('*')
-        .eq('id', sequence.messageId)
-        .single();
-
-      if (error || !messages) {
-        throw error;
+      const message = await DatabaseAdapter.getMessageById(sequence.messageId);
+      
+      if (!message) {
+        throw new Error('Message not found');
       }
 
-      const resolvedMessage = this.defaultOptions.conflictStrategy!.resolve([messages]);
+      const resolvedMessage = this.defaultOptions.conflictStrategy!.resolve([message]);
       
       await supabase
         .from('agent_communications')
@@ -244,63 +225,6 @@ export class MessageSynchronizationService {
       }
     } catch (error) {
       console.error('[MessageSynchronizationService] Consistency check error:', error);
-    }
-  }
-
-  public async getMessageSequence(messageId: string): Promise<MessageSequence | null> {
-    try {
-      const { data, error } = await supabase
-        .from('message_sequences')
-        .select('*')
-        .eq('message_id', messageId)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data) return null;
-
-      return {
-        id: data.id,
-        messageId: data.message_id,
-        sequenceNumber: data.sequence_number,
-        vectorClock: data.vector_clock as VectorClock,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at
-      };
-    } catch (error) {
-      console.error('[MessageSynchronizationService] Error getting message sequence:', error);
-      return null;
-    }
-  }
-
-  public async getSyncStatus(agentId: string): Promise<SyncStatus | null> {
-    try {
-      const { data, error } = await supabase
-        .from('sync_status')
-        .select('*')
-        .eq('agent_id', agentId)
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data) return null;
-
-      return {
-        id: data.id,
-        agentId: data.agent_id,
-        lastSyncTimestamp: data.last_sync_timestamp,
-        syncState: data.sync_state as SyncState,
-        vectorClock: data.vector_clock as VectorClock,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at
-      };
-    } catch (error) {
-      console.error('[MessageSynchronizationService] Error getting sync status:', error);
-      return null;
     }
   }
 }

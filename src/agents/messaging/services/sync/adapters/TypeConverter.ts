@@ -1,5 +1,6 @@
 import { Json } from '@/integrations/supabase/types';
 import { VectorClock, SyncState, MessageSequence, QueuedMessage, SyncStatus } from '../types';
+import { MessageType, MessagePriority } from '@/agents/messaging/types';
 
 export class TypeConverter {
   static toJson(value: VectorClock | SyncState): Json {
@@ -36,9 +37,9 @@ export class TypeConverter {
   static queuedMessageFromDb(dbRecord: any): QueuedMessage {
     return {
       id: dbRecord.id,
-      type: dbRecord.message_type,
+      type: dbRecord.message_type as MessageType,
       content: dbRecord.content,
-      priority: 'MEDIUM', // Default priority
+      priority: MessagePriority.MEDIUM,
       sender: dbRecord.sender_id,
       receiver: dbRecord.receiver_id,
       timestamp: new Date(dbRecord.created_at),

@@ -1,5 +1,5 @@
 import { MessageType, MessagePriority } from '../../types';
-import { QueuedMessage } from '../MessageQueueService';
+import { Json } from '@/integrations/supabase/types';
 
 export interface VectorClock {
   [agentId: string]: number;
@@ -41,4 +41,22 @@ export interface MessageSyncOptions {
   retryDelay?: number;
   conflictStrategy?: ConflictResolutionStrategy;
   consistencyCheckInterval?: number;
+}
+
+export interface QueuedMessage {
+  id: string;
+  type: MessageType;
+  content: Json;
+  priority: MessagePriority;
+  sender: string;
+  receiver: string;
+  timestamp: Date;
+  deliveryStatus: {
+    delivered: boolean;
+    timestamp: Date;
+    attempts: number;
+    error?: string;
+  };
+  retryCount: number;
+  maxRetries: number;
 }

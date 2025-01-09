@@ -1,9 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
-import { QueuedMessage, MessageType, MessagePriority } from '../../types';
+import { QueuedMessage } from './types';
 import { MessageQueueService } from '../MessageQueueService';
 import { ConnectionStateService } from '../connection/ConnectionStateService';
 import { OfflineStateService } from '../offline/OfflineStateService';
 import { VectorClock, SyncState, MessageSequence, SyncStatus, MessageSyncOptions, ConflictResolutionStrategy } from './types';
+import { Json } from '@/integrations/supabase/types';
 
 export class MessageSynchronizationService {
   private static instance: MessageSynchronizationService;
@@ -61,7 +62,7 @@ export class MessageSynchronizationService {
       return;
     }
 
-    this.vectorClock = syncStatus?.vector_clock || {};
+    this.vectorClock = (syncStatus?.vector_clock as VectorClock) || {};
   }
 
   private startConsistencyChecks(): void {
@@ -88,18 +89,19 @@ export class MessageSynchronizationService {
       const agentId = message.sender;
       this.vectorClock[agentId] = (this.vectorClock[agentId] || 0) + 1;
 
-      const sequence: MessageSequence = {
-        id: crypto.randomUUID(),
+      const sequence: Omit<MessageSequence, 'id' | 'createdAt' | 'updatedAt'> = {
         messageId: message.id,
         sequenceNumber: this.vectorClock[agentId],
         vectorClock: { ...this.vectorClock },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
       };
 
       const { error } = await supabase
         .from('message_sequences')
-        .insert(sequence);
+        .insert({
+          message_id: sequence.messageId,
+          sequence_number: sequence.sequenceNumber,
+          vector_clock: sequence.vectorClock as Json
+        });
 
       if (error) {
         console.error('[MessageSynchronizationService] Error saving sequence:', error);
@@ -127,8 +129,8 @@ export class MessageSynchronizationService {
       .upsert({
         agent_id: agentId,
         last_sync_timestamp: new Date().toISOString(),
-        sync_state: syncState,
-        vector_clock: this.vectorClock
+        sync_state: syncState as Json,
+        vector_clock: this.vectorClock as Json
       });
 
     if (error) {
@@ -162,12 +164,10 @@ export class MessageSynchronizationService {
   }
 
   private async processMessageSequence(sequence: MessageSequence): Promise<void> {
-    // Check for conflicts using vector clocks
     const hasConflict = this.detectConflict(sequence.vectorClock);
     if (hasConflict) {
       await this.handleConflict(sequence);
     } else {
-      // Update local vector clock
       Object.entries(sequence.vectorClock).forEach(([agentId, count]) => {
         this.vectorClock[agentId] = Math.max(
           this.vectorClock[agentId] || 0,
@@ -186,7 +186,6 @@ export class MessageSynchronizationService {
 
   private async handleConflict(sequence: MessageSequence): Promise<void> {
     try {
-      // Get conflicting messages
       const { data: messages, error } = await supabase
         .from('agent_communications')
         .select('*')
@@ -197,10 +196,8 @@ export class MessageSynchronizationService {
         throw error;
       }
 
-      // Apply conflict resolution strategy
       const resolvedMessage = this.defaultOptions.conflictStrategy!.resolve([messages]);
       
-      // Update message with resolved version
       await supabase
         .from('agent_communications')
         .update(resolvedMessage)
@@ -262,7 +259,16 @@ export class MessageSynchronizationService {
         throw error;
       }
 
-      return data as MessageSequence;
+      if (!data) return null;
+
+      return {
+        id: data.id,
+        messageId: data.message_id,
+        sequenceNumber: data.sequence_number,
+        vectorClock: data.vector_clock as VectorClock,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
     } catch (error) {
       console.error('[MessageSynchronizationService] Error getting message sequence:', error);
       return null;
@@ -281,7 +287,17 @@ export class MessageSynchronizationService {
         throw error;
       }
 
-      return data as SyncStatus;
+      if (!data) return null;
+
+      return {
+        id: data.id,
+        agentId: data.agent_id,
+        lastSyncTimestamp: data.last_sync_timestamp,
+        syncState: data.sync_state as SyncState,
+        vectorClock: data.vector_clock as VectorClock,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      };
     } catch (error) {
       console.error('[MessageSynchronizationService] Error getting sync status:', error);
       return null;

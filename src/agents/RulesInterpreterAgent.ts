@@ -1,10 +1,11 @@
 import { Agent, AgentResult, AgentTask } from './types';
-import { supabase } from '@/integrations/supabase/client';
 import { callEdgeFunction } from '@/utils/edgeFunctionHandler';
 import { AgentMessagingService } from './messaging/AgentMessagingService';
 import { MessageType, MessagePriority } from './crewai/types/communication';
 import { ErrorHandlingService } from './error/services/ErrorHandlingService';
 import { ErrorCategory, ErrorSeverity } from './error/types';
+import { ValidationService } from './rules/services/ValidationService';
+import { ValidationResultsProcessor } from './rules/services/ValidationResultsProcessor';
 
 export class RulesInterpreterAgent implements Agent {
   id: string;
@@ -14,7 +15,8 @@ export class RulesInterpreterAgent implements Agent {
   verbose: boolean;
   allowDelegation: boolean;
   private messagingService: AgentMessagingService;
-  private validationCache: Map<string, any>;
+  private validationService: ValidationService;
+  private resultsProcessor: ValidationResultsProcessor;
 
   constructor() {
     this.id = 'rules_interpreter_1';
@@ -24,117 +26,8 @@ export class RulesInterpreterAgent implements Agent {
     this.verbose = true;
     this.allowDelegation = true;
     this.messagingService = AgentMessagingService.getInstance();
-    this.validationCache = new Map();
-  }
-
-  private async validateRules(ruleContext: any) {
-    const cacheKey = `${ruleContext.type}_${JSON.stringify(ruleContext)}`;
-    
-    // Check cache first
-    if (this.validationCache.has(cacheKey)) {
-      console.log('Using cached validation result');
-      return this.validationCache.get(cacheKey);
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('rule_validations')
-        .select('*')
-        .eq('rule_type', ruleContext.type)
-        .eq('is_active', true);
-
-      if (error) throw error;
-
-      // Cache the result
-      this.validationCache.set(cacheKey, data);
-      
-      // Clear old cache entries if cache gets too large
-      if (this.validationCache.size > 100) {
-        const oldestKey = this.validationCache.keys().next().value;
-        this.validationCache.delete(oldestKey);
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error validating rules:', error);
-      return null;
-    }
-  }
-
-  private async processValidationResults(validationResults: any) {
-    if (!validationResults) return null;
-
-    const processedResults = {
-      isValid: true,
-      validations: [],
-      suggestions: [],
-      errors: []
-    };
-
-    for (const validation of validationResults) {
-      const result = await this.evaluateRule(validation);
-      processedResults.validations.push(result);
-      
-      if (!result.isValid) {
-        processedResults.isValid = false;
-        processedResults.errors.push(result.error);
-      }
-      
-      if (result.suggestions) {
-        processedResults.suggestions.push(...result.suggestions);
-      }
-    }
-
-    return processedResults;
-  }
-
-  private async evaluateRule(rule: any) {
-    const result = {
-      isValid: true,
-      error: null,
-      suggestions: []
-    };
-
-    try {
-      // Check rule conditions
-      if (rule.rule_conditions) {
-        for (const condition of rule.rule_conditions) {
-          const conditionMet = await this.checkCondition(condition);
-          if (!conditionMet) {
-            result.isValid = false;
-            result.error = `Failed condition: ${condition.description}`;
-            result.suggestions.push(condition.suggestion);
-          }
-        }
-      }
-
-      // Check rule requirements
-      if (rule.rule_requirements) {
-        for (const requirement of rule.rule_requirements) {
-          const requirementMet = await this.checkRequirement(requirement);
-          if (!requirementMet) {
-            result.isValid = false;
-            result.error = `Missing requirement: ${requirement.description}`;
-            result.suggestions.push(requirement.suggestion);
-          }
-        }
-      }
-    } catch (error) {
-      result.isValid = false;
-      result.error = `Rule evaluation error: ${error.message}`;
-    }
-
-    return result;
-  }
-
-  private async checkCondition(condition: any) {
-    // Implement condition checking logic
-    return true; // Placeholder
-  }
-
-  private async checkRequirement(requirement: any) {
-    // Implement requirement checking logic
-    return true; // Placeholder
+    this.validationService = new ValidationService();
+    this.resultsProcessor = new ValidationResultsProcessor();
   }
 
   async executeTask(task: AgentTask): Promise<AgentResult> {
@@ -143,14 +36,11 @@ export class RulesInterpreterAgent implements Agent {
     try {
       console.log(`Rules Interpreter executing task: ${task.description}`);
 
-      // Validate rules based on task context
       const ruleValidations = task.context?.ruleType ? 
-        await this.validateRules(task.context) : null;
+        await this.validationService.validateRules(task.context) : null;
 
-      // Process validation results
-      const processedResults = await this.processValidationResults(ruleValidations);
+      const processedResults = await this.resultsProcessor.processResults(ruleValidations);
 
-      // Notify DM agent about rule interpretation
       await errorHandler.handleOperation(
         async () => this.messagingService.sendMessage(
           this.id,

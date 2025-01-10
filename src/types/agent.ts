@@ -53,3 +53,69 @@ export interface AgentContext {
     mood: string;
   };
 }
+
+/**
+ * Interface for rule conditions
+ */
+export interface RuleCondition {
+  type: 'ability_score' | 'class_requirement' | 'race_requirement' | 'level_requirement' | 'equipment_requirement' | 'resource_requirement';
+  data: {
+    ability?: string;
+    minimum?: number;
+    maximum?: number;
+    requiredClass?: string;
+    requiredRace?: string;
+    minimumLevel?: number;
+    requiredItems?: string[];
+    resource?: string;
+  };
+  description: string;
+  suggestion?: string;
+  context?: {
+    abilityScores?: Record<string, { score: number }>;
+    class?: string;
+    race?: string;
+    level?: number;
+    equipment?: string[];
+    resources?: Record<string, number>;
+  };
+}
+
+/**
+ * Interface for rule requirements
+ */
+export interface RuleRequirement {
+  type: 'prerequisite' | 'proficiency' | 'spell_slot' | 'action_economy' | 'component';
+  data: {
+    prerequisites?: Array<{
+      type: string;
+      value: string;
+    }>;
+    requiredProficiencies?: string[];
+    level?: number;
+    count?: number;
+    actionType?: string;
+    cost?: number;
+    components?: Array<{
+      type: string;
+      name: string;
+      cost?: number;
+    }>;
+  };
+  description: string;
+  suggestion?: string;
+  context?: {
+    character?: {
+      features?: string[];
+      spells?: string[];
+      proficiencies?: string[];
+    };
+    spellSlots?: Record<number, number>;
+    actions?: Record<string, number>;
+    components?: Array<{
+      name: string;
+      type: string;
+      value?: number;
+    }>;
+  };
+}

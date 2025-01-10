@@ -927,6 +927,12 @@ export type Database = {
           id: string
           is_active: boolean | null
           rule_category: string
+          rule_conditions: Json | null
+          rule_description: string | null
+          rule_exceptions: Json | null
+          rule_references: Json | null
+          rule_requirements: Json | null
+          rule_source: string | null
           rule_type: string
           updated_at: string | null
           validation_data: Json
@@ -936,6 +942,12 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           rule_category: string
+          rule_conditions?: Json | null
+          rule_description?: string | null
+          rule_exceptions?: Json | null
+          rule_references?: Json | null
+          rule_requirements?: Json | null
+          rule_source?: string | null
           rule_type: string
           updated_at?: string | null
           validation_data: Json
@@ -945,6 +957,12 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           rule_category?: string
+          rule_conditions?: Json | null
+          rule_description?: string | null
+          rule_exceptions?: Json | null
+          rule_references?: Json | null
+          rule_requirements?: Json | null
+          rule_source?: string | null
           rule_type?: string
           updated_at?: string | null
           validation_data?: Json

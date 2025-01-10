@@ -1,31 +1,29 @@
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import CampaignList from '@/components/campaign-list/CampaignList';
+import { useToast } from '@/hooks/use-toast';
 
-/**
- * Index page component serving as the landing page
- * Displays available campaigns and quick actions
- * @returns {JSX.Element} The index page with campaign list
- */
-const Index = () => {
-  const navigate = useNavigate();
+export function Index() {
+  const { toast } = useToast();
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Your Campaigns</h1>
+    <div className="container mx-auto p-4">
+      <h1 className="text-4xl font-bold mb-8">D&D Adventure Scribe</h1>
+      <div className="space-y-4">
+        <p className="text-lg">
+          Welcome to your D&D adventure management system. Create campaigns, manage characters,
+          and let our AI assist you in crafting unforgettable stories.
+        </p>
         <Button 
-          onClick={() => navigate('/campaigns/create')}
-          className="flex items-center gap-2"
+          onClick={() => {
+            toast({
+              title: "Welcome!",
+              description: "Your adventure awaits...",
+            });
+          }}
         >
-          <Plus className="w-4 h-4" />
-          New Campaign
+          Get Started
         </Button>
       </div>
-      <CampaignList />
     </div>
   );
-};
-
-export default Index;
+}

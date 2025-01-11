@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { DMResponse, CampaignContext } from '@/types/dm';
-import { Memory } from '@/components/game/memory/types';
+import { Memory, isValidMemoryType } from '@/components/game/memory/types';
 
 export class DMResponseGenerator {
   private campaignId: string;
@@ -36,6 +36,22 @@ export class DMResponseGenerator {
 
     if (error) throw error;
 
+    // Validate and transform thematic_elements
+    const thematicElements = {
+      mainThemes: Array.isArray(campaign.thematic_elements?.mainThemes) 
+        ? campaign.thematic_elements.mainThemes 
+        : [],
+      recurringMotifs: Array.isArray(campaign.thematic_elements?.recurringMotifs)
+        ? campaign.thematic_elements.recurringMotifs
+        : [],
+      keyLocations: Array.isArray(campaign.thematic_elements?.keyLocations)
+        ? campaign.thematic_elements.keyLocations
+        : [],
+      importantNPCs: Array.isArray(campaign.thematic_elements?.importantNPCs)
+        ? campaign.thematic_elements.importantNPCs
+        : []
+    };
+
     this.context = {
       genre: campaign.genre || 'fantasy',
       tone: campaign.tone || 'serious',
@@ -44,12 +60,7 @@ export class DMResponseGenerator {
         location: campaign.location || 'unknown',
         atmosphere: campaign.atmosphere || 'mysterious'
       },
-      thematicElements: campaign.thematic_elements || {
-        mainThemes: [],
-        recurringMotifs: [],
-        keyLocations: [],
-        importantNPCs: []
-      }
+      thematicElements
     };
   }
 
@@ -62,7 +73,19 @@ export class DMResponseGenerator {
       .limit(5);
 
     if (error) throw error;
-    this.recentMemories = memories || [];
+    
+    // Transform and validate memories
+    this.recentMemories = (memories || []).map(memory => ({
+      id: memory.id,
+      type: isValidMemoryType(memory.type) ? memory.type : 'general',
+      content: memory.content,
+      importance: memory.importance || 0,
+      embedding: memory.embedding,
+      metadata: memory.metadata || {},
+      created_at: memory.created_at,
+      session_id: memory.session_id,
+      updated_at: memory.updated_at
+    }));
   }
 
   private generateEnvironmentDescription(): DMResponse['environment'] {

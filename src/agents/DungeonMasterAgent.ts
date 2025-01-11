@@ -5,6 +5,7 @@ import { AgentMessagingService } from './messaging/AgentMessagingService';
 import { MessageType, MessagePriority } from './crewai/types/communication';
 import { ErrorHandlingService } from './error/services/ErrorHandlingService';
 import { ErrorCategory, ErrorSeverity } from './error/types';
+import { DMResponseGenerator } from './services/DMResponseGenerator';
 
 export class DungeonMasterAgent implements Agent {
   id: string;
@@ -14,6 +15,7 @@ export class DungeonMasterAgent implements Agent {
   verbose: boolean;
   allowDelegation: boolean;
   private messagingService: AgentMessagingService;
+  private responseGenerator: DMResponseGenerator | null = null;
 
   constructor() {
     this.id = 'dm_agent_1';
@@ -50,8 +52,23 @@ export class DungeonMasterAgent implements Agent {
     try {
       console.log(`DM Agent executing task: ${task.description}`);
 
+      // Initialize response generator if needed
+      if (!this.responseGenerator && task.context?.campaignId && task.context?.sessionId) {
+        this.responseGenerator = new DMResponseGenerator(
+          task.context.campaignId,
+          task.context.sessionId
+        );
+        await this.responseGenerator.initialize();
+      }
+
       const campaignDetails = task.context?.campaignId ? 
         await this.fetchCampaignDetails(task.context.campaignId) : null;
+
+      // Generate narrative response
+      let narrativeResponse = null;
+      if (this.responseGenerator) {
+        narrativeResponse = await this.responseGenerator.generateResponse(task.description);
+      }
 
       // Notify other agents about task execution with error handling
       await errorHandler.handleOperation(
@@ -79,7 +96,8 @@ export class DungeonMasterAgent implements Agent {
             role: this.role,
             goal: this.goal,
             backstory: this.backstory,
-            campaignDetails
+            campaignDetails,
+            narrativeResponse
           }
         }),
         {
@@ -117,7 +135,10 @@ export class DungeonMasterAgent implements Agent {
       return {
         success: true,
         message: 'Task executed successfully',
-        data
+        data: {
+          ...data,
+          narrativeResponse
+        }
       };
     } catch (error) {
       console.error('Error executing DM agent task:', error);

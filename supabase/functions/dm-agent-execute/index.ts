@@ -1,131 +1,72 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { DMResponse } from './types.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-interface DMAgentRequest {
-  task: {
-    id: string;
-    description: string;
-    expectedOutput: string;
-    context?: Record<string, any>;
-  };
-  agentContext: {
-    role: string;
-    goal: string;
-    backstory: string;
-    campaignDetails?: any;
-  };
-}
+};
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log('[dm-agent-execute] Function called')
-    
-    // Request validation
-    if (req.method !== 'POST') {
-      throw new Error('Method not allowed')
-    }
+    const { task, agentContext } = await req.json();
+    const { narrativeResponse } = agentContext;
 
-    const requestData: DMAgentRequest = await req.json()
-    console.log('[dm-agent-execute] Request data:', JSON.stringify(requestData, null, 2))
+    // Format the narrative response into natural language
+    const formattedResponse = formatNarrativeResponse(narrativeResponse as DMResponse);
 
-    // Validate request data
-    if (!requestData.task || !requestData.agentContext) {
-      throw new Error('Invalid request data: missing task or agentContext')
-    }
-
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase configuration')
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey)
-
-    // Log task execution
-    const { error: logError } = await supabase
-      .from('task_queue')
-      .insert({
-        task_type: 'dm_agent_task',
-        priority: 1,
-        status: 'processing',
-        data: {
-          task: requestData.task,
-          agentContext: requestData.agentContext
-        }
-      })
-
-    if (logError) {
-      console.error('[dm-agent-execute] Error logging task:', logError)
-    }
-
-    // Process the task
-    const result = {
-      success: true,
-      taskId: requestData.task.id,
-      timestamp: new Date().toISOString(),
-      response: `Processed task: ${requestData.task.description}`,
-      context: {
-        role: requestData.agentContext.role,
-        processedAt: new Date().toISOString()
+    return new Response(
+      JSON.stringify({
+        response: formattedResponse,
+        context: agentContext,
+        raw: narrativeResponse
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
-    }
-
-    // Update task status
-    const { error: updateError } = await supabase
-      .from('task_queue')
-      .update({
-        status: 'completed',
-        result: result,
-        completed_at: new Date().toISOString()
-      })
-      .eq('task_type', 'dm_agent_task')
-      .eq('status', 'processing')
-
-    if (updateError) {
-      console.error('[dm-agent-execute] Error updating task status:', updateError)
-    }
-
-    console.log('[dm-agent-execute] Task processed successfully:', result)
-
-    return new Response(
-      JSON.stringify(result),
-      { 
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        } 
-      },
-    )
+    );
   } catch (error) {
-    console.error('[dm-agent-execute] Error:', error)
-    
-    const errorResponse = {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      timestamp: new Date().toISOString()
-    }
-
     return new Response(
-      JSON.stringify(errorResponse),
-      { 
-        status: 400,
-        headers: { 
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      },
-    )
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
-})
+});
+
+function formatNarrativeResponse(response: DMResponse): string {
+  if (!response) return "The Dungeon Master ponders for a moment...";
+
+  const { environment, characters, opportunities, mechanics } = response;
+
+  // Build the narrative response
+  const narrative = [
+    // Scene description
+    environment.description,
+    ...environment.sensoryDetails,
+
+    // Character interactions
+    characters.dialogue,
+    ...characters.reactions,
+
+    // Available opportunities
+    "\nYou can:",
+    ...opportunities.immediate.map(action => `- ${action}`),
+
+    // Nearby locations
+    "\nNearby:",
+    ...opportunities.nearby.map(location => `- ${location}`),
+
+    // Quest hooks if any
+    opportunities.questHooks.length > 0 ? "\nRumors speak of:" : "",
+    ...opportunities.questHooks.map(quest => `- ${quest}`)
+  ].filter(Boolean).join('\n');
+
+  return narrative;
+}

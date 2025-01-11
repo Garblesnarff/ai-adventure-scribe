@@ -2,6 +2,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { DMResponse, CampaignContext } from '@/types/dm';
 import { Memory, isValidMemoryType } from '@/components/game/memory/types';
 
+interface ThematicElements {
+  mainThemes: string[];
+  recurringMotifs: string[];
+  keyLocations: string[];
+  importantNPCs: string[];
+}
+
 export class DMResponseGenerator {
   private campaignId: string;
   private sessionId: string;
@@ -36,21 +43,26 @@ export class DMResponseGenerator {
 
     if (error) throw error;
 
-    // Validate and transform thematic_elements
-    const thematicElements = {
-      mainThemes: Array.isArray(campaign.thematic_elements?.mainThemes) 
-        ? campaign.thematic_elements.mainThemes 
-        : [],
-      recurringMotifs: Array.isArray(campaign.thematic_elements?.recurringMotifs)
-        ? campaign.thematic_elements.recurringMotifs
-        : [],
-      keyLocations: Array.isArray(campaign.thematic_elements?.keyLocations)
-        ? campaign.thematic_elements.keyLocations
-        : [],
-      importantNPCs: Array.isArray(campaign.thematic_elements?.importantNPCs)
-        ? campaign.thematic_elements.importantNPCs
-        : []
-    };
+    // Parse and validate thematic elements
+    let thematicElements: ThematicElements;
+    
+    try {
+      const rawElements = campaign.thematic_elements as Record<string, unknown>;
+      thematicElements = {
+        mainThemes: Array.isArray(rawElements?.mainThemes) ? rawElements.mainThemes : [],
+        recurringMotifs: Array.isArray(rawElements?.recurringMotifs) ? rawElements.recurringMotifs : [],
+        keyLocations: Array.isArray(rawElements?.keyLocations) ? rawElements.keyLocations : [],
+        importantNPCs: Array.isArray(rawElements?.importantNPCs) ? rawElements.importantNPCs : []
+      };
+    } catch (e) {
+      // Fallback to default empty arrays if parsing fails
+      thematicElements = {
+        mainThemes: [],
+        recurringMotifs: [],
+        keyLocations: [],
+        importantNPCs: []
+      };
+    }
 
     this.context = {
       genre: campaign.genre || 'fantasy',

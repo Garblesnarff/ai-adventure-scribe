@@ -1,3 +1,32 @@
+export interface DMResponse {
+  environment: {
+    description: string;
+    atmosphere: string;
+    sensoryDetails: string[];
+  };
+  characters: {
+    activeNPCs: string[];
+    reactions: string[];
+    dialogue: string;
+  };
+  opportunities: {
+    immediate: string[];
+    nearby: string[];
+    questHooks: string[];
+  };
+  mechanics: {
+    availableActions: string[];
+    relevantRules: string[];
+    suggestions: string[];
+  };
+}
+
+export interface AgentContext {
+  campaignContext: CampaignContext;
+  characterContext: CharacterContext;
+  memories: any[];
+}
+
 export interface CampaignContext {
   name: string;
   genre: string;
@@ -44,10 +73,4 @@ export interface CharacterContext {
     equipped: boolean;
     quantity: number;
   }>;
-}
-
-export interface AgentContext {
-  campaignContext: CampaignContext;
-  characterContext: CharacterContext;
-  memories: any[];
 }

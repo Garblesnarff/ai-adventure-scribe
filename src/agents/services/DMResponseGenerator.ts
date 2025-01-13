@@ -70,14 +70,14 @@ export class DMResponseGenerator {
         .single();
       
       if (characterData) {
-        // Transform database character into our Character type with proper type handling
         this.character = {
           id: characterData.id,
+          user_id: characterData.user_id, // Add this line
           name: characterData.name,
-          race: characterData.race as unknown as CharacterRace, // Type assertion for enum
-          class: characterData.class as unknown as CharacterClass, // Type assertion for enum
+          race: characterData.race as CharacterRace,
+          class: characterData.class as CharacterClass,
           level: characterData.level,
-          background: characterData.background as unknown as CharacterBackground, // Type assertion for enum
+          background: characterData.background as CharacterBackground,
           description: characterData.description,
           abilityScores: characterData.character_stats?.[0] ? {
             strength: { score: characterData.character_stats[0].strength, modifier: Math.floor((characterData.character_stats[0].strength - 10) / 2), savingThrow: false },

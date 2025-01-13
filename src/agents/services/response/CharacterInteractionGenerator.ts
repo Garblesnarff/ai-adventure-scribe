@@ -1,3 +1,4 @@
+import { supabase } from '@/integrations/supabase/client';
 import { Character } from '@/types/character';
 
 export class CharacterInteractionGenerator {
@@ -17,12 +18,10 @@ export class CharacterInteractionGenerator {
   private generateNPCReactions(npcs: any[], character: Character): string[] {
     const reactions = [];
     
-    // Handle race-based reactions using String() to safely convert enum
     if (String(character.race).toLowerCase() === 'dragonborn') {
       reactions.push('watches with barely concealed awe at your draconic presence');
     }
     
-    // Handle class-based reactions using String() to safely convert enum
     if (String(character.class).toLowerCase() === 'wizard') {
       reactions.push('eyes your arcane implements with a mixture of respect and caution');
     }

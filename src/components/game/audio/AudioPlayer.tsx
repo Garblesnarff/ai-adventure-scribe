@@ -64,21 +64,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
       const url = URL.createObjectURL(blob);
 
-      // Create a new Audio element if one doesn't exist
-      const audio = audioRef.current || new Audio();
-      
-      // Set the properties
+      const audio = new Audio();
       audio.src = url;
       audio.volume = volume;
       audio.muted = isMuted;
-      
-      // Update the ref if it was null
-      if (!audioRef.current) {
-        audioRef.current = audio;
-      }
-      
+
       try {
         await audio.play();
+        // Only set the ref after successful play
+        audioRef.current = audio;
       } catch (playError) {
         console.error('Error playing audio:', playError);
         throw new Error('Failed to play audio');
@@ -87,6 +81,10 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       audio.onended = () => {
         URL.revokeObjectURL(url);
         setIsSpeaking(false);
+        // Clear the ref when audio ends
+        if (audioRef.current === audio) {
+          audioRef.current = null;
+        }
       };
 
     } catch (error) {

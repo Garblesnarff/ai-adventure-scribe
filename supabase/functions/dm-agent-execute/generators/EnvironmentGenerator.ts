@@ -1,15 +1,14 @@
-import { CampaignContext } from '@/types/dm';
-import { Character } from '@/types/character';
+import { CampaignContext, CharacterContext } from '../types';
 
 export class EnvironmentGenerator {
-  generateEnvironment(context: CampaignContext, character: Character) {
+  generateEnvironment(campaign: CampaignContext, character: CharacterContext) {
     const timeOfDay = this.getRandomTimeOfDay();
-    const weatherCondition = this.getWeatherBasedOnAtmosphere(context.setting.atmosphere);
+    const weatherCondition = this.getWeatherBasedOnAtmosphere(campaign.setting?.atmosphere || 'neutral');
     
     return {
-      description: this.generateDescription(context.setting, timeOfDay, weatherCondition, character),
-      atmosphere: context.setting.atmosphere,
-      sensoryDetails: this.generateSensoryDetails(context.setting, character)
+      description: this.generateDescription(campaign.setting, timeOfDay, weatherCondition, character),
+      atmosphere: campaign.setting?.atmosphere || 'neutral',
+      sensoryDetails: this.generateSensoryDetails(campaign, character)
     };
   }
 
@@ -29,21 +28,21 @@ export class EnvironmentGenerator {
   }
 
   private generateDescription(
-    setting: CampaignContext['setting'],
+    setting: any,
     timeOfDay: string,
     weather: string,
-    character: Character
+    character: CharacterContext
   ): string {
-    const magicalDescription = character.class?.toLowerCase() === 'wizard'
+    const magicalDescription = character.class.toLowerCase() === 'wizard'
       ? 'Your arcane senses tingle with the presence of latent magical energies.' 
       : '';
 
-    const raceSpecificDesc = this.getRaceSpecificDescription(character.race?.toLowerCase() || '', setting);
+    const raceSpecificDesc = this.getRaceSpecificDescription(character.race.toLowerCase(), setting);
 
-    return `*As ${timeOfDay} settles over ${setting.location}, ${weather}. ${raceSpecificDesc} ${magicalDescription}*`;
+    return `*As ${timeOfDay} settles over ${setting?.location || 'the area'}, ${weather}. ${raceSpecificDesc} ${magicalDescription}*`;
   }
 
-  private getRaceSpecificDescription(race: string, setting: CampaignContext['setting']): string {
+  private getRaceSpecificDescription(race: string, setting: any): string {
     switch (race) {
       case 'dragonborn':
         return 'Your scales shimmer in the ambient light, drawing curious glances from passersby.';
@@ -55,25 +54,26 @@ export class EnvironmentGenerator {
   }
 
   private generateSensoryDetails(
-    setting: CampaignContext['setting'],
-    character: Character
+    campaign: CampaignContext,
+    character: CharacterContext
   ): string[] {
     const details = [];
+    const atmosphere = campaign.setting?.atmosphere || 'neutral';
     
-    if (setting.atmosphere.includes('mysterious')) {
+    if (atmosphere.includes('mysterious')) {
       details.push('Whispered conversations fade as you pass');
       details.push('The air tingles with untold secrets');
     }
     
-    if (setting.atmosphere.includes('dark') || setting.atmosphere.includes('foreboding')) {
+    if (atmosphere.includes('dark') || atmosphere.includes('foreboding')) {
       details.push('Shadows seem to move with a life of their own');
       details.push('A chill wind carries echoes of distant sounds');
     }
     
-    if (character.class?.toLowerCase() === 'wizard') {
+    if (character.class.toLowerCase() === 'wizard') {
       details.push('Your magical attunement reveals subtle flows of arcane energy');
     }
     
-    return details;
+    return details.length ? details : ['The environment feels ordinary but watchful'];
   }
 }

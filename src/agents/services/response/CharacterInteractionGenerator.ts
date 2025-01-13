@@ -26,12 +26,12 @@ export class CharacterInteractionGenerator {
     const reactions = [];
     
     // Race-based reactions
-    if (character.race === 'Dragonborn') {
+    if (character.race?.toLowerCase() === 'dragonborn') {
       reactions.push('watches with barely concealed awe at your draconic presence');
     }
     
     // Class-based reactions
-    if (character.class === 'Wizard') {
+    if (character.class?.toLowerCase() === 'wizard') {
       reactions.push('eyes your arcane implements with a mixture of respect and caution');
     }
 
@@ -42,7 +42,6 @@ export class CharacterInteractionGenerator {
       reactions.push('whispers hurriedly to nearby companions while casting furtive glances your way');
     }
 
-    // Return a random reaction if multiple are applicable
     return reactions[Math.floor(Math.random() * reactions.length)] || 'acknowledges your presence';
   }
 

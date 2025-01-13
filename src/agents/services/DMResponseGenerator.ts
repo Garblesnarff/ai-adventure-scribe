@@ -59,13 +59,43 @@ export class DMResponseGenerator {
       .single();
 
     if (session?.character_id) {
-      const { data: character } = await supabase
+      const { data: characterData } = await supabase
         .from('characters')
-        .select('*')
+        .select(`
+          *,
+          character_stats (*),
+          character_equipment (*)
+        `)
         .eq('id', session.character_id)
         .single();
       
-      this.character = character || undefined;
+      if (characterData) {
+        // Transform database character into our Character type
+        this.character = {
+          id: characterData.id,
+          name: characterData.name,
+          race: characterData.race,
+          class: characterData.class,
+          level: characterData.level,
+          background: characterData.background,
+          description: characterData.description,
+          abilityScores: characterData.character_stats?.[0] ? {
+            strength: { score: characterData.character_stats[0].strength, modifier: Math.floor((characterData.character_stats[0].strength - 10) / 2), savingThrow: false },
+            dexterity: { score: characterData.character_stats[0].dexterity, modifier: Math.floor((characterData.character_stats[0].dexterity - 10) / 2), savingThrow: false },
+            constitution: { score: characterData.character_stats[0].constitution, modifier: Math.floor((characterData.character_stats[0].constitution - 10) / 2), savingThrow: false },
+            intelligence: { score: characterData.character_stats[0].intelligence, modifier: Math.floor((characterData.character_stats[0].intelligence - 10) / 2), savingThrow: false },
+            wisdom: { score: characterData.character_stats[0].wisdom, modifier: Math.floor((characterData.character_stats[0].wisdom - 10) / 2), savingThrow: false },
+            charisma: { score: characterData.character_stats[0].charisma, modifier: Math.floor((characterData.character_stats[0].charisma - 10) / 2), savingThrow: false }
+          } : undefined,
+          experience: characterData.experience_points || 0,
+          alignment: characterData.alignment || '',
+          personalityTraits: [],
+          ideals: [],
+          bonds: [],
+          flaws: [],
+          equipment: characterData.character_equipment?.map(item => item.item_name) || []
+        };
+      }
     }
   }
 

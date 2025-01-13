@@ -1,5 +1,5 @@
-import { supabase } from '@/integrations/supabase/client';
 import { Character } from '@/types/character';
+import { supabase } from '@/integrations/supabase/client';
 
 export class CharacterInteractionGenerator {
   async generateInteractions(worldId: string, character: Character) {
@@ -26,12 +26,12 @@ export class CharacterInteractionGenerator {
     const reactions = [];
     
     // Race-based reactions
-    if (character.race?.toLowerCase() === 'dragonborn') {
+    if (character.race && String(character.race).toLowerCase() === 'dragonborn') {
       reactions.push('watches with barely concealed awe at your draconic presence');
     }
     
     // Class-based reactions
-    if (character.class?.toLowerCase() === 'wizard') {
+    if (character.class && String(character.class).toLowerCase() === 'wizard') {
       reactions.push('eyes your arcane implements with a mixture of respect and caution');
     }
 

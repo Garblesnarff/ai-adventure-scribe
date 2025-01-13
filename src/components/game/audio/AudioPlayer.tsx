@@ -9,7 +9,7 @@ interface VoiceSettings {
 interface AudioPlayerProps {
   text: string;
   apiKey: string;
-  audioRef: React.RefObject<HTMLAudioElement>;
+  audioRef: React.MutableRefObject<HTMLAudioElement | null>;
   volume: number;
   isMuted: boolean;
   setIsSpeaking: (speaking: boolean) => void;
@@ -71,8 +71,9 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
       try {
         await audio.play();
-        // Only set the ref after successful play
-        audioRef.current = audio;
+        if (audioRef) {
+          audioRef.current = audio;
+        }
       } catch (playError) {
         console.error('Error playing audio:', playError);
         throw new Error('Failed to play audio');
@@ -81,8 +82,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
       audio.onended = () => {
         URL.revokeObjectURL(url);
         setIsSpeaking(false);
-        // Clear the ref when audio ends
-        if (audioRef.current === audio) {
+        if (audioRef && audioRef.current === audio) {
           audioRef.current = null;
         }
       };

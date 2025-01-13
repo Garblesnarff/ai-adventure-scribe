@@ -9,11 +9,6 @@ interface VoiceSettings {
   similarity_boost: number;
 }
 
-/**
- * VoiceHandler Component
- * Monitors messages and converts DM text to speech using ElevenLabs API directly
- * Includes audio control functionality with voice toggle
- */
 export const VoiceHandler: React.FC = () => {
   const { messages } = useMessageContext();
   const { toast } = useToast();
@@ -27,11 +22,10 @@ export const VoiceHandler: React.FC = () => {
     return localStorage.getItem('voice-muted') === 'true';
   });
   const [isVoiceEnabled, setIsVoiceEnabled] = React.useState(() => {
-    return localStorage.getItem('voice-enabled') !== 'false'; // Default to true
+    return localStorage.getItem('voice-enabled') !== 'false';
   });
   const [isSpeaking, setIsSpeaking] = React.useState(false);
 
-  // Fetch ElevenLabs API key from Supabase secrets on mount
   React.useEffect(() => {
     const fetchApiKey = async () => {
       try {
@@ -48,7 +42,6 @@ export const VoiceHandler: React.FC = () => {
           console.log('Successfully retrieved ElevenLabs API key');
           setApiKey(data.secret);
         } else {
-          console.error('Retrieved ElevenLabs API key is empty');
           throw new Error('ElevenLabs API key is empty');
         }
       } catch (error) {
@@ -64,9 +57,6 @@ export const VoiceHandler: React.FC = () => {
     fetchApiKey();
   }, [toast]);
 
-  /**
-   * Handle volume change and persist to localStorage
-   */
   const handleVolumeChange = (newVolume: number) => {
     setVolume(newVolume);
     localStorage.setItem('voice-volume', newVolume.toString());
@@ -75,9 +65,6 @@ export const VoiceHandler: React.FC = () => {
     }
   };
 
-  /**
-   * Handle mute toggle and persist to localStorage
-   */
   const handleToggleMute = () => {
     const newMutedState = !isMuted;
     setIsMuted(newMutedState);
@@ -87,15 +74,11 @@ export const VoiceHandler: React.FC = () => {
     }
   };
 
-  /**
-   * Handle voice toggle and persist to localStorage
-   */
   const handleToggleVoice = () => {
     const newVoiceState = !isVoiceEnabled;
     setIsVoiceEnabled(newVoiceState);
     localStorage.setItem('voice-enabled', newVoiceState.toString());
     
-    // Show toast to confirm the change
     toast({
       title: newVoiceState ? "Voice Mode Enabled" : "Voice Mode Disabled",
       description: newVoiceState 
@@ -104,9 +87,6 @@ export const VoiceHandler: React.FC = () => {
     });
   };
 
-  /**
-   * Converts text to speech using ElevenLabs API and plays the audio
-   */
   const playAudio = async (text: string) => {
     try {
       if (!apiKey) {
@@ -122,6 +102,7 @@ export const VoiceHandler: React.FC = () => {
       setIsSpeaking(true);
 
       const VOICE_ID = 'T0GKiSwCb51L7pv1sshd';
+      const API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
       
       const voiceSettings: VoiceSettings = {
         stability: 0.5,
@@ -129,7 +110,7 @@ export const VoiceHandler: React.FC = () => {
       };
 
       const response = await fetch(
-        `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}/stream`,
+        `${API_URL}/${VOICE_ID}/stream`,
         {
           method: 'POST',
           headers: {
@@ -146,8 +127,9 @@ export const VoiceHandler: React.FC = () => {
       );
 
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error);
+        const errorText = await response.text();
+        console.error('ElevenLabs API error:', errorText);
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
       const arrayBuffer = await response.arrayBuffer();
@@ -163,7 +145,13 @@ export const VoiceHandler: React.FC = () => {
       audioRef.current.src = url;
       audioRef.current.volume = volume;
       audioRef.current.muted = isMuted;
-      await audioRef.current.play();
+      
+      try {
+        await audioRef.current.play();
+      } catch (playError) {
+        console.error('Error playing audio:', playError);
+        throw new Error('Failed to play audio');
+      }
 
       audioRef.current.onended = () => {
         URL.revokeObjectURL(url);
@@ -181,11 +169,9 @@ export const VoiceHandler: React.FC = () => {
     }
   };
 
-  // Listen for new DM messages and speak them if voice is enabled
   React.useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     if (lastMessage && lastMessage.sender === 'dm' && lastMessage.text) {
-      // Remove any markdown or special characters for cleaner speech
       const cleanText = lastMessage.text.replace(/[*_`#]/g, '');
       playAudio(cleanText);
     }

@@ -1,8 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { DMResponse } from './types.ts';
-import { buildCharacterContext, buildCampaignContext } from './contextBuilder.ts';
-import { buildPrompt } from './promptBuilder.ts';
+import { CharacterInteractionGenerator } from "./generators/CharacterInteractionGenerator.ts";
+import { EnvironmentGenerator } from "./generators/EnvironmentGenerator.ts";
+import { DMResponse } from "./types.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,22 +24,32 @@ serve(async (req) => {
       memoryCount: memories?.length
     });
 
-    // Build narrative response based on context
+    const environmentGen = new EnvironmentGenerator();
+    const interactionGen = new CharacterInteractionGenerator();
+
+    // Generate environment and interactions
+    const environment = environmentGen.generateEnvironment(campaignDetails, characterDetails);
+    const interactions = await interactionGen.generateInteractions(
+      campaignDetails.world_id,
+      characterDetails
+    );
+
+    // Build narrative response
     const narrativeResponse: DMResponse = {
       environment: {
-        description: generateEnvironmentDescription(campaignDetails),
-        atmosphere: campaignDetails.atmosphere || 'mysterious',
-        sensoryDetails: generateSensoryDetails(campaignDetails)
+        description: environment.description,
+        atmosphere: environment.atmosphere,
+        sensoryDetails: environment.sensoryDetails
       },
       characters: {
-        activeNPCs: getActiveNPCs(memories),
-        reactions: generateNPCReactions(characterDetails),
-        dialogue: generateContextualDialogue(campaignDetails, characterDetails)
+        activeNPCs: interactions.activeNPCs,
+        reactions: interactions.reactions,
+        dialogue: interactions.dialogue
       },
       opportunities: {
         immediate: generateImmediateActions(campaignDetails, characterDetails),
         nearby: getKeyLocations(campaignDetails),
-        questHooks: generateQuestHooks(memories)
+        questHooks: generateQuestHooks(memories, characterDetails)
       },
       mechanics: {
         availableActions: getAvailableActions(characterDetails),
@@ -49,8 +58,8 @@ serve(async (req) => {
       }
     };
 
-    // Format the narrative response into natural language
-    const formattedResponse = formatNarrativeResponse(narrativeResponse);
+    // Format the narrative into natural language
+    const formattedResponse = formatNarrativeResponse(narrativeResponse, characterDetails);
 
     return new Response(
       JSON.stringify({
@@ -74,55 +83,51 @@ serve(async (req) => {
   }
 });
 
-function generateEnvironmentDescription(campaign: any): string {
-  const timeOfDay = ['dawn', 'morning', 'afternoon', 'dusk', 'night'][Math.floor(Math.random() * 5)];
-  const atmosphere = campaign.atmosphere || 'mysterious';
+function formatNarrativeResponse(response: DMResponse, character: any): string {
+  const { environment, characters, opportunities } = response;
   
-  if (campaign.genre === 'dark-fantasy') {
-    return `The ${timeOfDay} casts long shadows across ${campaign.setting_details?.location || 'the land'}, where ${atmosphere} permeates the air. ${campaign.setting_details?.description || ''}`;
-  }
+  const narrative = [
+    // Scene description with environment and sensory details
+    environment.description,
+    ...environment.sensoryDetails,
+
+    // Character interactions and NPC reactions
+    '',
+    characters.dialogue,
+    ...characters.reactions,
+
+    // Available opportunities and actions
+    '\nBefore you:',
+    ...opportunities.immediate.map(action => `- ${action}`),
+
+    // Nearby locations of interest
+    '\nNearby:',
+    ...opportunities.nearby.map(location => `- ${location}`),
+
+    // Quest hooks if any
+    opportunities.questHooks.length > 0 ? '\nRumors speak of:' : '',
+    ...opportunities.questHooks.map(quest => `- ${quest}`),
+
+    // Closing prompt based on character class
+    '',
+    getClassSpecificPrompt(character.class)
+  ].filter(Boolean).join('\n');
+
+  return narrative;
+}
+
+function getClassSpecificPrompt(characterClass: string): string {
+  const prompts: Record<string, string> = {
+    'Wizard': 'What would you like to do, esteemed wielder of the arcane?',
+    'Fighter': 'What is your next move, brave warrior?',
+    'Rogue': 'How do you wish to proceed, master of shadows?',
+    'Cleric': 'What path calls to you, blessed one?'
+  };
   
-  return `You find yourself in ${campaign.setting_details?.location || 'a mysterious place'}, where ${atmosphere} fills the air.`;
+  return prompts[characterClass] || 'What would you like to do?';
 }
 
-function generateSensoryDetails(campaign: any): string[] {
-  const details = [];
-  const atmosphere = campaign.atmosphere || 'mysterious';
-
-  if (atmosphere.includes('dark') || atmosphere.includes('foreboding')) {
-    details.push('A chill wind carries whispers of ancient secrets');
-    details.push('Shadows seem to move with a life of their own');
-  }
-
-  if (campaign.genre === 'dark-fantasy') {
-    details.push('The air is thick with an otherworldly presence');
-  }
-
-  return details;
-}
-
-function getActiveNPCs(memories: any[]): string[] {
-  return memories
-    ?.filter(m => m.type === 'npc' && m.metadata?.status === 'active')
-    ?.map(m => m.metadata?.name)
-    ?.filter(Boolean) || [];
-}
-
-function generateNPCReactions(character: any): string[] {
-  const reactions = [];
-  if (character?.race && character?.class) {
-    reactions.push(`Locals regard the ${character.race} ${character.class} with a mix of curiosity and caution`);
-  }
-  return reactions;
-}
-
-function generateContextualDialogue(campaign: any, character: any): string {
-  if (campaign.genre === 'dark-fantasy') {
-    return `"These are dark times, traveler," a weathered villager mutters, eyeing your ${character?.class || 'adventurer'} equipment.`;
-  }
-  return "A nearby villager nods in greeting.";
-}
-
+// Helper functions for generating actions, locations, and quest hooks
 function generateImmediateActions(campaign: any, character: any): string[] {
   const actions = [
     'Explore the immediate area',
@@ -145,7 +150,7 @@ function getKeyLocations(campaign: any): string[] {
   return campaign.thematic_elements?.keyLocations || [];
 }
 
-function generateQuestHooks(memories: any[]): string[] {
+function generateQuestHooks(memories: any[], character: any): string[] {
   return memories
     ?.filter(m => m.type === 'quest' && m.metadata?.status === 'available')
     ?.map(m => m.content)
@@ -175,32 +180,4 @@ function generateActionSuggestions(campaign: any, character: any): string[] {
   }
 
   return suggestions;
-}
-
-function formatNarrativeResponse(response: DMResponse): string {
-  const { environment, characters, opportunities, mechanics } = response;
-  
-  const narrative = [
-    // Scene description
-    environment.description,
-    ...environment.sensoryDetails,
-
-    // Character interactions
-    characters.dialogue,
-    ...characters.reactions,
-
-    // Available opportunities
-    "\nYou can:",
-    ...opportunities.immediate.map(action => `- ${action}`),
-
-    // Nearby locations
-    "\nNearby:",
-    ...opportunities.nearby.map(location => `- ${location}`),
-
-    // Quest hooks if any
-    opportunities.questHooks.length > 0 ? "\nRumors speak of:" : "",
-    ...opportunities.questHooks.map(quest => `- ${quest}`)
-  ].filter(Boolean).join('\n');
-
-  return narrative;
 }

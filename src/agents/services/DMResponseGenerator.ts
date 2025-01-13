@@ -7,7 +7,7 @@ import { EnvironmentGenerator } from './response/EnvironmentGenerator';
 import { CharacterInteractionGenerator } from './response/CharacterInteractionGenerator';
 import { OpportunityGenerator } from './response/OpportunityGenerator';
 import { MechanicsGenerator } from './response/MechanicsGenerator';
-import { Character } from '@/types/character';
+import { Character, CharacterRace, CharacterClass, CharacterBackground } from '@/types/character';
 
 export class DMResponseGenerator {
   private campaignId: string;
@@ -70,14 +70,14 @@ export class DMResponseGenerator {
         .single();
       
       if (characterData) {
-        // Transform database character into our Character type
+        // Transform database character into our Character type with proper type handling
         this.character = {
           id: characterData.id,
           name: characterData.name,
-          race: characterData.race,
-          class: characterData.class,
+          race: characterData.race as unknown as CharacterRace, // Type assertion for enum
+          class: characterData.class as unknown as CharacterClass, // Type assertion for enum
           level: characterData.level,
-          background: characterData.background,
+          background: characterData.background as unknown as CharacterBackground, // Type assertion for enum
           description: characterData.description,
           abilityScores: characterData.character_stats?.[0] ? {
             strength: { score: characterData.character_stats[0].strength, modifier: Math.floor((characterData.character_stats[0].strength - 10) / 2), savingThrow: false },

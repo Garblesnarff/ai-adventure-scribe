@@ -21,8 +21,7 @@ export interface DMResponse {
   };
 }
 
-export interface Character {
-  id?: string;
+export interface CharacterContext {
   name: string;
   race: string;
   class: string;

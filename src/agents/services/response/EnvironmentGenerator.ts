@@ -29,7 +29,7 @@ export class EnvironmentGenerator {
   }
 
   private generateDescription(
-    setting: CampaignContext['setting'],
+    setting: any,
     timeOfDay: string,
     weather: string,
     character: Character
@@ -40,10 +40,10 @@ export class EnvironmentGenerator {
 
     const raceSpecificDesc = this.getRaceSpecificDescription(String(character.race), setting);
 
-    return `*As ${timeOfDay} settles over ${setting.location || 'the area'}, ${weather}. ${raceSpecificDesc} ${magicalDescription}*`;
+    return `*As ${timeOfDay} settles over ${setting?.location || 'the area'}, ${weather}. ${raceSpecificDesc} ${magicalDescription}*`;
   }
 
-  private getRaceSpecificDescription(race: string, setting: CampaignContext['setting']): string {
+  private getRaceSpecificDescription(race: string, setting: any): string {
     switch (race.toLowerCase()) {
       case 'dragonborn':
         return 'Your scales shimmer in the ambient light, drawing curious glances from passersby.';
@@ -59,7 +59,7 @@ export class EnvironmentGenerator {
     character: Character
   ): string[] {
     const details = [];
-    const atmosphere = context.setting.atmosphere || 'neutral';
+    const atmosphere = context.setting?.atmosphere || 'neutral';
     
     if (atmosphere.includes('mysterious')) {
       details.push('Whispered conversations fade as you pass');

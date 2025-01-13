@@ -22,6 +22,7 @@ export interface DMResponse {
 }
 
 export interface CharacterContext {
+  id: string;
   name: string;
   race: string;
   class: string;

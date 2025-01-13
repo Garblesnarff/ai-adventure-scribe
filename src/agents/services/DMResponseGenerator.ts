@@ -72,12 +72,12 @@ export class DMResponseGenerator {
       if (characterData) {
         this.character = {
           id: characterData.id,
-          user_id: characterData.user_id, // Add this line
+          user_id: characterData.user_id,
           name: characterData.name,
-          race: characterData.race as CharacterRace,
-          class: characterData.class as CharacterClass,
+          race: (characterData.race as unknown) as CharacterRace,
+          class: (characterData.class as unknown) as CharacterClass,
           level: characterData.level,
-          background: characterData.background as CharacterBackground,
+          background: characterData.background ? (characterData.background as unknown) as CharacterBackground : null,
           description: characterData.description,
           abilityScores: characterData.character_stats?.[0] ? {
             strength: { score: characterData.character_stats[0].strength, modifier: Math.floor((characterData.character_stats[0].strength - 10) / 2), savingThrow: false },

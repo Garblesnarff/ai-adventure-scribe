@@ -9,7 +9,10 @@ export async function callEdgeFunction<T = any>(
     console.log(`[EdgeFunction] Calling ${functionName}:`, payload);
     
     const { data, error } = await supabase.functions.invoke(functionName, {
-      body: payload
+      body: payload,
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
 
     if (error) {

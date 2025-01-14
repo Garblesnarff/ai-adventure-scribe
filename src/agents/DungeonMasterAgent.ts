@@ -89,17 +89,31 @@ export class DungeonMasterAgent implements Agent {
         }
       );
 
+      // Call edge function with proper error handling
       const data = await errorHandler.handleOperation(
-        async () => callEdgeFunction('dm-agent-execute', {
-          task,
-          agentContext: {
-            role: this.role,
-            goal: this.goal,
-            backstory: this.backstory,
-            campaignDetails,
-            narrativeResponse
-          }
-        }),
+        async () => {
+          console.log('Calling dm-agent-execute with payload:', {
+            task,
+            agentContext: {
+              role: this.role,
+              goal: this.goal,
+              backstory: this.backstory,
+              campaignDetails,
+              narrativeResponse
+            }
+          });
+          
+          return await callEdgeFunction('dm-agent-execute', {
+            task,
+            agentContext: {
+              role: this.role,
+              goal: this.goal,
+              backstory: this.backstory,
+              campaignDetails,
+              narrativeResponse
+            }
+          });
+        },
         {
           category: ErrorCategory.NETWORK,
           context: 'DungeonMasterAgent.executeTask.edgeFunction',

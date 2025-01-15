@@ -9,28 +9,12 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log('Received DM Agent request:', {
-      method: req.method,
-      url: req.url,
-      headers: Object.fromEntries(req.headers.entries())
-    });
-
-    if (req.method !== 'POST') {
-      throw new Error(`Method ${req.method} not allowed`);
-    }
-
     const { task, agentContext } = await req.json();
-    
-    if (!task || !agentContext) {
-      throw new Error('Missing required fields: task or agentContext');
-    }
-
     const { campaignDetails, characterDetails, memories } = agentContext;
 
     console.log('Processing DM Agent task:', {
@@ -77,13 +61,6 @@ serve(async (req) => {
     // Format the narrative into natural language
     const formattedResponse = formatNarrativeResponse(narrativeResponse, characterDetails);
 
-    console.log('Generated DM response:', {
-      responseLength: formattedResponse.length,
-      hasEnvironment: !!narrativeResponse.environment,
-      hasCharacters: !!narrativeResponse.characters,
-      hasOpportunities: !!narrativeResponse.opportunities
-    });
-
     return new Response(
       JSON.stringify({
         response: formattedResponse,
@@ -96,12 +73,8 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in DM agent execution:', error);
-    
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: error.stack
-      }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

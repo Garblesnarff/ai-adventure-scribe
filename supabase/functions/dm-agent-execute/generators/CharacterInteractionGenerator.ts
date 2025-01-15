@@ -1,74 +1,41 @@
-import { Character, NPCData, InteractionResponse } from './types';
-import { DialogueGenerator } from './DialogueGenerator';
-import { ReactionGenerator } from './ReactionGenerator';
-import { NPCDataService } from './NPCDataService';
-
-interface ConversationState {
-  currentNPC: string | null;
-  dialogueHistory: Array<{ speaker: string; text: string }>;
-  playerChoices: string[];
-  lastResponse: string | null;
-}
+import { CharacterContext } from '../types';
 
 export class CharacterInteractionGenerator {
-  private dialogueGenerator: DialogueGenerator;
-  private reactionGenerator: ReactionGenerator;
-  private npcDataService: NPCDataService;
-
-  constructor() {
-    this.dialogueGenerator = new DialogueGenerator();
-    this.reactionGenerator = new ReactionGenerator();
-    this.npcDataService = new NPCDataService();
-  }
-
-  async generateInteractions(
-    worldId: string, 
-    character: Character,
-    conversationState?: ConversationState
-  ): Promise<InteractionResponse> {
-    // If we're in an active conversation, generate contextual dialogue
-    if (conversationState?.currentNPC) {
-      return this.generateActiveConversation(worldId, character, conversationState);
-    }
-
-    // Otherwise, generate initial NPC reactions
-    return this.generateInitialInteractions(worldId, character);
-  }
-
-  private async generateActiveConversation(
-    worldId: string,
-    character: Character,
-    conversationState: ConversationState
-  ): Promise<InteractionResponse> {
-    const npcData = await this.npcDataService.fetchNPCData(worldId, conversationState.currentNPC);
-    const lastPlayerMessage = conversationState.dialogueHistory[conversationState.dialogueHistory.length - 1];
-    
-    const dialogue = this.dialogueGenerator.generateContextualDialogue(
-      lastPlayerMessage?.text || '',
-      npcData?.personality || 'neutral',
-      character,
-      conversationState.dialogueHistory
-    );
+  generateInteractions(worldId: string, character: CharacterContext) {
+    // Generate NPC reactions based on character traits
+    const reactions = this.generateNPCReactions(character);
+    const dialogue = this.generateNPCDialogue(character);
 
     return {
-      activeNPCs: [conversationState.currentNPC],
-      reactions: this.reactionGenerator.generateNPCReactions(character, npcData?.personality),
-      dialogue
-    };
-  }
-
-  private async generateInitialInteractions(
-    worldId: string, 
-    character: Character
-  ): Promise<InteractionResponse> {
-    const npcs = await this.npcDataService.fetchAvailableNPCs(worldId);
-    const reactions = this.reactionGenerator.generateNPCReactions(character);
-    const dialogue = this.dialogueGenerator.generateInitialDialogue(character);
-
-    return {
-      activeNPCs: npcs?.map(npc => npc.name) || [],
+      activeNPCs: ['Village Elder', 'Mysterious Merchant', 'Local Guard'],
       reactions,
       dialogue
     };
+  }
+
+  private generateNPCReactions(character: CharacterContext): string[] {
+    const reactions = [];
+    
+    // Race-based reactions
+    if (character.race.toLowerCase() === 'dragonborn') {
+      reactions.push('watches with barely concealed awe at your draconic presence');
+    }
+    
+    // Class-based reactions
+    if (character.class.toLowerCase() === 'wizard') {
+      reactions.push('eyes your arcane implements with a mixture of respect and caution');
+    }
+
+    return reactions.length ? reactions : ['regards you with curiosity'];
+  }
+
+  private generateNPCDialogue(character: CharacterContext): string {
+    const dialogueOptions = [
+      `"We don't see many ${character.race}s in these parts," the village elder remarks.`,
+      `"A wielder of the arcane arts? These are... interesting times," a merchant muses quietly.`,
+      `"Welcome to our humble village," the guard says, though their eyes betray a mix of wonder and unease.`
+    ];
+
+    return dialogueOptions[Math.floor(Math.random() * dialogueOptions.length)];
   }
 }

@@ -9,6 +9,19 @@ import { OpportunityGenerator } from './response/OpportunityGenerator';
 import { MechanicsGenerator } from './response/MechanicsGenerator';
 import { Character, CharacterRace, CharacterClass, CharacterBackground } from '@/types/character';
 
+interface ConversationState {
+  currentNPC: string | null;
+  dialogueHistory: Array<{ speaker: string; text: string }>;
+  playerChoices: string[];
+  lastResponse: string | null;
+}
+
+interface ResponseContext {
+  playerIntent: 'dialogue' | 'exploration' | 'other';
+  conversationState: ConversationState;
+  campaignContext: any;
+}
+
 export class DMResponseGenerator {
   private campaignId: string;
   private sessionId: string;
@@ -109,7 +122,7 @@ export class DMResponseGenerator {
     return data?.id;
   }
 
-  async generateResponse(playerMessage: string): Promise<DMResponse> {
+  async generateResponse(playerMessage: string, responseContext: ResponseContext): Promise<DMResponse> {
     if (!this.context || !this.character) {
       await this.initialize();
     }
@@ -119,13 +132,46 @@ export class DMResponseGenerator {
     }
 
     const worldId = await this.getWorldId();
+    const { playerIntent, conversationState } = responseContext;
 
-    const [environment, characters, opportunities, mechanics] = await Promise.all([
-      this.environmentGenerator.generateEnvironment(this.context, this.character),
-      this.characterGenerator.generateInteractions(worldId, this.character),
-      this.opportunityGenerator.generateOpportunities(this.campaignId, this.context),
-      this.mechanicsGenerator.generateMechanics(this.context)
-    ]);
+    // Generate appropriate response based on player intent
+    let environment, characters, opportunities, mechanics;
+
+    if (playerIntent === 'dialogue' && conversationState.currentNPC) {
+      // Generate focused NPC interaction
+      characters = await this.characterGenerator.generateInteractions(
+        worldId, 
+        this.character,
+        conversationState
+      );
+      
+      // Minimal environment description for dialogue
+      environment = {
+        description: "The conversation continues...",
+        atmosphere: this.context.setting?.atmosphere || 'neutral',
+        sensoryDetails: []
+      };
+      
+      // Generate dialogue-specific opportunities
+      opportunities = {
+        immediate: [
+          "Continue the conversation",
+          "Change the subject",
+          "End the conversation",
+          "Ask about local rumors"
+        ],
+        nearby: [],
+        questHooks: []
+      };
+    } else {
+      // Generate full scene description
+      [environment, characters, opportunities, mechanics] = await Promise.all([
+        this.environmentGenerator.generateEnvironment(this.context, this.character),
+        this.characterGenerator.generateInteractions(worldId, this.character),
+        this.opportunityGenerator.generateOpportunities(this.campaignId, this.context),
+        this.mechanicsGenerator.generateMechanics(this.context)
+      ]);
+    }
 
     return {
       environment,

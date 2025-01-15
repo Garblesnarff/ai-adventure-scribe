@@ -1,13 +1,13 @@
-import { CampaignContext, CharacterContext } from '../types';
+import { CampaignContext, CharacterContext } from '../types.ts';
 
 export class EnvironmentGenerator {
   generateEnvironment(campaign: CampaignContext, character: CharacterContext) {
     const timeOfDay = this.getRandomTimeOfDay();
-    const weatherCondition = this.getWeatherBasedOnAtmosphere(campaign.setting?.atmosphere || 'neutral');
+    const weatherCondition = this.getWeatherBasedOnAtmosphere(campaign.setting_details?.atmosphere || 'neutral');
     
     return {
-      description: this.generateDescription(campaign.setting, timeOfDay, weatherCondition, character),
-      atmosphere: campaign.setting?.atmosphere || 'neutral',
+      description: this.generateDescription(campaign.setting_details, timeOfDay, weatherCondition, character),
+      atmosphere: campaign.setting_details?.atmosphere || 'neutral',
       sensoryDetails: this.generateSensoryDetails(campaign, character)
     };
   }
@@ -28,7 +28,7 @@ export class EnvironmentGenerator {
   }
 
   private generateDescription(
-    setting: any,
+    setting: CampaignContext['setting_details'],
     timeOfDay: string,
     weather: string,
     character: CharacterContext
@@ -58,7 +58,7 @@ export class EnvironmentGenerator {
     character: CharacterContext
   ): string[] {
     const details = [];
-    const atmosphere = campaign.setting?.atmosphere || 'neutral';
+    const atmosphere = campaign.setting_details?.atmosphere || 'neutral';
     
     if (atmosphere.includes('mysterious')) {
       details.push('Whispered conversations fade as you pass');

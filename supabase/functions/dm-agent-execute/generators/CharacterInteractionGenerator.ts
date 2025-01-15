@@ -1,4 +1,4 @@
-import { CharacterContext } from '../types';
+import { CharacterContext } from '../types.ts';
 
 export class CharacterInteractionGenerator {
   generateInteractions(worldId: string, character: CharacterContext) {

@@ -1,29 +1,13 @@
 import { AgentContext } from './types.ts';
 
-/**
- * Describes ability score in natural language
- */
-function describeAbilityScore(ability: string, score: number): string {
-  if (score >= 18) return `exceptionally skilled`;
-  if (score >= 16) return `very capable`;
-  if (score >= 14) return `above average`;
-  if (score >= 12) return `slightly above average`;
-  if (score >= 10) return `average`;
-  if (score >= 8) return `slightly below average`;
-  return `struggles with ${ability}-based tasks`;
-}
-
-/**
- * Builds the complete prompt for the AI
- */
 export function buildPrompt(context: AgentContext): string {
   const { campaignContext, characterContext, memories } = context;
   
   // Format recent memories for context
   const recentMemories = memories
-    .sort((a: any, b: any) => b.importance - a.importance)
+    .sort((a, b) => b.importance - a.importance)
     .slice(0, 5)
-    .map((m: any) => `- ${m.content} (Type: ${m.type}, Importance: ${m.importance})`)
+    .map(m => `- ${m.content} (Type: ${m.type}, Importance: ${m.importance})`)
     .join('\n');
 
   return `
@@ -120,4 +104,14 @@ Remember to:
 - Provide opportunities for character development
 - Keep descriptions vivid but concise
 - Ensure all responses feel unique and personalized`;
+}
+
+function describeAbilityScore(ability: string, score: number): string {
+  if (score >= 18) return `exceptionally skilled`;
+  if (score >= 16) return `very capable`;
+  if (score >= 14) return `above average`;
+  if (score >= 12) return `slightly above average`;
+  if (score >= 10) return `average`;
+  if (score >= 8) return `slightly below average`;
+  return `struggles with ${ability}-based tasks`;
 }

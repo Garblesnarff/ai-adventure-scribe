@@ -41,3 +41,9 @@ export interface CampaignContext {
   };
   description?: string;
 }
+
+export interface AgentContext {
+  campaignContext: CampaignContext;
+  characterContext: CharacterContext;
+  memories: any[];
+}

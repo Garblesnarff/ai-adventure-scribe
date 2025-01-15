@@ -81,7 +81,7 @@ export class CharacterInteractionGenerator {
     // Generate response based on conversation context
     const responseOptions = [
       `"Interesting perspective, ${character.name}. Tell me more about your adventures."`,
-      `"I've never met a ${character.race} ${character.class} before. Your presence here is... intriguing."`,
+      `"I've never met a ${character.race?.name} ${character.class?.name} before. Your presence here is... intriguing."`,
       `"These are dangerous times. Someone with your abilities could be quite useful..."`,
       `"Perhaps you'd be interested in helping us with a certain... situation?"`,
     ];
@@ -93,12 +93,12 @@ export class CharacterInteractionGenerator {
     const reactions = [];
     
     // Race-based reactions
-    if (character.race.toLowerCase() === 'dragonborn') {
+    if (character.race?.name.toLowerCase() === 'dragonborn') {
       reactions.push('watches with barely concealed awe at your draconic presence');
     }
     
     // Class-based reactions
-    if (character.class.toLowerCase() === 'wizard') {
+    if (character.class?.name.toLowerCase() === 'wizard') {
       reactions.push('eyes your arcane implements with a mixture of respect and caution');
     }
 
@@ -122,7 +122,7 @@ export class CharacterInteractionGenerator {
 
   private generateInitialDialogue(character: Character, npcPersonality: string = 'neutral'): string {
     const dialogueOptions = [
-      `"We don't see many ${character.race}s in these parts," a local remarks with interest.`,
+      `"We don't see many ${character.race?.name}s in these parts," a local remarks with interest.`,
       `"A wielder of the arcane arts? These are... interesting times," a merchant muses quietly.`,
       `"Welcome to our humble village," the guard says, though their eyes betray a mix of wonder and unease.`,
       `"Perhaps you're here about the... recent troubles?" an elderly villager asks cryptically.`

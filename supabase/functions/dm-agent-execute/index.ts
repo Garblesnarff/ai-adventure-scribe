@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { CharacterInteractionGenerator } from "./generators/CharacterInteractionGenerator.ts";
 import { EnvironmentGenerator } from "./generators/EnvironmentGenerator.ts";
+import { buildPrompt } from "./promptBuilder.ts";
 import { DMResponse } from "./types.ts";
 
 const corsHeaders = {
@@ -15,7 +16,7 @@ serve(async (req) => {
 
   try {
     const { task, agentContext } = await req.json();
-    const { campaignDetails, characterDetails, memories } = agentContext;
+    const { campaignDetails, characterDetails, memories = [] } = agentContext;
 
     console.log('Processing DM Agent task:', {
       taskType: task.description,
@@ -24,10 +25,62 @@ serve(async (req) => {
       memoryCount: memories?.length
     });
 
+    // Sort memories by importance and recency
+    const relevantMemories = memories
+      .sort((a, b) => {
+        const importanceDiff = (b.importance || 0) - (a.importance || 0);
+        if (importanceDiff !== 0) return importanceDiff;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      })
+      .slice(0, 5); // Get top 5 most relevant memories
+
+    console.log('Using relevant memories:', relevantMemories.map(m => ({
+      content: m.content,
+      importance: m.importance,
+      type: m.type
+    })));
+
     const environmentGen = new EnvironmentGenerator();
     const interactionGen = new CharacterInteractionGenerator();
 
-    // Generate environment and interactions
+    // Build prompt with memory context
+    const prompt = buildPrompt({
+      campaignContext: campaignDetails,
+      characterContext: characterDetails,
+      memories: relevantMemories
+    });
+
+    // Call OpenAI with the enhanced prompt
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4',
+        messages: [
+          { 
+            role: 'system', 
+            content: prompt 
+          },
+          {
+            role: 'user',
+            content: task.description
+          }
+        ],
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.statusText}`);
+    }
+
+    const aiResponse = await response.json();
+    const narrativeText = aiResponse.choices[0].message.content;
+
+    // Generate environment and interactions using the AI response
     const environment = environmentGen.generateEnvironment(campaignDetails, characterDetails);
     const interactions = await interactionGen.generateInteractions(
       campaignDetails.world_id,
@@ -44,7 +97,7 @@ serve(async (req) => {
       characters: {
         activeNPCs: interactions.activeNPCs,
         reactions: interactions.reactions,
-        dialogue: interactions.dialogue
+        dialogue: narrativeText // Use the AI-generated narrative
       },
       opportunities: {
         immediate: generateImmediateActions(campaignDetails, characterDetails),
@@ -58,12 +111,9 @@ serve(async (req) => {
       }
     };
 
-    // Format the narrative into natural language
-    const formattedResponse = formatNarrativeResponse(narrativeResponse, characterDetails);
-
     return new Response(
       JSON.stringify({
-        response: formattedResponse,
+        response: narrativeText,
         context: agentContext,
         raw: narrativeResponse
       }),

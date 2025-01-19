@@ -16,10 +16,6 @@ interface MessageHandlerProps {
   }) => React.ReactNode;
 }
 
-/**
- * MessageHandler Component
- * Manages message processing and AI responses
- */
 export const MessageHandler: React.FC<MessageHandlerProps> = ({
   sessionId,
   campaignId,
@@ -36,6 +32,8 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
     if (queueStatus === 'processing') return;
 
     try {
+      console.log('[Memory Flow] Starting message handling for:', playerInput);
+      
       // Validate session before proceeding
       const isValid = await validateSession();
       if (!isValid) return;
@@ -51,6 +49,7 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
       };
       await sendMessage(playerMessage);
       
+      console.log('[Memory Flow] Extracting memories from player input');
       // Extract memories from player input
       await extractMemories(playerInput);
       
@@ -69,11 +68,13 @@ export const MessageHandler: React.FC<MessageHandlerProps> = ({
         throw new Error('No active session found');
       }
       
+      console.log('[Memory Flow] Getting AI response');
       const aiResponse = await getAIResponse([...messages, playerMessage], sessionId);
       await sendMessage(aiResponse);
       
       // Extract memories from AI response
       if (aiResponse.text) {
+        console.log('[Memory Flow] Extracting memories from AI response:', aiResponse.text);
         await extractMemories(aiResponse.text);
       }
 

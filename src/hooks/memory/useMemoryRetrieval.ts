@@ -1,20 +1,14 @@
-/**
- * Hook for handling memory retrieval operations
- */
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Memory, isValidMemoryType } from '@/components/game/memory/types';
 
-/**
- * Custom hook for retrieving and managing memories
- */
 export const useMemoryRetrieval = (sessionId: string | null) => {
   return useQuery({
     queryKey: ['memories', sessionId],
     queryFn: async () => {
       if (!sessionId) return [];
       
-      console.log('[Memory] Fetching memories for session:', sessionId);
+      console.log('[Memory Retrieval] Fetching memories for session:', sessionId);
       
       const { data, error } = await supabase
         .from('memories')
@@ -23,11 +17,11 @@ export const useMemoryRetrieval = (sessionId: string | null) => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[Memory] Error fetching memories:', error);
+        console.error('[Memory Retrieval] Error fetching memories:', error);
         throw error;
       }
 
-      console.log(`[Memory] Retrieved ${data.length} memories`);
+      console.log(`[Memory Retrieval] Retrieved ${data.length} memories`);
       
       // Transform and validate the data to match Memory type
       return data.map((memory): Memory => {
@@ -35,7 +29,7 @@ export const useMemoryRetrieval = (sessionId: string | null) => {
         const validatedType = isValidMemoryType(memory.type) ? memory.type : 'general';
         
         if (validatedType !== memory.type) {
-          console.warn(`[Memory] Invalid memory type detected: ${memory.type}, defaulting to 'general'`);
+          console.warn(`[Memory Retrieval] Invalid memory type detected: ${memory.type}, defaulting to 'general'`);
         }
 
         return {

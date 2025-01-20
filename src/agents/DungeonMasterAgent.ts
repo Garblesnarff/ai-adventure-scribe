@@ -4,6 +4,7 @@ import { MessageType, MessagePriority } from './crewai/types/communication';
 import { ErrorHandlingService } from './error/services/ErrorHandlingService';
 import { ErrorCategory, ErrorSeverity } from './error/types';
 import { ResponseCoordinator } from './services/response/ResponseCoordinator';
+import { GameState } from '../types/gameState';
 
 export class DungeonMasterAgent implements Agent {
   id: string;
@@ -16,6 +17,7 @@ export class DungeonMasterAgent implements Agent {
   private messagingService: AgentMessagingService;
   private responseCoordinator: ResponseCoordinator;
   private errorHandler: ErrorHandlingService;
+  private gameState: Partial<GameState>;
 
   constructor() {
     this.id = 'dm_agent_1';
@@ -28,6 +30,33 @@ export class DungeonMasterAgent implements Agent {
     this.messagingService = AgentMessagingService.getInstance();
     this.responseCoordinator = new ResponseCoordinator();
     this.errorHandler = ErrorHandlingService.getInstance();
+    this.gameState = this.initializeGameState();
+  }
+
+  private initializeGameState(): Partial<GameState> {
+    return {
+      location: {
+        name: 'Starting Location',
+        description: 'The beginning of your adventure',
+        atmosphere: 'neutral',
+        timeOfDay: 'dawn'
+      },
+      activeNPCs: [],
+      sceneStatus: {
+        currentAction: 'beginning',
+        availableActions: [],
+        environmentalEffects: [],
+        threatLevel: 'none'
+      }
+    };
+  }
+
+  private updateGameState(newState: Partial<GameState>) {
+    this.gameState = {
+      ...this.gameState,
+      ...newState
+    };
+    console.log('Updated game state:', this.gameState);
   }
 
   async executeTask(task: AgentTask): Promise<AgentResult> {
@@ -42,11 +71,43 @@ export class DungeonMasterAgent implements Agent {
         );
       }
 
+      // Add game state to task context
+      const enhancedTask = {
+        ...task,
+        context: {
+          ...task.context,
+          gameState: this.gameState
+        }
+      };
+
       // Generate response
-      const response = await this.responseCoordinator.generateResponse(task);
+      const response = await this.responseCoordinator.generateResponse(enhancedTask);
+
+      // Update game state based on response
+      if (response.data?.narrativeResponse) {
+        const { environment, characters } = response.data.narrativeResponse;
+        this.updateGameState({
+          location: {
+            ...this.gameState.location,
+            description: environment.description,
+            atmosphere: environment.atmosphere
+          },
+          activeNPCs: characters.activeNPCs.map(name => ({
+            id: name.toLowerCase().replace(/\s/g, '_'),
+            name,
+            description: '',
+            personality: '',
+            currentStatus: 'active'
+          })),
+          sceneStatus: {
+            ...this.gameState.sceneStatus,
+            availableActions: response.data.narrativeResponse.opportunities.immediate
+          }
+        });
+      }
 
       // Notify other agents
-      await this.notifyAgents(task, response);
+      await this.notifyAgents(enhancedTask, response);
 
       return response;
     } catch (error) {

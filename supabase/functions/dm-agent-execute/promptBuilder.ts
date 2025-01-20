@@ -1,17 +1,44 @@
-import { AgentContext } from './types.ts';
+import { AgentContext } from './types';
+import { GameState } from '../../../src/types/gameState';
 
-export function buildPrompt(context: AgentContext): string {
-  const { campaignContext, characterContext, memories } = context;
-  
-  // Format recent memories for context
-  const recentMemories = memories
-    .sort((a, b) => (b.importance || 0) - (a.importance || 0))
+function formatMemories(memories: any[]) {
+  // Sort memories by importance and recency
+  return memories
+    .sort((a, b) => {
+      const importanceDiff = (b.importance || 0) - (a.importance || 0);
+      if (importanceDiff !== 0) return importanceDiff;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    })
     .map(m => `- ${m.content} (Type: ${m.type}, Importance: ${m.importance})`)
     .join('\n');
+}
+
+function formatGameState(state: Partial<GameState>) {
+  return `
+CURRENT SCENE STATE:
+Location: ${state.location?.name || 'Unknown'}
+Time of Day: ${state.location?.timeOfDay || 'Unknown'}
+Atmosphere: ${state.location?.atmosphere || 'Neutral'}
+
+Active NPCs:
+${state.activeNPCs?.map(npc => `- ${npc.name}: ${npc.currentStatus}`).join('\n') || 'None'}
+
+Scene Status:
+- Current Action: ${state.sceneStatus?.currentAction || 'None'}
+- Threat Level: ${state.sceneStatus?.threatLevel || 'none'}
+${state.sceneStatus?.environmentalEffects?.length ? `- Environmental Effects: ${state.sceneStatus.environmentalEffects.join(', ')}` : ''}
+`;
+}
+
+export function buildPrompt(context: AgentContext & { gameState?: Partial<GameState> }): string {
+  const { campaignContext, characterContext, memories, gameState } = context;
+  
+  // Format recent memories for context
+  const recentMemories = formatMemories(memories);
 
   return `
 You are an expert Dungeon Master running a ${campaignContext.genre} campaign called "${campaignContext.name}". 
-Your responses should be dynamic, engaging, and contextually appropriate.
+Your responses should be dynamic, engaging, and maintain perfect narrative consistency.
 
 CAMPAIGN CONTEXT:
 Era: ${campaignContext.setting_details?.era || 'Standard Fantasy'}
@@ -25,34 +52,35 @@ Background: ${characterContext.background}
 Alignment: ${characterContext.alignment}
 ${characterContext.description ? `Description: ${characterContext.description}` : ''}
 
+${gameState ? formatGameState(gameState) : ''}
+
 RECENT MEMORIES AND EVENTS:
 ${recentMemories}
 
-CONVERSATION STATE GUIDELINES:
-1. Active Dialogue:
-   - Reference previous interactions from memories
-   - Show how NPCs remember and react to past encounters
-   - Maintain consistent NPC personalities
-   - Progress conversations naturally based on history
+RESPONSE GUIDELINES:
+1. Maintain Scene Consistency:
+   - Keep track of current location, NPCs, and time of day
+   - Only reference events that actually happened in memories
+   - Maintain NPC personalities and relationships
+   - Progress the scene naturally based on player actions
 
-2. Scene Evolution:
-   - Acknowledge time passing and changes since last interaction
-   - Update environment based on player actions
-   - Reference past events that affected the location
+2. Response Structure:
+   - Scene Description: Current location and atmosphere
+   - NPC Interactions: Active characters and their reactions
+   - Available Actions: Clear choices based on the situation
+   - Environmental Details: Sensory information and effects
+
+3. Memory Integration:
+   - Reference relevant past interactions
    - Show consequences of previous choices
-
-3. Response Structure:
-   - Start by acknowledging the player's current action
-   - Reference relevant past interactions from memories
-   - Describe current scene changes and NPC reactions
-   - Provide contextual choices that build on history
+   - Maintain continuity with established events
+   - Use actual memories, never invent false ones
 
 Remember to:
-- Never repeat exact descriptions from memories
-- Show NPCs remembering past interactions
-- Progress the scene based on time passed
-- Reference consequences of previous choices
-- Keep descriptions vivid but concise
-- Ensure all responses feel unique and personalized
-- Maintain the campaign's ${campaignContext.tone} tone`;
+- Keep the ${campaignContext.tone || 'balanced'} tone consistent
+- Maintain the established atmosphere
+- Progress time naturally
+- Keep NPCs consistent in personality and behavior
+- Only reference events from actual memories
+- Provide clear, contextual choices`;
 }

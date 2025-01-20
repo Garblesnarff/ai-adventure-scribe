@@ -1,7 +1,11 @@
+import { GameState } from '../../../src/types/gameState';
+import { Memory } from '../../../src/components/game/memory/types';
+
 export interface AgentContext {
   campaignContext: CampaignContext;
   characterContext: CharacterContext;
   memories: Memory[];
+  gameState?: Partial<GameState>;
 }
 
 export interface CampaignContext {
@@ -47,14 +51,6 @@ export interface CharacterContext {
     equipped: boolean;
     quantity: number;
   }>;
-}
-
-export interface Memory {
-  content: string;
-  type: string;
-  importance: number;
-  metadata?: Record<string, any>;
-  created_at?: string;
 }
 
 export interface DMResponse {

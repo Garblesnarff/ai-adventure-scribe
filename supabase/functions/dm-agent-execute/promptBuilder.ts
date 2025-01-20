@@ -1,4 +1,4 @@
-import { AgentContext, GameState } from './types';
+import { AgentContext, GameState } from './types.ts';
 
 function formatMemories(memories: any[]) {
   // Sort memories by importance and recency

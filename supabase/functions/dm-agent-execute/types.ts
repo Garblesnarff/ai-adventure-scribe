@@ -16,6 +16,7 @@ export interface CampaignContext {
     location?: string;
     atmosphere?: string;
   };
+  world_id?: string;
 }
 
 export interface CharacterContext {
@@ -26,28 +27,6 @@ export interface CharacterContext {
   background?: string;
   description?: string;
   alignment?: string;
-  hitPoints: {
-    current: number;
-    max: number;
-    temporary: number;
-  };
-  abilityScores: {
-    strength: { score: number; modifier: number };
-    dexterity: { score: number; modifier: number };
-    constitution: { score: number; modifier: number };
-    intelligence: { score: number; modifier: number };
-    wisdom: { score: number; modifier: number };
-    charisma: { score: number; modifier: number };
-  };
-  armorClass: number;
-  initiative: number;
-  speed: number;
-  equipment: Array<{
-    name: string;
-    type: string;
-    equipped: boolean;
-    quantity: number;
-  }>;
 }
 
 export interface Memory {

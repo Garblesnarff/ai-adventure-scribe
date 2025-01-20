@@ -1,11 +1,8 @@
-import { GameState } from '../../../src/types/gameState';
-import { Memory } from '../../../src/components/game/memory/types';
-
 export interface AgentContext {
   campaignContext: CampaignContext;
   characterContext: CharacterContext;
   memories: Memory[];
-  gameState?: Partial<GameState>;
+  gameState?: GameState;
 }
 
 export interface CampaignContext {
@@ -51,6 +48,49 @@ export interface CharacterContext {
     equipped: boolean;
     quantity: number;
   }>;
+}
+
+export interface Memory {
+  id?: string;
+  session_id?: string;
+  type: string;
+  content: string;
+  importance?: number;
+  embedding?: number[];
+  metadata?: Record<string, any>;
+  created_at?: string;
+  updated_at?: string;
+  category?: string;
+}
+
+export interface GameState {
+  location: {
+    name: string;
+    description: string;
+    atmosphere: string;
+    timeOfDay: string;
+  };
+  activeNPCs: Array<{
+    id: string;
+    name: string;
+    description: string;
+    personality: string;
+    currentStatus: string;
+    lastInteraction?: string;
+  }>;
+  playerStatus: {
+    currentHealth: number;
+    maxHealth: number;
+    conditions: string[];
+    inventory: string[];
+    activeEffects: string[];
+  };
+  sceneStatus: {
+    currentAction: string;
+    availableActions: string[];
+    environmentalEffects: string[];
+    threatLevel: 'none' | 'low' | 'medium' | 'high';
+  };
 }
 
 export interface DMResponse {

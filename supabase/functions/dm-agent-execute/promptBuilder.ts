@@ -1,5 +1,4 @@
-import { AgentContext } from './types';
-import { GameState } from '../../../src/types/gameState';
+import { AgentContext, GameState } from './types';
 
 function formatMemories(memories: any[]) {
   // Sort memories by importance and recency
@@ -13,7 +12,7 @@ function formatMemories(memories: any[]) {
     .join('\n');
 }
 
-function formatGameState(state: Partial<GameState>) {
+function formatGameState(state: GameState) {
   return `
 CURRENT SCENE STATE:
 Location: ${state.location?.name || 'Unknown'}
@@ -30,7 +29,7 @@ ${state.sceneStatus?.environmentalEffects?.length ? `- Environmental Effects: ${
 `;
 }
 
-export function buildPrompt(context: AgentContext & { gameState?: Partial<GameState> }): string {
+export function buildPrompt(context: AgentContext): string {
   const { campaignContext, characterContext, memories, gameState } = context;
   
   // Format recent memories for context

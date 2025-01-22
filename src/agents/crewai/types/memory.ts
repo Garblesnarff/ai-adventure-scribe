@@ -1,12 +1,45 @@
-import { Memory } from '@/components/game/memory/types';
+export interface EnhancedMemory {
+  id: string;
+  type: 'dialogue' | 'description' | 'action' | 'scene_state';
+  content: string;
+  timestamp: string;
+  importance: number;
+  category: 'npc' | 'location' | 'player_action' | 'environment' | 'general';
+  context: {
+    location?: string;
+    npcs?: string[];
+    playerAction?: string;
+    sceneState?: SceneState;
+  };
+  metadata: Record<string, any>;
+}
 
-/**
- * Interface for CrewAI agent memory operations
- */
-export interface AgentMemory {
-  shortTerm: Memory[];
-  longTerm: Memory[];
-  retrieve: (context: any) => Promise<Memory[]>;
-  store: (memory: Partial<Memory>) => Promise<void>;
-  forget: (memoryId: string) => Promise<void>;
+export interface SceneState {
+  currentLocation: string;
+  activeNPCs: Array<{
+    id: string;
+    name: string;
+    status: 'present' | 'departed' | 'inactive';
+    lastInteraction?: string;
+  }>;
+  environmentDetails: {
+    atmosphere: string;
+    timeOfDay: string;
+    sensoryDetails: string[];
+  };
+  playerState: {
+    lastAction: string;
+    currentInteraction?: string;
+  };
+}
+
+export interface MemoryQueryOptions {
+  category?: string;
+  timeframe?: 'recent' | 'all';
+  contextMatch?: {
+    location?: string;
+    npc?: string;
+    action?: string;
+  };
+  limit?: number;
 }

@@ -1,9 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
-import { EnhancedMemory, MemoryQueryOptions, SceneState } from '@/agents/crewai/types/memory';
+import { EnhancedMemory, MemoryQueryOptions } from '@/agents/crewai/types/memory';
+import { Json } from '@/integrations/supabase/types';
 
 export class EnhancedMemoryManager {
   private sessionId: string;
-  private currentState: SceneState | null = null;
+  private currentState: EnhancedMemory['context']['sceneState'] | null = null;
 
   constructor(sessionId: string) {
     this.sessionId = sessionId;
@@ -17,41 +18,41 @@ export class EnhancedMemoryManager {
   ): Promise<void> {
     const importance = this.calculateImportance(content, type, category);
     
-    const memory: Partial<EnhancedMemory> = {
-      type,
-      content,
+    // Serialize the context and metadata for Supabase storage
+    const metadata = {
       category,
-      importance,
-      timestamp: new Date().toISOString(),
-      context: {
+      context: JSON.stringify({
         ...context,
         sceneState: this.currentState
-      },
-      metadata: {}
+      }),
+      timestamp: new Date().toISOString()
     };
 
     console.log('[Memory] Storing new memory:', { type, category, importance });
 
     const { error } = await supabase
       .from('memories')
-      .insert([{
+      .insert({
         session_id: this.sessionId,
-        type: memory.type,
-        content: memory.content,
-        importance: memory.importance,
-        metadata: {
-          category: memory.category,
-          context: memory.context,
-          timestamp: memory.timestamp
-        }
-      }]);
+        type,
+        content,
+        importance,
+        metadata
+      });
 
     if (error) {
       console.error('[Memory] Error storing memory:', error);
       throw error;
     }
 
-    await this.updateSceneState(memory);
+    await this.updateSceneState({
+      type,
+      content,
+      context,
+      category,
+      importance,
+      metadata,
+    } as Partial<EnhancedMemory>);
   }
 
   async retrieveMemories(options: MemoryQueryOptions = {}): Promise<EnhancedMemory[]> {
@@ -150,7 +151,7 @@ export class EnhancedMemoryManager {
     // Update state based on memory type
     switch (memory.type) {
       case 'action':
-        this.currentState.playerState.lastAction = memory.content;
+        this.currentState.playerState.lastAction = memory.content || '';
         break;
       case 'scene_state':
         if (memory.context?.location) {
@@ -187,14 +188,17 @@ export class EnhancedMemoryManager {
   }
 
   private transformDatabaseMemory(dbMemory: any): EnhancedMemory {
+    const metadata = dbMemory.metadata || {};
+    const context = metadata.context ? JSON.parse(metadata.context) : {};
+    
     return {
       id: dbMemory.id,
       type: dbMemory.type,
       content: dbMemory.content,
       timestamp: dbMemory.created_at,
       importance: dbMemory.importance || 0,
-      category: dbMemory.metadata?.category || 'general',
-      context: dbMemory.metadata?.context || {},
+      category: metadata.category || 'general',
+      context,
       metadata: dbMemory.metadata || {}
     };
   }

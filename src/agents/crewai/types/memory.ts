@@ -1,3 +1,11 @@
+export interface AgentMemory {
+  shortTerm: any[];
+  longTerm: any[];
+  retrieve: (context: any) => Promise<any[]>;
+  store: (memory: any) => Promise<void>;
+  forget: (memoryId: string) => Promise<void>;
+}
+
 export interface EnhancedMemory {
   id: string;
   type: 'dialogue' | 'description' | 'action' | 'scene_state';
@@ -9,28 +17,26 @@ export interface EnhancedMemory {
     location?: string;
     npcs?: string[];
     playerAction?: string;
-    sceneState?: SceneState;
+    sceneState?: {
+      currentLocation: string;
+      activeNPCs: Array<{
+        id: string;
+        name: string;
+        status: 'present' | 'departed' | 'inactive';
+        lastInteraction?: string;
+      }>;
+      environmentDetails: {
+        atmosphere: string;
+        timeOfDay: string;
+        sensoryDetails: string[];
+      };
+      playerState: {
+        lastAction: string;
+        currentInteraction?: string;
+      };
+    };
   };
   metadata: Record<string, any>;
-}
-
-export interface SceneState {
-  currentLocation: string;
-  activeNPCs: Array<{
-    id: string;
-    name: string;
-    status: 'present' | 'departed' | 'inactive';
-    lastInteraction?: string;
-  }>;
-  environmentDetails: {
-    atmosphere: string;
-    timeOfDay: string;
-    sensoryDetails: string[];
-  };
-  playerState: {
-    lastAction: string;
-    currentInteraction?: string;
-  };
 }
 
 export interface MemoryQueryOptions {

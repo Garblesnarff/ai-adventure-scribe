@@ -620,36 +620,48 @@ export type Database = {
         Row: {
           category: string | null
           content: string
+          context_id: string | null
           created_at: string | null
           embedding: string | null
           id: string
           importance: number | null
           metadata: Json | null
+          related_memories: string[] | null
           session_id: string | null
+          subcategory: string | null
+          tags: string[] | null
           type: string
           updated_at: string | null
         }
         Insert: {
           category?: string | null
           content: string
+          context_id?: string | null
           created_at?: string | null
           embedding?: string | null
           id?: string
           importance?: number | null
           metadata?: Json | null
+          related_memories?: string[] | null
           session_id?: string | null
+          subcategory?: string | null
+          tags?: string[] | null
           type: string
           updated_at?: string | null
         }
         Update: {
           category?: string | null
           content?: string
+          context_id?: string | null
           created_at?: string | null
           embedding?: string | null
           id?: string
           importance?: number | null
           metadata?: Json | null
+          related_memories?: string[] | null
           session_id?: string | null
+          subcategory?: string | null
+          tags?: string[] | null
           type?: string
           updated_at?: string | null
         }
@@ -1461,6 +1473,18 @@ export type Database = {
     }
     Enums: {
       media_type: "Newspaper" | "Document" | "Photo" | "Video" | "Audio"
+      memory_subcategory:
+        | "current_location"
+        | "previous_location"
+        | "npc"
+        | "player"
+        | "player_action"
+        | "npc_action"
+        | "dialogue"
+        | "description"
+        | "environment"
+        | "item"
+        | "general"
       timeline_category:
         | "Technology"
         | "Political"

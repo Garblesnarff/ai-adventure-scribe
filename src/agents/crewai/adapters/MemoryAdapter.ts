@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Memory, MemoryType, isValidMemoryType } from '@/components/game/memory/types';
+import { Memory, MemoryType, MemorySubcategory, isValidMemoryType, isValidMemorySubcategory } from '@/components/game/memory/types';
 import { Json } from '@/integrations/supabase/types';
 
 /**
@@ -54,13 +54,16 @@ export class MemoryAdapter {
     const memoryData = {
       content: memory.content,
       type: this.validateMemoryType(memory.type),
+      subcategory: this.validateMemorySubcategory(memory.subcategory),
       session_id: this.sessionId,
       importance: memory.importance || 0,
       embedding: this.formatEmbedding(memory.embedding),
       metadata: memory.metadata || {},
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      category: 'general'
+      context_id: memory.context_id,
+      related_memories: memory.related_memories || [],
+      tags: memory.tags || []
     };
 
     const { error } = await supabase
@@ -100,6 +103,17 @@ export class MemoryAdapter {
   }
 
   /**
+   * Validates memory subcategory
+   */
+  private validateMemorySubcategory(subcategory?: MemorySubcategory): MemorySubcategory {
+    if (subcategory && isValidMemorySubcategory(subcategory)) {
+      return subcategory;
+    }
+    console.warn(`Invalid memory subcategory: ${subcategory}, defaulting to 'general'`);
+    return 'general';
+  }
+
+  /**
    * Updates the memory cache
    */
   private updateMemoryCache(newMemory: Memory): void {
@@ -117,6 +131,7 @@ export class MemoryAdapter {
    */
   private validateAndConvertMemory(record: any): Memory {
     const validatedType = this.validateMemoryType(record.type as MemoryType);
+    const validatedSubcategory = this.validateMemorySubcategory(record.subcategory as MemorySubcategory);
     
     let parsedEmbedding: number[] | null = null;
     if (record.embedding) {
@@ -131,12 +146,16 @@ export class MemoryAdapter {
       id: record.id || '',
       content: record.content || '',
       type: validatedType,
+      subcategory: validatedSubcategory,
       session_id: record.session_id || this.sessionId,
       importance: record.importance || 0,
       embedding: parsedEmbedding,
       metadata: record.metadata || {},
       created_at: record.created_at || new Date().toISOString(),
       updated_at: record.updated_at || new Date().toISOString(),
+      context_id: record.context_id || null,
+      related_memories: record.related_memories || [],
+      tags: record.tags || []
     };
   }
 }
